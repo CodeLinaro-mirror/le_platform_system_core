@@ -264,8 +264,7 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
     sti->cookie = cookie;
     sti->fd = s[1];
 
-    adb_thread_t t;
-    if (adb_thread_create(&t, service_bootstrap_func, sti)) {
+    if (!adb_thread_create(service_bootstrap_func, sti)) {
         free(sti);
         adb_close(s[0]);
         adb_close(s[1]);
@@ -464,8 +463,7 @@ static int create_subproc_thread(const char *name, SubprocessType type) {
     sti->cookie = (void*) (uintptr_t) pid;
     sti->fd = ret_fd;
 
-    adb_thread_t t;
-    if (adb_thread_create(&t, service_bootstrap_func, sti)) {
+    if (!adb_thread_create(service_bootstrap_func, sti)) {
         free(sti);
         adb_close(ret_fd);
         fprintf(stderr, "cannot create service thread\n");

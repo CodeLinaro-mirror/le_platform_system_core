@@ -161,7 +161,7 @@ struct  adisconnect
 ** object, it's a special value used to indicate that a client wants to
 ** connect to a service implemented within the ADB server itself.
 */
-enum transport_type {
+enum TransportType {
         kTransportUsb,
         kTransportLocal,
         kTransportAny,
@@ -187,7 +187,7 @@ struct atransport
     unsigned sync_token;
     int connection_state;
     int online;
-    transport_type type;
+    TransportType type;
 
         /* usb handle or socket fd as needed */
     usb_handle *usb;
@@ -284,7 +284,7 @@ asocket*  create_jdwp_tracker_service_socket();
 int       create_jdwp_connection_fd(int  jdwp_pid);
 #endif
 
-int handle_forward_request(const char* service, transport_type ttype, char* serial, int reply_fd);
+int handle_forward_request(const char* service, TransportType type, char* serial, int reply_fd);
 
 #if !ADB_HOST
 void framebuffer_service(int fd, void *cookie);
@@ -360,11 +360,6 @@ extern int SHELL_EXIT_NOTIFY_FD;
 extern bool adb_use_pcie;
 #endif
 
-enum subproc_mode {
-    SUBPROC_PTY = 0,
-    SUBPROC_RAW = 1,
-} ;
-
 #define CHUNK_SIZE (64*1024)
 
 #if !ADB_HOST
@@ -386,7 +381,7 @@ enum subproc_mode {
 /* Differentiating macro for the targets which supports adb non root */
 #define _ALLOW_ADB_NONROOT_
 
-int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s);
+int handle_host_request(char *service, TransportType type, char* serial, int reply_fd, asocket *s);
 
 void handle_online(atransport *t);
 void handle_offline(atransport *t);

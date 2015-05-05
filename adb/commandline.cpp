@@ -1214,7 +1214,6 @@ int adb_commandline(int argc, const char **argv) {
     int no_daemon = 0;
     int is_daemon = 0;
     int is_server = 0;
-    int persist = 0;
     int r;
     TransportType transport_type = kTransportAny;
 
@@ -1253,8 +1252,6 @@ int adb_commandline(int argc, const char **argv) {
         } else if (!strcmp(argv[0], "fork-server")) {
             /* this is a special flag used only when the ADB client launches the ADB Server */
             is_daemon = 1;
-        } else if (!strcmp(argv[0],"persist")) {
-            persist = 1;
         } else if (!strncmp(argv[0], "-p", 2)) {
             const char *product = NULL;
             if (argv[0][2] == '\0') {

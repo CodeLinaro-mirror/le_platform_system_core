@@ -45,7 +45,7 @@ libadbd_la_LDFLAGS  += @LIBBASE_LIBS@ @MINCRYPT_LIBS@ @EXT4UTILS_LIBS@
 root_sbindir       := "/sbin"
 root_sbin_PROGRAMS := adbd
 
-adbd_SOURCES  := adb_main.cpp
+adbd_SOURCES  := daemon/main.cpp
 adbd_SOURCES  += services.cpp
 adbd_SOURCES  += file_sync_service.cpp
 adbd_SOURCES  += framebuffer_service.cpp
@@ -87,6 +87,7 @@ if BUILD_HOST
 lib_LTLIBRARIES := libadb.la
 
 libadb_la_SOURCES := $(adb_sources) $(adb_linux_sources)
+libadb_la_SOURCES += client/main.cpp
 libadb_la_SOURCES += adb_auth_host.cpp
 
 libadbd_la_CPPFLAGS := -I$(top_srcdir) @LIBCUTILS_CFLAGS@

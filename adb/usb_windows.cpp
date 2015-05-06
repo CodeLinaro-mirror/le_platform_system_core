@@ -93,9 +93,6 @@ void* device_poll_thread(void* unused);
 /// Initializes this module
 void usb_init();
 
-/// Cleans up this module
-void usb_cleanup();
-
 /// Opens usb interface (device) by interface (device) name.
 usb_handle* do_usb_open(const wchar_t* interface_name);
 
@@ -186,9 +183,6 @@ void usb_init() {
   if(adb_thread_create(&tid, device_poll_thread, NULL)) {
     fatal_errno("cannot create input thread");
   }
-}
-
-void usb_cleanup() {
 }
 
 usb_handle* do_usb_open(const wchar_t* interface_name) {

@@ -700,7 +700,7 @@ int launch_server(int server_port)
 // Try to handle a network forwarding request.
 // This returns 1 on success, 0 on failure, and -1 to indicate this is not
 // a forwarding-related request.
-int handle_forward_request(const char* service, TransportType type, char* serial, int reply_fd)
+int handle_forward_request(const char* service, TransportType type, const char* serial, int reply_fd)
 {
     if (!strcmp(service, "list-forward")) {
         // Create the list of forward redirections.
@@ -800,13 +800,12 @@ int handle_forward_request(const char* service, TransportType type, char* serial
     return 0;
 }
 
-int handle_host_request(char *service, TransportType type, char* serial, int reply_fd, asocket *s)
-{
-    if(!strcmp(service, "kill")) {
-        fprintf(stderr,"adb server killed by remote request\n");
+int handle_host_request(const char* service, TransportType type,
+                        const char* serial, int reply_fd, asocket* s) {
+    if (strcmp(service, "kill") == 0) {
+        fprintf(stderr, "adb server killed by remote request\n");
         fflush(stdout);
         SendOkay(reply_fd);
-        usb_cleanup();
         exit(0);
     }
 

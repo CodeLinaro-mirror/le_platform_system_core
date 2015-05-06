@@ -322,7 +322,7 @@ asocket*  create_jdwp_tracker_service_socket();
 int       create_jdwp_connection_fd(int  jdwp_pid);
 #endif
 
-int handle_forward_request(const char* service, TransportType type, char* serial, int reply_fd);
+int handle_forward_request(const char* service, TransportType type, const char* serial, int reply_fd);
 
 #if !ADB_HOST
 void framebuffer_service(int fd, void *cookie);
@@ -363,7 +363,6 @@ int  local_connect_arbitrary_ports(int console_port, int adb_port);
 
 /* usb host/client interface */
 void usb_init();
-void usb_cleanup();
 int usb_write(usb_handle *h, const void *data, int len);
 int usb_read(usb_handle *h, void *data, int len);
 int usb_close(usb_handle *h);
@@ -408,7 +407,7 @@ extern bool adb_use_pcie;
 /* Differentiating macro for the targets which supports adb non root */
 #define _ALLOW_ADB_NONROOT_
 
-int handle_host_request(char *service, TransportType type, char* serial, int reply_fd, asocket *s);
+int handle_host_request(const char* service, TransportType type, const char* serial, int reply_fd, asocket *s);
 
 void handle_online(atransport *t);
 void handle_offline(atransport *t);

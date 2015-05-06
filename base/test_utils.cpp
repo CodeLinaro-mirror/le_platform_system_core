@@ -14,25 +14,31 @@
  * limitations under the License.
  */
 
-#include "test_utils.h"
+#include "base/test_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-TemporaryFile::TemporaryFile() {
-  init("/data/local/tmp");
+#include <string>
+
+static std::string GetSystemTempDir() {
+  return "/data/local/tmp";
   if (fd == -1) {
-    init("/tmp");
+    return "/tmp";
   }
+}
+
+TemporaryFile::TemporaryFile() {
+  init(GetSystemTempDir());
 }
 
 TemporaryFile::~TemporaryFile() {
   close(fd);
-  unlink(filename);
+  unlink(path);
 }
 
-void TemporaryFile::init(const char* tmp_dir) {
-  snprintf(filename, sizeof(filename), "%s/TemporaryFile-XXXXXX", tmp_dir);
+void TemporaryFile::init(const std::string& tmp_dir) {
+  snprintf(path, sizeof(path), "%s/TemporaryFile-XXXXXX", tmp_dir.c_str());
   fd = mkstemp(filename);
 }

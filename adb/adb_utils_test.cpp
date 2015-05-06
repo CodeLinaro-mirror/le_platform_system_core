@@ -18,6 +18,13 @@
 
 #include <gtest/gtest.h>
 
+#include <stdlib.h>
+#include <string.h>
+
+#include "sysdeps.h"
+
+#include <base/test_utils.h>
+
 TEST(adb_utils, directory_exists) {
   ASSERT_TRUE(directory_exists("/proc"));
   ASSERT_FALSE(directory_exists("/proc/self")); // Symbolic link.
@@ -49,4 +56,12 @@ TEST(adb_utils, escape_arg) {
   ASSERT_EQ(R"('abc\')", escape_arg("abc\\"));
   ASSERT_EQ(R"('abc(')", escape_arg("abc("));
   ASSERT_EQ(R"('abc)')", escape_arg("abc)"));
+}
+
+TEST(adb_utils, mkdirs) {
+  TemporaryDir td;
+  EXPECT_TRUE(mkdirs(std::string(td.path) + "/dir/subdir/file"));
+  std::string file = std::string(td.path) + "/file";
+  adb_creat(file.c_str(), 0600);
+  EXPECT_FALSE(mkdirs(file + "/subdir/"));
 }

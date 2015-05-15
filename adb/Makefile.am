@@ -75,7 +75,7 @@ adbd_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy @GLIB_CFLAGS
 adbd_CPPFLAGS += @EXT4UTILS_CFLAGS@
 
 adbd_LDADD   := libadbd.la
-adbd_LDFLAGS := -lpthread -lresolv -lselinux
+adbd_LDFLAGS := -lpthread -lresolv -lselinux -lutil
 adbd_LDFLAGS += @LIBLOG_LIBS@ @GLIB_LIBS@ @LIBCUTILS_LIBS@
 adbd_LDFLAGS += @LIBBASE_LIBS@ @FSMGR_LIBS@ @MINCRYPT_LIBS@
 endif

@@ -27,6 +27,8 @@
 #include <limits.h>
 #include <sys/types.h>
 
+#include <base/macros.h>
+
 #include "adb_trace.h"
 #include "fdevent.h"
 
@@ -58,7 +60,7 @@ void no_sysprop_set_adb_run_as_nonroot();
 bool no_sysprop_get_adb_run_as_root_conf();
 #endif // USING_SYSTEM_PROPERTIES
 
-struct atransport;
+class atransport;
 struct usb_handle;
 
 struct amessage {
@@ -167,20 +169,19 @@ struct  adisconnect
 };
 
 
-/* a transport object models the connection to a remote device or emulator
-** there is one transport per connected device/emulator. a "local transport"
-** connects through TCP (for the emulator), while a "usb transport" through
-** USB (for real devices)
-**
-** note that kTransportHost doesn't really correspond to a real transport
-** object, it's a special value used to indicate that a client wants to
-** connect to a service implemented within the ADB server itself.
-*/
+// A transport object models the connection to a remote device or emulator there
+// is one transport per connected device/emulator. A "local transport" connects
+// through TCP (for the emulator), while a "usb transport" through USB (for real
+// devices).
+//
+// Note that kTransportHost doesn't really correspond to a real transport
+// object, it's a special value used to indicate that a client wants to connect
+// to a service implemented within the ADB server itself.
 enum TransportType {
-        kTransportUsb,
-        kTransportLocal,
-        kTransportAny,
-        kTransportHost,
+    kTransportUsb,
+    kTransportLocal,
+    kTransportAny,
+    kTransportHost,
 };
 
 #define TOKEN_SIZE 20
@@ -197,47 +198,59 @@ enum ConnectionState {
     kCsUnauthorized,
 };
 
-struct atransport
-{
-    atransport *next;
-    atransport *prev;
+class atransport {
+public:
+    // TODO(danalbert): We expose waaaaaaay too much stuff because this was
+    // historically just a struct, but making the whole thing a more idiomatic
+    // class in one go is a very large change. Given how bad our testing is,
+    // it's better to do this piece by piece.
 
-    int (*read_from_remote)(apacket *p, atransport *t);
-    int (*write_to_remote)(apacket *p, atransport *t);
-    void (*close)(atransport *t);
-    void (*kick)(atransport *t);
+    atransport() {
+        auth_fde = {};
+        transport_fde = {};
+    }
 
-    int fd;
-    int transport_socket;
+    virtual ~atransport() {}
+
+    int (*read_from_remote)(apacket* p, atransport* t) = nullptr;
+    int (*write_to_remote)(apacket* p, atransport* t) = nullptr;
+    void (*close)(atransport* t) = nullptr;
+    void (*kick)(atransport* t) = nullptr;
+
+    int fd = -1;
+    int transport_socket = -1;
     fdevent transport_fde;
-    int ref_count;
-    unsigned sync_token;
-    int connection_state;
-    int online;
-    TransportType type;
+    int ref_count = 0;
+    uint32_t sync_token = 0;
+    ConnectionState connection_state = kCsOffline;
+    bool online = false;
+    TransportType type = kTransportAny;
 
-        /* usb handle or socket fd as needed */
-    usb_handle *usb;
-    int sfd;
+    // USB handle or socket fd as needed.
+    usb_handle* usb = nullptr;
+    int sfd = -1;
 
-        /* used to identify transports for clients */
-    char *serial;
-    char *product;
-    char *model;
-    char *device;
-    char *devpath;
-    int adb_port; // Use for emulators (local transport)
+    // Used to identify transports for clients.
+    char* serial = nullptr;
+    char* product = nullptr;
+    char* model = nullptr;
+    char* device = nullptr;
+    char* devpath = nullptr;
+    int adb_port = -1;  // Use for emulators (local transport)
+    bool kicked = false;
 
-        /* a list of adisconnect callbacks called when the transport is kicked */
-    int          kicked;
-    adisconnect  disconnects;
+    // A list of adisconnect callbacks called when the transport is kicked.
+    adisconnect disconnects = {};
 
-    void *key;
-    unsigned char token[TOKEN_SIZE];
+    void* key = nullptr;
+    unsigned char token[TOKEN_SIZE] = {};
     fdevent auth_fde;
-    unsigned failed_auth_attempts;
+    size_t failed_auth_attempts = 0;
 
     const char* connection_state_name() const;
+
+private:
+    DISALLOW_COPY_AND_ASSIGN(atransport);
 };
 
 

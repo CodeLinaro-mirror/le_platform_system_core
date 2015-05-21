@@ -853,6 +853,13 @@ int handle_host_request(const char* service, TransportType type,
         return 1;
     }
 
+    if (!strcmp(service, "features")) {
+        SendOkay(reply_fd);
+        SendProtocolString(
+            reply_fd, android::base::Join(supported_features(), '\n'));
+        return 0;
+    }
+
     // remove TCP transport
     if (!strncmp(service, "disconnect:", 11)) {
         char buffer[4096];

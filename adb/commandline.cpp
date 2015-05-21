@@ -1550,6 +1550,9 @@ int adb_commandline(int argc, const char **argv) {
         version(stdout);
         return 0;
     }
+    else if (!strcmp(argv[0], "features")) {
+        return adb_query_command("host:features");
+    }
 
     usage();
     return 1;

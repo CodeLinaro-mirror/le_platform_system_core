@@ -251,7 +251,7 @@ static int usb_adb_write(usb_handle *h, const void *data, int len)
     int n;
 
     D("about to write (fd=%d, len=%d)\n", h->fd, len);
-    n = adb_write(h->fd, data, len);
+    n = unix_write(h->fd, data, len);
     if(n != len) {
         D("ERROR: fd = %d, n = %d, errno = %d (%s)\n",
             h->fd, n, errno, strerror(errno));
@@ -286,7 +286,7 @@ static void usb_adb_kick(usb_handle *h)
 {
     D("usb_kick\n");
     adb_mutex_lock(&h->lock);
-    adb_close(h->fd);
+    unix_close(h->fd);
     h->fd = -1;
 
     // notify usb_adb_open_thread that we are disconnected

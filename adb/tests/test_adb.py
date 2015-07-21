@@ -181,7 +181,7 @@ class AdbWrapper(object):
                                                                   remote))
 
     def tcpip(self, port):
-        return call_checked(self.adb_cmd + "tcpip {}".format(port))
+        return call_combined(self.adb_cmd + "tcpip {}".format(port))
 
     def usb(self):
         return call_checked(self.adb_cmd + "usb")
@@ -313,6 +313,16 @@ class AdbBasic(unittest.TestCase):
         Bug: http://b/19735063
         """
         self.assertFalse(AdbWrapper().shell("uname").endswith("\r\n"))
+
+    def test_tcpip(self):
+        """adb tcpip requires a port. http://b/22636927"""
+        output, status_code = AdbWrapper().tcpip("")
+        self.assertEqual(1, status_code)
+        self.assertIn("help message", output)
+
+        output, status_code = AdbWrapper().tcpip("blah")
+        self.assertEqual(1, status_code)
+        self.assertIn("error", output)
 
 
 class AdbFile(unittest.TestCase):

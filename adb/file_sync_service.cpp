@@ -52,7 +52,7 @@ static int mkdirs(char *name)
     if(name[0] != '/') return -1;
 
     for(;;) {
-        x = adb_dirstart(x);
+        x = const_cast<char*>(adb_dirstart(x));
         if(x == 0) return 0;
         *x = 0;
         if (should_use_fs_config(name)) {

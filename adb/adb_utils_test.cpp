@@ -60,8 +60,13 @@ TEST(adb_utils, escape_arg) {
 
 TEST(adb_utils, mkdirs) {
   TemporaryDir td;
-  EXPECT_TRUE(mkdirs(std::string(td.path) + "/dir/subdir/file"));
-  std::string file = std::string(td.path) + "/file";
-  adb_creat(file.c_str(), 0600);
-  EXPECT_FALSE(mkdirs(file + "/subdir/"));
+  std::string path = std::string(td.path) + "/dir/subdir/file";
+  EXPECT_TRUE(mkdirs(path));
+  EXPECT_NE(-1, adb_creat(path.c_str(), 0600));
+  EXPECT_FALSE(mkdirs(path + "/subdir/"));
+}
+
+TEST(adb_utils, adb_basename) {
+  EXPECT_EQ("sh", adb_basename("/system/bin/sh"));
+  EXPECT_EQ("sh", adb_basename("sh"));
 }

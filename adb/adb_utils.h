@@ -29,4 +29,6 @@ std::string escape_arg(const std::string& s);
 
 void dump_hex(const void* ptr, size_t byte_count);
 
+std::string perror_str(const char* msg);
+
 #endif

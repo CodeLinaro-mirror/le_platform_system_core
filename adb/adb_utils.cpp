@@ -117,3 +117,7 @@ void dump_hex(const void* data, size_t byte_count) {
 
     DR("%s\n", line.c_str());
 }
+
+std::string perror_str(const char* msg) {
+    return android::base::StringPrintf("%s: %s", msg, strerror(errno));
+}

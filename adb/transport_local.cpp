@@ -119,6 +119,7 @@ static void *client_socket_thread(void *x)
     int  port  = DEFAULT_ADB_LOCAL_TRANSPORT_PORT;
     int  count = ADB_LOCAL_TRANSPORT_MAX;
 
+    adb_thread_setname("client_socket_thread");
     D("transport: client_socket_thread() starting\n");
 
     /* try to connect to any number of running emulator instances     */
@@ -139,6 +140,7 @@ static void *server_socket_thread(void * arg)
     socklen_t alen;
     int port = (int) (uintptr_t) arg;
 
+    adb_thread_setname("server socket");
     D("transport: server_socket_thread() starting\n");
     serverfd = -1;
     for(;;) {
@@ -225,6 +227,7 @@ static const char _ok_resp[]    = "ok";
     char tmp[256];
     char con_name[32];
 
+    adb_thread_setname("qemu socket");
     D("transport: qemu_socket_thread() starting\n");
 
 #ifdef ADB_QEMU

@@ -167,6 +167,7 @@ int register_new_device(usb_handle* handle) {
 }
 
 void* device_poll_thread(void* unused) {
+  adb_thread_setname("Device Poll");
   D("Created device thread\n");
 
   while(1) {

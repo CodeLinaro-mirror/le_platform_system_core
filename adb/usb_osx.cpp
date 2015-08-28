@@ -382,6 +382,7 @@ err_get_num_ep:
 
 void* RunLoopThread(void* unused)
 {
+    adb_thread_setname("RunLoop");
     InitUSB();
 
     currentRunLoop = CFRunLoopGetCurrent();

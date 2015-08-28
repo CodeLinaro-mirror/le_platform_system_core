@@ -47,6 +47,7 @@ root_sbin_PROGRAMS := adbd
 
 adbd_SOURCES  := daemon/main.cpp
 adbd_SOURCES  += services.cpp
+adbd_SOURCES  += shell_service.cpp
 adbd_SOURCES  += file_sync_service.cpp
 adbd_SOURCES  += framebuffer_service.cpp
 adbd_SOURCES  += remount_service.cpp

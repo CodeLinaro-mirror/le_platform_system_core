@@ -154,6 +154,7 @@ void adb_trace_init() {
         { "jdwp", TRACE_JDWP },
         { "services", TRACE_SERVICES },
         { "auth", TRACE_AUTH },
+        { "shell", TRACE_SHELL},
         { NULL, 0 }
     };
 

@@ -40,6 +40,7 @@ enum AdbTrace {
     TRACE_SERVICES,
     TRACE_AUTH,
     TRACE_FDEVENT,
+    TRACE_SHELL,
 } ;
 
 #if !ADB_HOST

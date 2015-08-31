@@ -105,8 +105,10 @@ LOCAL_CLANG := true
 LOCAL_MODULE := adbd_test
 LOCAL_CFLAGS := -DADB_HOST=0 $(LIBADB_CFLAGS)
 LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS) \
+    shell_service.cpp \
     shell_service_protocol.cpp \
     shell_service_protocol_test.cpp \
+    shell_service_test.cpp \
 
 LOCAL_STATIC_LIBRARIES := libadbd
 LOCAL_SHARED_LIBRARIES := liblog libbase libcutils

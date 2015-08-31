@@ -28,6 +28,8 @@ typedef std::unordered_set<std::string> FeatureSet;
 
 const FeatureSet& supported_features();
 
+const extern char kFeatureShell2[];
+
 class atransport {
 public:
     // TODO(danalbert): We expose waaaaaaay too much stuff because this was

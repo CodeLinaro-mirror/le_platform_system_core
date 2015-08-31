@@ -104,7 +104,10 @@ include $(CLEAR_VARS)
 LOCAL_CLANG := true
 LOCAL_MODULE := adbd_test
 LOCAL_CFLAGS := -DADB_HOST=0 $(LIBADB_CFLAGS)
-LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS)
+LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS) \
+    shell_service_protocol.cpp \
+    shell_service_protocol_test.cpp \
+
 LOCAL_STATIC_LIBRARIES := libadbd
 LOCAL_SHARED_LIBRARIES := liblog libbase libcutils
 include $(BUILD_NATIVE_TEST)
@@ -113,7 +116,12 @@ include $(CLEAR_VARS)
 LOCAL_CLANG := $(adb_host_clang)
 LOCAL_MODULE := adb_test
 LOCAL_CFLAGS := -DADB_HOST=1 $(LIBADB_CFLAGS)
-LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS) services.cpp
+LOCAL_SRC_FILES := \
+    $(LIBADB_TEST_SRCS) \
+    services.cpp \
+    shell_service_protocol.cpp \
+    shell_service_protocol_test.cpp \
+
 LOCAL_SHARED_LIBRARIES := liblog libbase
 LOCAL_STATIC_LIBRARIES := \
     libadb \
@@ -173,6 +181,7 @@ LOCAL_SRC_FILES := \
     adb_client.cpp \
     services.cpp \
     file_sync_client.cpp \
+    shell_service_protocol.cpp \
 
 LOCAL_CFLAGS += \
     $(ADB_COMMON_CFLAGS) \
@@ -229,6 +238,7 @@ LOCAL_SRC_FILES := \
     remount_service.cpp \
     set_verity_enable_state_service.cpp \
     shell_service.cpp \
+    shell_service_protocol.cpp \
 
 LOCAL_CFLAGS := \
     $(ADB_COMMON_CFLAGS) \

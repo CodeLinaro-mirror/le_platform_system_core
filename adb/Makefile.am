@@ -52,6 +52,7 @@ adbd_SOURCES  += file_sync_service.cpp
 adbd_SOURCES  += framebuffer_service.cpp
 adbd_SOURCES  += remount_service.cpp
 adbd_SOURCES  += set_verity_enable_state_service.cpp
+adbd_SOURCES  += shell_service_protocol.cpp
 
 adbd_CPPFLAGS := -I@core_incdir@/../mkbootimg @FSMGR_CFLAGS@
 adbd_CPPFLAGS += -Wall -Wno-unused-parameter

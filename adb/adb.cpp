@@ -49,8 +49,6 @@
 #include <sys/mount.h>
 #endif
 
-ADB_MUTEX_DEFINE( D_lock );
-
 #if !ADB_HOST
 const char *adb_device_banner = "device";
 #else
@@ -217,13 +215,13 @@ void put_apacket(apacket *p)
 
 void handle_online(atransport *t)
 {
-    D("adb: online\n");
+    D("adb: online");
     t->online = 1;
 }
 
 void handle_offline(atransport *t)
 {
-    D("adb: offline\n");
+    D("adb: offline");
     //Close the associated usb
     t->online = 0;
     run_transport_disconnects(t);
@@ -272,7 +270,7 @@ void print_packet(const char *label, apacket *p)
 
 static void send_ready(unsigned local, unsigned remote, atransport *t)
 {
-    D("Calling send_ready \n");
+    D("Calling send_ready");
     apacket *p = get_apacket();
     p->msg.command = A_OKAY;
     p->msg.arg0 = local;
@@ -282,7 +280,7 @@ static void send_ready(unsigned local, unsigned remote, atransport *t)
 
 static void send_close(unsigned local, unsigned remote, atransport *t)
 {
-    D("Calling send_close \n");
+    D("Calling send_close");
     apacket *p = get_apacket();
     p->msg.command = A_CLSE;
     p->msg.arg0 = local;
@@ -317,7 +315,7 @@ std::string get_connection_string() {
 }
 
 void send_connect(atransport* t) {
-    D("Calling send_connect \n");
+    D("Calling send_connect");
     apacket* cp = get_apacket();
     cp->msg.command = A_CNXN;
     cp->msg.arg0 = t->get_protocol_version();
@@ -347,7 +345,7 @@ static void qual_overwrite(char** dst, const std::string& src) {
 }
 
 void parse_banner(const std::string& banner, atransport* t) {
-    D("parse_banner: %s\n", banner.c_str());
+    D("parse_banner: %s", banner.c_str());
 
     // The format is something like:
     // "device::ro.product.name=x;ro.product.model=y;ro.product.device=z;".
@@ -380,23 +378,23 @@ void parse_banner(const std::string& banner, atransport* t) {
 
     const std::string& type = pieces[0];
     if (type == "bootloader") {
-        D("setting connection_state to kCsBootloader\n");
+        D("setting connection_state to kCsBootloader");
         t->connection_state = kCsBootloader;
         update_transports();
     } else if (type == "device") {
-        D("setting connection_state to kCsDevice\n");
+        D("setting connection_state to kCsDevice");
         t->connection_state = kCsDevice;
         update_transports();
     } else if (type == "recovery") {
-        D("setting connection_state to kCsRecovery\n");
+        D("setting connection_state to kCsRecovery");
         t->connection_state = kCsRecovery;
         update_transports();
     } else if (type == "sideload") {
-        D("setting connection_state to kCsSideload\n");
+        D("setting connection_state to kCsSideload");
         t->connection_state = kCsSideload;
         update_transports();
     } else {
-        D("setting connection_state to kCsHost\n");
+        D("setting connection_state to kCsHost");
         t->connection_state = kCsHost;
     }
 }
@@ -428,7 +426,7 @@ void handle_packet(apacket *p, atransport *t)
 {
     asocket *s;
 
-    D("handle_packet() %c%c%c%c\n", ((char*) (&(p->msg.command)))[0],
+    D("handle_packet() %c%c%c%c", ((char*) (&(p->msg.command)))[0],
             ((char*) (&(p->msg.command)))[1],
             ((char*) (&(p->msg.command)))[2],
             ((char*) (&(p->msg.command)))[3]);
@@ -504,7 +502,7 @@ void handle_packet(apacket *p, atransport *t)
                     /* Other READY messages must use the same local-id */
                     s->ready(s);
                 } else {
-                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s\n",
+                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s",
                       p->msg.arg0, p->msg.arg1, s->peer->id, p->msg.arg1, t->serial);
                 }
             }
@@ -525,7 +523,7 @@ void handle_packet(apacket *p, atransport *t)
                  * socket has a peer on the same transport.
                  */
                 if (p->msg.arg0 == 0 && s->peer && s->peer->transport != t) {
-                    D("Invalid A_CLSE(0, %u) from transport %s, expected transport %s\n",
+                    D("Invalid A_CLSE(0, %u) from transport %s, expected transport %s",
                       p->msg.arg1, t->serial, s->peer->transport->serial);
                 } else {
                     s->close(s);
@@ -541,7 +539,7 @@ void handle_packet(apacket *p, atransport *t)
                 p->len = p->msg.data_length;
 
                 if(s->enqueue(s, p) == 0) {
-                    D("Enqueue the socket\n");
+                    D("Enqueue the socket");
                     send_ready(s->id, rid, t);
                 }
                 return;
@@ -864,9 +862,9 @@ int handle_host_request(const char* service, TransportType type,
     if (!strncmp(service, "devices", 7)) {
         bool long_listing = (strcmp(service+7, "-l") == 0);
         if (long_listing || service[7] == 0) {
-            D("Getting device list...\n");
+            D("Getting device list...");
             std::string device_list = list_transports(long_listing);
-            D("Sending device list...\n");
+            D("Sending device list...");
             SendOkay(reply_fd);
             SendProtocolString(reply_fd, device_list);
             return 0;

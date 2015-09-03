@@ -127,7 +127,7 @@ done:
 }
 
 static bool fail_message(int s, const std::string& reason) {
-    D("sync: failure: %s\n", reason.c_str());
+    D("sync: failure: %s", reason.c_str());
 
     syncmsg msg;
     msg.data.id = ID_FAIL;
@@ -360,7 +360,7 @@ static bool do_recv(int s, const char* path, std::vector<char>& buffer) {
 }
 
 static bool handle_sync_command(int fd, std::vector<char>& buffer) {
-    D("sync: waiting for request\n");
+    D("sync: waiting for request");
 
     SyncRequest request;
     if (!ReadFdExactly(fd, &request, sizeof(request))) {
@@ -380,7 +380,7 @@ static bool handle_sync_command(int fd, std::vector<char>& buffer) {
     name[path_length] = 0;
 
     const char* id = reinterpret_cast<const char*>(&request.id);
-    D("sync: '%.4s' '%s'\n", id, name);
+    D("sync: '%.4s' '%s'", id, name);
 
     switch (request.id) {
       case ID_STAT:
@@ -412,6 +412,6 @@ void file_sync_service(int fd, void* cookie) {
     while (handle_sync_command(fd, buffer)) {
     }
 
-    D("sync: done\n");
+    D("sync: done");
     adb_close(fd);
 }

@@ -60,14 +60,14 @@ static void adb_set_affinity(void) {
 
     cpu_set_t cpu_set;
     sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-    D("orig cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+    D("orig cpu_set[0]=0x%08lx", cpu_set.__bits[0]);
 
     CPU_ZERO(&cpu_set);
     CPU_SET(cpu_num, &cpu_set);
     sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
 
     sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-    D("new cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+    D("new cpu_set[0]=0x%08lx", cpu_set.__bits[0]);
 }
 #endif
 
@@ -165,7 +165,7 @@ int adb_main(int is_daemon, int server_port) {
         setup_daemon_logging();
     }
 
-    D("Event loop starting\n");
+    D("Event loop starting");
     fdevent_loop();
 
     return 0;
@@ -175,6 +175,6 @@ int main(int argc, char** argv) {
     // adb client/server
     adb_sysdeps_init();
     adb_trace_init();
-    D("Handling commandline()\n");
+    D("Handling commandline()");
     return adb_commandline(argc - 1, const_cast<const char**>(argv + 1));
 }

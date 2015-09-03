@@ -109,7 +109,7 @@ void *load_file(const char *fn, unsigned *_sz)
     if (file_size > 0) {
         data = (char*) malloc( file_size + 1 );
         if (data == NULL) {
-            D("load_file: could not allocate %ld bytes\n", file_size );
+            D("load_file: could not allocate %ld bytes", file_size );
             file_size = 0;
         } else {
             DWORD  out_bytes;
@@ -117,7 +117,7 @@ void *load_file(const char *fn, unsigned *_sz)
             if ( !ReadFile( file, data, file_size, &out_bytes, NULL ) ||
                  out_bytes != file_size )
             {
-                D("load_file: could not read %ld bytes from '%s'\n", file_size, fn);
+                D("load_file: could not read %ld bytes from '%s'", file_size, fn);
                 free(data);
                 data      = NULL;
                 file_size = 0;
@@ -188,7 +188,7 @@ _fh_from_int( int   fd, const char*   func )
     f = &_win32_fhs[fd];
 
     if (f->used == 0) {
-        D( "_fh_from_int: invalid fd %d passed to %s\n", fd + WIN32_FH_BASE,
+        D( "_fh_from_int: invalid fd %d passed to %s", fd + WIN32_FH_BASE,
            func );
         errno = EBADF;
         return NULL;
@@ -273,7 +273,7 @@ static int _fh_file_read( FH  f,  void*  buf, int   len ) {
     DWORD  read_bytes;
 
     if ( !ReadFile( f->fh_handle, buf, (DWORD)len, &read_bytes, NULL ) ) {
-        D( "adb_read: could not read %d bytes from %s\n", len, f->name );
+        D( "adb_read: could not read %d bytes from %s", len, f->name );
         errno = EIO;
         return -1;
     } else if (read_bytes < (DWORD)len) {
@@ -286,7 +286,7 @@ static int _fh_file_write( FH  f,  const void*  buf, int   len ) {
     DWORD  wrote_bytes;
 
     if ( !WriteFile( f->fh_handle, buf, (DWORD)len, &wrote_bytes, NULL ) ) {
-        D( "adb_file_write: could not write %d bytes from %s\n", len, f->name );
+        D( "adb_file_write: could not write %d bytes from %s", len, f->name );
         errno = EIO;
         return -1;
     } else if (wrote_bytes < (DWORD)len) {
@@ -346,7 +346,7 @@ int  adb_open(const char*  path, int  options)
             desiredAccess = GENERIC_READ | GENERIC_WRITE;
             break;
         default:
-            D("adb_open: invalid options (0x%0x)\n", options);
+            D("adb_open: invalid options (0x%0x)", options);
             errno = EINVAL;
             return -1;
     }
@@ -382,7 +382,7 @@ int  adb_open(const char*  path, int  options)
     }
 
     snprintf( f->name, sizeof(f->name), "%d(%s)", _fh_to_int(f), path );
-    D( "adb_open: '%s' => fd %d\n", path, _fh_to_int(f) );
+    D( "adb_open: '%s' => fd %d", path, _fh_to_int(f) );
     return _fh_to_int(f);
 }
 
@@ -468,7 +468,7 @@ int  adb_shutdown(int  fd)
     FH   f = _fh_from_int(fd, __func__);
 
     if (!f || f->clazz != &_fh_socket_class) {
-        D("adb_shutdown: invalid fd %d\n", fd);
+        D("adb_shutdown: invalid fd %d", fd);
         return -1;
     }
 
@@ -486,7 +486,7 @@ int  adb_close(int  fd)
         return -1;
     }
 
-    D( "adb_close: %s\n", f->name);
+    D( "adb_close: %s", f->name);
     _fh_close(f);
     return 0;
 }
@@ -602,19 +602,19 @@ int socket_loopback_client(int port, int type)
 
     s = socket(AF_INET, type, 0);
     if(s == INVALID_SOCKET) {
-        D("socket_loopback_client: could not create socket\n" );
+        D("socket_loopback_client: could not create socket" );
         _fh_close(f);
         return -1;
     }
 
     f->fh_socket = s;
     if(connect(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
-        D("socket_loopback_client: could not connect to %s:%d\n", type != SOCK_STREAM ? "udp" : "tcp", port );
+        D("socket_loopback_client: could not connect to %s:%d", type != SOCK_STREAM ? "udp" : "tcp", port );
         _fh_close(f);
         return -1;
     }
     snprintf( f->name, sizeof(f->name), "%d(lo-client:%s%d)", _fh_to_int(f), type != SOCK_STREAM ? "udp:" : "", port );
-    D( "socket_loopback_client: port %d type %s => fd %d\n", port, type != SOCK_STREAM ? "udp" : "tcp", _fh_to_int(f) );
+    D( "socket_loopback_client: port %d type %s => fd %d", port, type != SOCK_STREAM ? "udp" : "tcp", _fh_to_int(f) );
     return _fh_to_int(f);
 }
 
@@ -797,7 +797,7 @@ int  adb_setsockopt( int  fd, int  level, int  optname, const void*  optval, soc
     FH   fh = _fh_from_int(fd, __func__);
 
     if ( !fh || fh->clazz != &_fh_socket_class ) {
-        D("adb_setsockopt: invalid fd %d\n", fd);
+        D("adb_setsockopt: invalid fd %d", fd);
         return -1;
     }
 
@@ -891,7 +891,7 @@ typedef struct BipBufferRec_
 static void
 bip_buffer_init( BipBuffer  buffer )
 {
-    D( "bit_buffer_init %p\n", buffer );
+    D( "bit_buffer_init %p", buffer );
     buffer->a_start   = 0;
     buffer->a_end     = 0;
     buffer->b_end     = 0;
@@ -921,7 +921,7 @@ bip_buffer_close( BipBuffer  bip )
 static void
 bip_buffer_done( BipBuffer  bip )
 {
-    BIPD(( "bip_buffer_done: %d->%d\n", bip->fdin, bip->fdout ));
+    BIPD(( "bip_buffer_done: %d->%d", bip->fdin, bip->fdout ));
     CloseHandle( bip->evt_read );
     CloseHandle( bip->evt_write );
     DeleteCriticalSection( &bip->lock );
@@ -935,7 +935,7 @@ bip_buffer_write( BipBuffer  bip, const void* src, int  len )
     if (len <= 0)
         return 0;
 
-    BIPD(( "bip_buffer_write: enter %d->%d len %d\n", bip->fdin, bip->fdout, len ));
+    BIPD(( "bip_buffer_write: enter %d->%d len %d", bip->fdin, bip->fdout, len ));
     BIPDUMP( src, len );
 
     EnterCriticalSection( &bip->lock );
@@ -951,7 +951,7 @@ bip_buffer_write( BipBuffer  bip, const void* src, int  len )
         /* spinlocking here is probably unfair, but let's live with it */
         ret = WaitForSingleObject( bip->evt_write, INFINITE );
         if (ret != WAIT_OBJECT_0) {  /* buffer probably closed */
-            D( "bip_buffer_write: error %d->%d WaitForSingleObject returned %d, error %ld\n", bip->fdin, bip->fdout, ret, GetLastError() );
+            D( "bip_buffer_write: error %d->%d WaitForSingleObject returned %d, error %ld", bip->fdin, bip->fdout, ret, GetLastError() );
             return 0;
         }
         if (bip->closed) {
@@ -961,7 +961,7 @@ bip_buffer_write( BipBuffer  bip, const void* src, int  len )
         EnterCriticalSection( &bip->lock );
     }
 
-    BIPD(( "bip_buffer_write: exec %d->%d len %d\n", bip->fdin, bip->fdout, len ));
+    BIPD(( "bip_buffer_write: exec %d->%d len %d", bip->fdin, bip->fdout, len ));
 
     avail = BIP_BUFFER_SIZE - bip->a_end;
     if (avail > 0)
@@ -1009,7 +1009,7 @@ Exit:
         SetEvent( bip->evt_read );
     }
 
-    BIPD(( "bip_buffer_write: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d\n",
+    BIPD(( "bip_buffer_write: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d",
             bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
     LeaveCriticalSection( &bip->lock );
 
@@ -1024,7 +1024,7 @@ bip_buffer_read( BipBuffer  bip, void*  dst, int  len )
     if (len <= 0)
         return 0;
 
-    BIPD(( "bip_buffer_read: enter %d->%d len %d\n", bip->fdin, bip->fdout, len ));
+    BIPD(( "bip_buffer_read: enter %d->%d len %d", bip->fdin, bip->fdout, len ));
 
     EnterCriticalSection( &bip->lock );
     while ( !bip->can_read )
@@ -1044,7 +1044,7 @@ bip_buffer_read( BipBuffer  bip, void*  dst, int  len )
 
         ret = WaitForSingleObject( bip->evt_read, INFINITE );
         if (ret != WAIT_OBJECT_0) { /* probably closed buffer */
-            D( "bip_buffer_read: error %d->%d WaitForSingleObject returned %d, error %ld\n", bip->fdin, bip->fdout, ret, GetLastError());
+            D( "bip_buffer_read: error %d->%d WaitForSingleObject returned %d, error %ld", bip->fdin, bip->fdout, ret, GetLastError());
             return 0;
         }
         if (bip->closed) {
@@ -1055,7 +1055,7 @@ bip_buffer_read( BipBuffer  bip, void*  dst, int  len )
 #endif
     }
 
-    BIPD(( "bip_buffer_read: exec %d->%d len %d\n", bip->fdin, bip->fdout, len ));
+    BIPD(( "bip_buffer_read: exec %d->%d len %d", bip->fdin, bip->fdout, len ));
 
     avail = bip->a_end - bip->a_start;
     assert( avail > 0 );  /* since can_read is TRUE */
@@ -1102,7 +1102,7 @@ Exit:
     }
 
     BIPDUMP( (const unsigned char*)dst - count, count );
-    BIPD(( "bip_buffer_read: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d\n",
+    BIPD(( "bip_buffer_read: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d",
             bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
     LeaveCriticalSection( &bip->lock );
 
@@ -1212,7 +1212,7 @@ int  adb_socketpair(int sv[2]) {
 
     pair = reinterpret_cast<SocketPair>(malloc(sizeof(*pair)));
     if (pair == NULL) {
-        D("adb_socketpair: not enough memory to allocate pipes\n" );
+        D("adb_socketpair: not enough memory to allocate pipes" );
         goto Fail;
     }
 
@@ -1393,7 +1393,7 @@ event_looper_hook( EventLooper  looper, int  fd, int  events )
     EventHook   node;
 
     if (f == NULL)  /* invalid arg */ {
-        D("event_looper_hook: invalid fd=%d\n", fd);
+        D("event_looper_hook: invalid fd=%d", fd);
         return;
     }
 
@@ -1407,12 +1407,12 @@ event_looper_hook( EventLooper  looper, int  fd, int  events )
 
     if ( (node->wanted & events) != events ) {
         /* this should update start/stop/check/peek */
-        D("event_looper_hook: call hook for %d (new=%x, old=%x)\n",
+        D("event_looper_hook: call hook for %d (new=%x, old=%x)",
            fd, node->wanted, events);
         f->clazz->_fh_hook( f, events & ~node->wanted, node );
         node->wanted |= events;
     } else {
-        D("event_looper_hook: ignoring events %x for %d wanted=%x)\n",
+        D("event_looper_hook: ignoring events %x for %d wanted=%x)",
            events, fd, node->wanted);
     }
 }
@@ -1427,7 +1427,7 @@ event_looper_unhook( EventLooper  looper, int  fd, int  events )
     if (node != NULL) {
         int  events2 = events & node->wanted;
         if ( events2 == 0 ) {
-            D( "event_looper_unhook: events %x not registered for fd %d\n", events, fd );
+            D( "event_looper_unhook: events %x not registered for fd %d", events, fd );
             return;
         }
         node->wanted &= ~events2;
@@ -1647,11 +1647,11 @@ static void fdevent_update(fdevent *fde, unsigned events)
         int  removes = events0 & ~events;
         int  adds    = events  & ~events0;
         if (removes) {
-            D("fdevent_update: remove %x from %d\n", removes, fde->fd);
+            D("fdevent_update: remove %x from %d", removes, fde->fd);
             event_looper_unhook( looper, fde->fd, removes );
         }
         if (adds) {
-            D("fdevent_update: add %x to %d\n", adds, fde->fd);
+            D("fdevent_update: add %x to %d", adds, fde->fd);
             event_looper_hook  ( looper, fde->fd, adds );
         }
     }
@@ -1683,7 +1683,7 @@ static void fdevent_process()
         for (hook = looper->hooks; hook; hook = hook->next)
         {
             if (hook->start && !hook->start(hook)) {
-                D( "fdevent_process: error when starting a hook\n" );
+                D( "fdevent_process: error when starting a hook" );
                 return;
             }
             if (hook->h != INVALID_HANDLE_VALUE) {
@@ -1701,7 +1701,7 @@ static void fdevent_process()
         }
 
         if (looper->htab_count == 0) {
-            D( "fdevent_process: nothing to wait for !!\n" );
+            D( "fdevent_process: nothing to wait for !!" );
             return;
         }
 
@@ -1709,17 +1709,17 @@ static void fdevent_process()
         {
             int   wait_ret;
 
-            D( "adb_win32: waiting for %d events\n", looper->htab_count );
+            D( "adb_win32: waiting for %d events", looper->htab_count );
             if (looper->htab_count > MAXIMUM_WAIT_OBJECTS) {
-                D("handle count %d exceeds MAXIMUM_WAIT_OBJECTS.\n", looper->htab_count);
+                D("handle count %d exceeds MAXIMUM_WAIT_OBJECTS.", looper->htab_count);
                 wait_ret = _wait_for_all(looper->htab, looper->htab_count);
             } else {
                 wait_ret = WaitForMultipleObjects( looper->htab_count, looper->htab, FALSE, INFINITE );
             }
             if (wait_ret == (int)WAIT_FAILED) {
-                D( "adb_win32: wait failed, error %ld\n", GetLastError() );
+                D( "adb_win32: wait failed, error %ld", GetLastError() );
             } else {
-                D( "adb_win32: got one (index %d)\n", wait_ret );
+                D( "adb_win32: got one (index %d)", wait_ret );
 
                 /* according to Cygwin, some objects like consoles wake up on "inappropriate" events
                  * like mouse movements. we need to filter these with the "check" function
@@ -1731,7 +1731,7 @@ static void fdevent_process()
                         if ( looper->htab[wait_ret] == hook->h       &&
                          (!hook->check || hook->check(hook)) )
                         {
-                            D( "adb_win32: signaling %s for %x\n", hook->fh->name, hook->ready );
+                            D( "adb_win32: signaling %s for %x", hook->fh->name, hook->ready );
                             event_hook_signal( hook );
                             gotone = 1;
                             break;
@@ -2023,14 +2023,14 @@ static int _event_socket_start( EventHook  hook )
 
     hook->h = fh->event;
     if (hook->h == INVALID_HANDLE_VALUE) {
-        D( "_event_socket_start: no event for %s\n", fh->name );
+        D( "_event_socket_start: no event for %s", fh->name );
         return 0;
     }
 
     if ( flags != fh->mask ) {
-        D( "_event_socket_start: hooking %s for %x (flags %ld)\n", hook->fh->name, hook->wanted, flags );
+        D( "_event_socket_start: hooking %s for %x (flags %ld)", hook->fh->name, hook->wanted, flags );
         if ( WSAEventSelect( fh->fh_socket, hook->h, flags ) ) {
-            D( "_event_socket_start: WSAEventSelect() for %s failed, error %d\n", hook->fh->name, WSAGetLastError() );
+            D( "_event_socket_start: WSAEventSelect() for %s failed, error %d", hook->fh->name, WSAGetLastError() );
             CloseHandle( hook->h );
             hook->h = INVALID_HANDLE_VALUE;
             exit(1);
@@ -2059,7 +2059,7 @@ static int  _event_socket_check( EventHook  hook )
             ResetEvent( hook->h );
         }
     }
-    D( "_event_socket_check %s returns %d\n", fh->name, result );
+    D( "_event_socket_check %s returns %d", fh->name, result );
     return  result;
 }
 
@@ -2122,10 +2122,10 @@ static void  _event_socketpair_prepare( EventHook  hook )
         hook->h = wbip->evt_write;
 
     else {
-        D("_event_socketpair_start: can't handle FDE_READ+FDE_WRITE\n" );
+        D("_event_socketpair_start: can't handle FDE_READ+FDE_WRITE" );
         return 0;
     }
-    D( "_event_socketpair_start: hook %s for %x wanted=%x\n",
+    D( "_event_socketpair_start: hook %s for %x wanted=%x",
        hook->fh->name, _fh_to_int(fh), hook->wanted);
     return 1;
 }
@@ -2935,7 +2935,7 @@ static int _console_read(const HANDLE console, void* buf, size_t len) {
             //
             // Consume the input and 'continue' to cause us to get a new key
             // event.
-            D("_console_read: unknown virtual key code: %d, enhanced: %s\n",
+            D("_console_read: unknown virtual key code: %d, enhanced: %s",
                 vk, _is_enhanced_key(control_key_state) ? "true" : "false");
             key_event->wRepeatCount = 0;
             continue;
@@ -3009,7 +3009,7 @@ void stdin_raw_init(const int fd) {
         if (!SetConsoleMode(in, _old_console_mode & ~(ENABLE_PROCESSED_INPUT |
             ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT))) {
             // This really should not fail.
-            D("stdin_raw_init: SetConsoleMode() failure, error %ld\n",
+            D("stdin_raw_init: SetConsoleMode() failure, error %ld",
                 GetLastError());
         }
 
@@ -3031,7 +3031,7 @@ void stdin_raw_restore(const int fd) {
 
             if (!SetConsoleMode(in, _old_console_mode)) {
                 // This really should not fail.
-                D("stdin_raw_restore: SetConsoleMode() failure, error %ld\n",
+                D("stdin_raw_restore: SetConsoleMode() failure, error %ld",
                     GetLastError());
             }
         }

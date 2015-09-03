@@ -83,7 +83,7 @@ void restart_root_service(int fd, void *cookie) {
         }
         if (f > 0) {
             if (unix_write(f, ROOT_MAGIC, ROOT_MAGIC_SIZE) == -1) {
-                D("Failed to write to /tmp/.adb.root \n");
+                D("Failed to write to /tmp/.adb.root");
                 unix_close(f);
                 adb_close(fd);
                 return;
@@ -118,7 +118,7 @@ void restart_unroot_service(int fd, void *cookie) {
                 if (strcmp(buf, ROOT_MAGIC) == 0) {
                    adb_lseek(f, 0 , SEEK_SET);
                    if (unix_write(f, "#NOROOT#", 8) == -1) {
-                       D("failed to update /tmp/.adb.root \n");
+                       D("failed to update /tmp/.adb.root");
                        unix_close(f);
                        adb_close(fd);
                        return;
@@ -175,7 +175,7 @@ static bool reboot_service_impl(int fd, const char* arg) {
         const char* const command_file = "/cache/recovery/command";
         // Ensure /cache/recovery exists.
         if (adb_mkdir(recovery_dir, 0770) == -1 && errno != EEXIST) {
-            D("Failed to create directory '%s': %s\n", recovery_dir, strerror(errno));
+            D("Failed to create directory '%s': %s", recovery_dir, strerror(errno));
             return false;
         }
 
@@ -375,7 +375,7 @@ static void wait_for_state(int fd, void* cookie)
 {
     state_info* sinfo = reinterpret_cast<state_info*>(cookie);
 
-    D("wait_for_state %d\n", sinfo->state);
+    D("wait_for_state %d", sinfo->state);
 
     std::string error_msg = "unknown error";
     atransport* t = acquire_one_transport(sinfo->state, sinfo->transport_type, sinfo->serial,
@@ -390,7 +390,7 @@ static void wait_for_state(int fd, void* cookie)
         free(sinfo->serial);
     free(sinfo);
     adb_close(fd);
-    D("wait_for_state is done\n");
+    D("wait_for_state is done");
 }
 
 static void connect_device(const std::string& host, std::string* response) {
@@ -421,7 +421,7 @@ static void connect_device(const std::string& host, std::string* response) {
         return;
     }
 
-    D("client: connected on remote on fd %d\n", fd);
+    D("client: connected on remote on fd %d", fd);
     close_on_exec(fd);
     disable_tcp_nagle(fd);
 

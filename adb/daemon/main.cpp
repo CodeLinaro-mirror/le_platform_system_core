@@ -48,7 +48,7 @@ static void drop_capabilities_bounding_set_if_needed() {
     int f = unix_open("/tmp/.adb.root", O_WRONLY | O_CREAT, 0666);
     if (f > 0) {
         if (unix_write(f, "#NOROOT#", 8) == -1)
-            D("adb_main(): failed to create /tmp/.adb.root \n");
+            D("adb_main(): failed to create /tmp/.adb.root ");
         unix_close(f);
     }
 #endif
@@ -124,7 +124,7 @@ int adbd_main(int server_port) {
         setenv("EXTERNAL_STORAGE", adb_external_storage, 1);
     } else {
         D("Warning: ADB_EXTERNAL_STORAGE is not set.  Leaving EXTERNAL_STORAGE"
-          " unchanged.\n");
+          " unchanged.");
     }
 
     // Add extra groups:
@@ -156,7 +156,7 @@ int adbd_main(int server_port) {
             PLOG(FATAL) << "Could not setuid";
         }
 
-        D("Local port disabled\n");
+        D("Local port disabled");
     } else {
         if ((root_seclabel != nullptr) && (is_selinux_enabled() > 0)) {
             if (setcon(root_seclabel) < 0) {
@@ -188,7 +188,7 @@ int adbd_main(int server_port) {
 
     int port;
     if (sscanf(prop_port, "%d", &port) == 1 && port > 0) {
-        printf("using port=%d\n", port);
+        D("using port=%d", port);
         // Listen on TCP port specified by service.adb.tcp.port property.
         local_init(port);
     } else if (!is_usb) {
@@ -199,11 +199,11 @@ int adbd_main(int server_port) {
         local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
     }
 
-    D("adbd_main(): pre init_jdwp()\n");
+    D("adbd_main(): pre init_jdwp()");
     init_jdwp();
-    D("adbd_main(): post init_jdwp()\n");
+    D("adbd_main(): post init_jdwp()");
 
-    D("Event loop starting\n");
+    D("Event loop starting");
     fdevent_loop();
 
     return 0;
@@ -272,6 +272,6 @@ int main(int argc, char** argv) {
     adb_qemu_trace_init();
 #endif
 
-    D("Handling main()\n");
+    D("Handling main()");
     return adbd_main(DEFAULT_ADB_PORT);
 }

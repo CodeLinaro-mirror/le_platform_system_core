@@ -518,6 +518,20 @@ static std::string format_host_command(const char* command, TransportType type, 
     return android::base::StringPrintf("%s:%s", prefix, command);
 }
 
+// Checks whether the device indicated by |transport_type| and |serial| supports
+// |feature|. Returns the response string, which will be empty if the device
+// could not be found or the feature is not supported.
+static std::string CheckFeature(const std::string& feature,
+                                TransportType transport_type,
+                                const char* serial) {
+    std::string result, error, command("check-feature:" + feature);
+    if (!adb_query(format_host_command(command.c_str(), transport_type, serial),
+                   &result, &error)) {
+        return "";
+    }
+    return result;
+}
+
 static int adb_download_buffer(const char *service, const char *fn, const void* data, unsigned sz,
                                bool show_progress)
 {
@@ -784,12 +798,15 @@ static int send_shell_command(TransportType transport_type, const char* serial,
         wait_for_device("wait-for-device", transport_type, serial);
     }
 
-    read_and_dump(fd);
-    int rc = adb_close(fd);
-    if (rc) {
-        perror("close");
+    bool use_shell_protocol = !CheckFeature(kFeatureShell2, transport_type,
+                                            serial).empty();
+    int exit_code = read_and_dump(fd, use_shell_protocol);
+
+    if (adb_close(fd) < 0) {
+        PLOG(ERROR) << "failure closing FD " << fd;
     }
-    return rc;
+
+    return exit_code;
 }
 
 static int logcat(TransportType transport, const char* serial, int argc, const char** argv) {
@@ -1000,20 +1017,6 @@ static int adb_query_command(const std::string& command) {
     }
     printf("%s\n", result.c_str());
     return 0;
-}
-
-// Checks whether the device indicated by |transport_type| and |serial| supports
-// |feature|. Returns the response string, which will be empty if the device
-// could not be found or the feature is not supported.
-static std::string CheckFeature(const std::string& feature,
-                                TransportType transport_type,
-                                const char* serial) {
-    std::string result, error, command("check-feature:" + feature);
-    if (!adb_query(format_host_command(command.c_str(), transport_type, serial),
-                   &result, &error)) {
-        return "";
-    }
-    return result;
 }
 
 int adb_commandline(int argc, const char **argv) {

@@ -363,6 +363,10 @@ static __inline__ int  adb_shutdown(int fd)
 {
     return shutdown(fd, SHUT_RDWR);
 }
+static __inline__ int  adb_shutdown(int fd, int direction)
+{
+    return shutdown(fd, direction);
+}
 #undef   shutdown
 #define  shutdown   ____xxx_shutdown
 

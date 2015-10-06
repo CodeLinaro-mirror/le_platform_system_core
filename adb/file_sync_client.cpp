@@ -41,6 +41,7 @@ struct syncsendbuf {
     unsigned id;
     unsigned size;
     char data[SYNC_DATA_MAX];
+};
 
 static syncsendbuf send_buffer;
 

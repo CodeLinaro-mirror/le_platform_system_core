@@ -2983,57 +2983,41 @@ static int _console_read(const HANDLE console, void* buf, size_t len) {
 static DWORD _old_console_mode; // previous GetConsoleMode() result
 static HANDLE _console_handle;  // when set, console mode should be restored
 
-void stdin_raw_init(const int fd) {
-    if (STDIN_FILENO == fd) {
-        const HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
-        if ((in == INVALID_HANDLE_VALUE) || (in == NULL)) {
-            return;
-        }
+void stdin_raw_init() {
+    const HANDLE in = _get_console_handle(STDIN_FILENO, &_old_console_mode);
 
-        if (GetFileType(in) != FILE_TYPE_CHAR) {
-            // stdin might be a file or pipe.
-            return;
-        }
-
-        if (!GetConsoleMode(in, &_old_console_mode)) {
-            // If GetConsoleMode() fails, stdin is probably is not a console.
-            return;
-        }
-
-        // Disable ENABLE_PROCESSED_INPUT so that Ctrl-C is read instead of
-        // calling the process Ctrl-C routine (configured by
-        // SetConsoleCtrlHandler()).
-        // Disable ENABLE_LINE_INPUT so that input is immediately sent.
-        // Disable ENABLE_ECHO_INPUT to disable local echo. Disabling this
-        // flag also seems necessary to have proper line-ending processing.
-        if (!SetConsoleMode(in, _old_console_mode & ~(ENABLE_PROCESSED_INPUT |
-            ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT))) {
-            // This really should not fail.
-            D("stdin_raw_init: SetConsoleMode() failure, error %ld",
-                GetLastError());
-        }
-
-        // Once this is set, it means that stdin has been configured for
-        // reading from and that the old console mode should be restored later.
-        _console_handle = in;
-
-        // Note that we don't need to configure C Runtime line-ending
-        // translation because _console_read() does not call the C Runtime to
-        // read from the console.
+    // Disable ENABLE_PROCESSED_INPUT so that Ctrl-C is read instead of
+    // calling the process Ctrl-C routine (configured by
+    // SetConsoleCtrlHandler()).
+    // Disable ENABLE_LINE_INPUT so that input is immediately sent.
+    // Disable ENABLE_ECHO_INPUT to disable local echo. Disabling this
+    // flag also seems necessary to have proper line-ending processing.
+    if (!SetConsoleMode(in, _old_console_mode & ~(ENABLE_PROCESSED_INPUT |
+                                                  ENABLE_LINE_INPUT |
+                                                  ENABLE_ECHO_INPUT))) {
+        // This really should not fail.
+        D("stdin_raw_init: SetConsoleMode() failed: %s",
+          SystemErrorCodeToString(GetLastError()).c_str());
     }
+
+    // Once this is set, it means that stdin has been configured for
+    // reading from and that the old console mode should be restored later.
+    _console_handle = in;
+
+    // Note that we don't need to configure C Runtime line-ending
+    // translation because _console_read() does not call the C Runtime to
+    // read from the console.
 }
 
-void stdin_raw_restore(const int fd) {
-    if (STDIN_FILENO == fd) {
-        if (_console_handle != NULL) {
-            const HANDLE in = _console_handle;
-            _console_handle = NULL;  // clear state
+void stdin_raw_restore() {
+    if (_console_handle != NULL) {
+        const HANDLE in = _console_handle;
+        _console_handle = NULL;  // clear state
 
-            if (!SetConsoleMode(in, _old_console_mode)) {
-                // This really should not fail.
-                D("stdin_raw_restore: SetConsoleMode() failure, error %ld",
-                    GetLastError());
-            }
+        if (!SetConsoleMode(in, _old_console_mode)) {
+            // This really should not fail.
+            D("stdin_raw_restore: SetConsoleMode() failed: %s",
+               SystemErrorCodeToString(GetLastError()).c_str());
         }
     }
 }

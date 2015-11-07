@@ -67,6 +67,10 @@
 #define OS_PATH_SEPARATOR_STR "\\"
 #define ENV_PATH_SEPARATOR_STR ";"
 
+static __inline__ bool adb_is_separator(char c) {
+    return c == '\\' || c == '/';
+}
+
 typedef CRITICAL_SECTION          adb_mutex_t;
 
 #define  ADB_MUTEX_DEFINE(x)     adb_mutex_t   x
@@ -307,6 +311,10 @@ static __inline__ int adb_is_absolute_host_path(const char* path) {
 #define OS_PATH_SEPARATOR '/'
 #define OS_PATH_SEPARATOR_STR "/"
 #define ENV_PATH_SEPARATOR_STR ":"
+
+static __inline__ bool adb_is_separator(char c) {
+    return c == '/';
+}
 
 typedef  pthread_mutex_t          adb_mutex_t;
 

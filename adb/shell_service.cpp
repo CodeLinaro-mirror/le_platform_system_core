@@ -178,8 +178,8 @@ bool CreateSocketpair(ScopedFd* fd1, ScopedFd* fd2) {
 
 class Subprocess {
   public:
-    Subprocess(const std::string& command, SubprocessType type,
-               SubprocessProtocol protocol);
+    Subprocess(const std::string& command, const char* terminal_type,
+               SubprocessType type, SubprocessProtocol protocol);
     ~Subprocess();
 
     const std::string& command() const { return command_; }
@@ -210,6 +210,7 @@ class Subprocess {
     ScopedFd* PassOutput(ScopedFd* sfd, ShellProtocol::Id id);
 
     const std::string command_;
+    const std::string terminal_type_;
     SubprocessType type_;
     SubprocessProtocol protocol_;
     pid_t pid_ = -1;
@@ -223,9 +224,12 @@ class Subprocess {
     DISALLOW_COPY_AND_ASSIGN(Subprocess);
 };
 
-Subprocess::Subprocess(const std::string& command, SubprocessType type,
-                       SubprocessProtocol protocol)
-        : command_(command), type_(type), protocol_(protocol) {
+Subprocess::Subprocess(const std::string& command, const char* terminal_type,
+                       SubprocessType type, SubprocessProtocol protocol)
+    : command_(command),
+      terminal_type_(terminal_type ? terminal_type : ""),
+      type_(type),
+      protocol_(protocol) {
 }
 
 Subprocess::~Subprocess() {
@@ -645,13 +649,14 @@ void Subprocess::WaitForExit() {
 
 }  // namespace
 
-int StartSubprocess(const char *name, SubprocessType type,
-                    SubprocessProtocol protocol) {
-    D("starting %s subprocess (protocol=%s): '%s'",
+int StartSubprocess(const char* name, const char* terminal_type,
+                    SubprocessType type, SubprocessProtocol protocol) {
+    D("starting %s subprocess (protocol=%s, TERM=%s): '%s'",
       type == SubprocessType::kRaw ? "raw" : "PTY",
-      protocol == SubprocessProtocol::kNone ? "none" : "shell", name);
+      protocol == SubprocessProtocol::kNone ? "none" : "shell",
+      terminal_type, name);
 
-    Subprocess* subprocess = new Subprocess(name, type, protocol);
+    Subprocess* subprocess = new Subprocess(name, terminal_type, type, protocol);
     if (!subprocess) {
         LOG(ERROR) << "failed to allocate new subprocess";
         return -1;

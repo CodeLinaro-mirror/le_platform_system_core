@@ -110,9 +110,10 @@ static void help() {
         "  adb sync [ <directory> ]     - copy host->device only if changed\n"
         "                                 (-l means list but don't copy)\n"
         "                                 (see 'adb help all')\n"
-        "  adb shell [-e escape] [-Tt] [-x] [command]\n"
+        "  adb shell [-e escape] [-n] [-Tt] [-x] [command]\n"
         "                               - run remote shell command (interactive shell if no command given)\n"
         "                                 (-e: choose escape character, or \"none\"; default '~')\n"
+        "                                 (-n: don't read from stdin)\n"
         "                                 (-T: disable PTY allocation)\n"
         "                                 (-t: force PTY allocation)\n"
         "                                 (-x: disable remote exit codes and stdout/stderr separation)\n"
@@ -1274,6 +1275,11 @@ int adb_commandline(int argc, const char **argv) {
                 ++argv;
             } else if (!strcmp(argv[0], "-x")) {
                 use_shell_protocol = false;
+                --argc;
+                ++argv;
+            } else if (!strcmp(argv[0], "-n")) {
+                close_stdin();
+
                 --argc;
                 ++argv;
             } else {

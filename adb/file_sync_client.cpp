@@ -171,8 +171,7 @@ class SyncConnection {
     }
 
     void Print(const std::string& s) {
-        // TODO: we actually don't want ELIDE; we want "ELIDE if smart, FULL if dumb".
-        line_printer_.Print(s, LinePrinter::ELIDE);
+        line_printer_.Print(s, LinePrinter::INFO);
     }
 
     void Error(const char* fmt, ...) __attribute__((__format__(ADB_FORMAT_ARCHETYPE, 2, 3))) {
@@ -183,7 +182,7 @@ class SyncConnection {
         android::base::StringAppendV(&s, fmt, ap);
         va_end(ap);
 
-        line_printer_.Print(s, LinePrinter::FULL);
+        line_printer_.Print(s, LinePrinter::WARNING);
     }
 
     uint64_t total_bytes;
@@ -652,7 +651,6 @@ bool do_sync_push(const std::vector<const char*>& srcs, const char* dst) {
         success &= sync_send(sc, src_path, dst_path, st.st_mtime, st.st_mode);
     }
 
-    sc.Print("\n");
     return success;
 }
 
@@ -851,7 +849,6 @@ bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst,
         }
     }
 
-    sc.Print("\n");
     return success;
 }
 

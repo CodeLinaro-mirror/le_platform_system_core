@@ -539,11 +539,13 @@ static void fdevent_subproc_event_func(int fd, unsigned ev,
       fdevent *subproc_fde = fd_table[subproc_fd];
       if(!subproc_fde) {
           D("subproc_fd %d cleared from fd_table", subproc_fd);
+          adb_close(subproc_fd);
           return;
       }
       if(subproc_fde->fd != subproc_fd) {
           // Already reallocated?
-          D("subproc_fd %d != fd_table[].fd %d", subproc_fd, subproc_fde->fd);
+          LOG(FATAL) << "subproc_fd(" << subproc_fd << ") != subproc_fde->fd(" << subproc_fde->fd
+                     << ")";
           return;
       }
 

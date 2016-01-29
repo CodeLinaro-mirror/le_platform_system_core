@@ -41,6 +41,10 @@
     _rc; })
 #endif
 
+// Clang-only nullability specifiers
+#define _Nonnull
+#define _Nullable
+
 #ifdef _WIN32
 
 #include <ctype.h>

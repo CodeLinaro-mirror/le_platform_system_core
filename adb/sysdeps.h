@@ -88,13 +88,25 @@ static __inline__ void  adb_mutex_unlock( adb_mutex_t*  lock )
     LeaveCriticalSection( lock );
 }
 
-typedef  void*  (*adb_thread_func_t)(void*  arg);
+typedef void (*adb_thread_func_t)(void* arg);
 
 typedef  void (*win_thread_func_t)(void*  arg);
+
+static unsigned __stdcall adb_winthread_wrapper(void* heap_args) {
+    // Move the arguments from the heap onto the thread's stack.
+    adb_winthread_args thread_args = *static_cast<adb_winthread_args*>(heap_args);
+    delete static_cast<adb_winthread_args*>(heap_args);
+    thread_args.func(thread_args.arg);
+    return 0;
+}
 
 static __inline__ bool adb_thread_create(adb_thread_func_t func, void* arg) {
     unsigned tid = _beginthread( (win_thread_func_t)func, 0, arg );
     return (tid != (unsigned)-1L);
+}
+
+static __inline__ void __attribute__((noreturn)) adb_thread_exit() {
+    ExitThread(0);
 }
 
 static __inline__ int adb_thread_setname(const std::string& name) {
@@ -468,16 +480,35 @@ static __inline__ int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, 
 #define  unix_write  adb_write
 #define  unix_close  adb_close
 
-typedef void*  (*adb_thread_func_t)( void*  arg );
+// Win32 is limited to DWORDs for thread return values; limit the POSIX systems to this as well to
+// ensure compatibility.
+typedef void (*adb_thread_func_t)(void* arg);
  
+struct adb_pthread_args {
+    adb_thread_func_t func;
+    void* arg;
+};
+
+static void* adb_pthread_wrapper(void* heap_args) {
+    // Move the arguments from the heap onto the thread's stack.
+    adb_pthread_args thread_args = *reinterpret_cast<adb_pthread_args*>(heap_args);
+    delete static_cast<adb_pthread_args*>(heap_args);
+    thread_args.func(thread_args.arg);
+    return nullptr;
+}
+
 static __inline__ bool adb_thread_create(adb_thread_func_t start, void* arg) {
+    pthread_t temp;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
- 
-    pthread_t thread;
-    errno = pthread_create(&thread, &attr, start, arg);
+    auto* pthread_args = new adb_pthread_args{.func = start, .arg = arg};
+    errno = pthread_create(&temp, &attr, adb_pthread_wrapper, pthread_args);
     return (errno == 0);
+}
+
+static __inline__ void __attribute__((noreturn)) adb_thread_exit() {
+    pthread_exit(nullptr);
 }
 
 static __inline__ int adb_thread_setname(const std::string& name) {

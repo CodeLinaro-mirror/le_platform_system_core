@@ -165,7 +165,7 @@ class Subprocess {
     // Opens the file at |pts_name|.
     int OpenPtyChildFd(const char* pts_name, ScopedFd* error_sfd);
 
-    static void* ThreadHandler(void* userdata);
+    static void ThreadHandler(void* userdata);
     void PassDataStreams();
     void WaitForExit();
 
@@ -429,7 +429,7 @@ int Subprocess::OpenPtyChildFd(const char* pts_name, ScopedFd* error_sfd) {
     return child_fd;
 }
 
-void* Subprocess::ThreadHandler(void* userdata) {
+void Subprocess::ThreadHandler(void* userdata) {
     Subprocess* subprocess = reinterpret_cast<Subprocess*>(userdata);
 
     adb_thread_setname(android::base::StringPrintf(
@@ -439,8 +439,6 @@ void* Subprocess::ThreadHandler(void* userdata) {
 
     D("deleting Subprocess for PID %d", subprocess->pid());
     delete subprocess;
-
-    return nullptr;
 }
 
 void Subprocess::PassDataStreams() {

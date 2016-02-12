@@ -461,7 +461,7 @@ struct StdinReadArgs {
 // Loops to read from stdin and push the data to the given FD.
 // The argument should be a pointer to a StdinReadArgs object. This function
 // will take ownership of the object and delete it when finished.
-static void* stdin_read_thread_loop(void* x) {
+static void stdin_read_thread_loop(void* x) {
     std::unique_ptr<StdinReadArgs> args(reinterpret_cast<StdinReadArgs*>(x));
     int state = 0;
 
@@ -540,8 +540,6 @@ static void* stdin_read_thread_loop(void* x) {
             }
         }
     }
-
-    return nullptr;
 }
 
 // Returns a shell service string with the indicated arguments and command.

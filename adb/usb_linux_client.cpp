@@ -205,10 +205,7 @@ static const struct {
     },
 };
 
-
-
-static void *usb_adb_open_thread(void *x)
-{
+static void usb_adb_open_thread(void* x) {
     struct usb_handle *usb = (struct usb_handle *)x;
     int fd;
 
@@ -243,7 +240,7 @@ static void *usb_adb_open_thread(void *x)
     }
 
     // never gets here
-    return 0;
+    abort();
 }
 
 static int usb_adb_write(usb_handle *h, const void *data, int len)
@@ -408,8 +405,7 @@ err:
 #define UDC_DIR "/sys/class/udc"
 #define UDC_FILE_PATH "/sys/kernel/config/usb_gadget/g1/UDC"
 
-static void *usb_ffs_open_thread(void *x)
-{
+static void usb_ffs_open_thread(void* x) {
     struct usb_handle *usb = (struct usb_handle *)x;
     char value[PROPERTY_VALUE_MAX];
     DIR *udcdir;
@@ -472,7 +468,7 @@ static void *usb_ffs_open_thread(void *x)
     }
 
     // never gets here
-    return 0;
+    abort();
 }
 
 static int bulk_write(int bulk_in, const uint8_t* buf, size_t length)

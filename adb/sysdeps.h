@@ -26,6 +26,10 @@
 
 #include <string>
 #include <vector>
+
+// Include this before open/close/unlink are defined as macros below.
+#include <base/unique_fd.h>
+
 /*
  * TEMP_FAILURE_RETRY is defined by some, but not all, versions of
  * <unistd.h>. (Alas, it is not as standard as we'd hoped!) So, if it's

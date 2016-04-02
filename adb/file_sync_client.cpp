@@ -359,7 +359,8 @@ static bool sync_send(SyncConnection& sc, const char* lpath, const char* rpath,
     return sc.CopyDone(lpath, rpath);
 }
 
-static bool sync_recv(SyncConnection& sc, const char* rpath, const char* lpath) {
+static bool sync_recv(SyncConnection& sc, const char* rpath, const char* lpath,
+                      const char* name=nullptr) {
     sc.Print(rpath);
 
     unsigned size = 0;
@@ -418,8 +419,7 @@ static bool sync_recv(SyncConnection& sc, const char* rpath, const char* lpath) 
 
         bytes_copied += msg.data.size;
 
-        int percentage = static_cast<int>(bytes_copied * 100 / size);
-        sc.Print(android::base::StringPrintf("%s: %d%%", rpath, percentage));
+        sc.ReportProgress(name != nullptr ? name : rpath, bytes_copied, size);
     }
 
     adb_close(lfd);
@@ -780,7 +780,7 @@ static bool copy_remote_dir_local(SyncConnection& sc, const char* rpath, const c
 }
 
 bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst,
-                  bool copy_attrs) {
+                  bool copy_attrs, const char* name) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
 
@@ -832,7 +832,7 @@ bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst,
                     dst_path = path_holder.c_str();
                 }
             }
-            if (!sync_recv(sc, src_path, dst_path)) {
+            if (!sync_recv(sc, src_path, dst_path, name)) {
                 success = false;
                 continue;
             } else {

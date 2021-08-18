@@ -210,7 +210,7 @@ configure_sa6155_sku_parameters() {
         echo 1017600000 > /sys/class/devfreq/soc\:qcom,cpu0-cpu-l3-lat/max_freq
         echo 940800000 > /sys/class/devfreq/soc\:qcom,cpu6-cpu-l3-lat/min_freq
         echo 1017600000 > /sys/class/devfreq/soc\:qcom,cpu6-cpu-l3-lat/max_freq
-        echo 3 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
+        echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
         echo 1016 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
     elif [ $feature_id == 5 ]; then
         echo "SKU Configured : SA6150"

@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2012-2015, 2018-2020, The Linux Foundation. All rights reserved.
+# Copyright (c) 2012-2015, 2018-2021, The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -56,7 +56,11 @@ case "$1" in
 	echo "serialno:" $serialno
 
 	msm_serial=`cat /sys/devices/soc0/serial_number`
-	msm_serial_hex=`printf %08X $msm_serial`
+	# If MSM serial number is not available, then keep it blank instead of 0x00000000
+	if [ "$msm_serial" != "" ]; then
+		msm_serial_hex=`printf %08X $msm_serial`
+	fi
+
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
 	# try to mount configfs, and create instance of USB functions if it goes through
@@ -93,6 +97,11 @@ case "$1" in
 		mkdir functions/rndis.rndis
 		mkdir functions/ipc.ipc
 
+		#Load NDIS6 driver
+		echo ef >  functions/rndis.rndis/class
+		echo 04 >  functions/rndis.rndis/subclass
+		echo 01 >  functions/rndis.rndis/protocol
+
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
 			mkdir functions/ffs.diag
@@ -105,7 +114,7 @@ case "$1" in
 			echo $serialno > /etc/adb_devid
 			sync
 		fi
-		cat /etc/adb_devid > strings/0x409/serialnumber
+		echo $serialno > strings/0x409/serialnumber
 		echo "QCOM" > strings/0x409/manufacturer
 		echo "$product_string" > strings/0x409/product
 		if [ -e functions/diag.diag/serial ]; then
@@ -190,6 +199,13 @@ case "$1" in
 				case "$default_mode" in
 				    "none")
 					echo peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			elif [ -f /sys/bus/platform/devices/a800000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a800000.ssusb/mode`
+				case "$default_mode" in
+				    "none" | "host" )
+					echo peripheral > /sys/bus/platform/devices/a800000.ssusb/mode
 				    ;;
 				esac
 			fi

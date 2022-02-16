@@ -36,6 +36,23 @@
 #define __unused  __attribute__((__unused__))
 #endif
 
+static const int msg_id[] = {
+    LOG_INFO,    // ANDROID_LOG_UNKNOWN  = 0,
+    LOG_WARNING,  // ANDROID_LOG_DEFAULT  = 1,
+    LOG_NOTICE,  // ANDROID_LOG_VERBOSE  = 2,
+    LOG_DEBUG,   // ANDROID_LOG_DEBUG    = 3,
+    LOG_INFO,    // ANDROID_LOG_INFO     = 4,
+    LOG_WARNING, // ANDROID_LOG_WARN     = 5,
+    LOG_ERR,     // ANDROID_LOG_ERROR    = 6,
+    LOG_EMERG,   // ANDROID_LOG_FATAL    = 7,
+    LOG_INFO,   // ANDROID_LOG_SILENT   = 8,
+};
+
+static int logd2syslog(int id)
+{
+    return msg_id[id];
+}
+
 int __android_log_write(int prio, const char *tag, const char *msg)
 {
     return __android_log_buf_write(LOG_ID_MAIN, prio, tag, msg);
@@ -62,7 +79,7 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    vsyslog(LOG_INFO, fmt, ap);
+    vsyslog(logd2syslog(prio), fmt, ap);
     va_end(ap);
 
     return 0;
@@ -73,7 +90,7 @@ int __android_log_buf_print(int bufID, int prio, const char *tag, const char *fm
     va_list ap;
 
     va_start(ap, fmt);
-    vsyslog(LOG_INFO, fmt, ap);
+    vsyslog(logd2syslog(prio), fmt, ap);
     va_end(ap);
 
     return 0;

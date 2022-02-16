@@ -1,6 +1,6 @@
 [Unit]
 SourcePath=/sbin/leprop-service
-Description=leprop Service
+Description=leprop Service for LE property service
 Before=persist-prop.service
 Requires=persist-prop.service
 DefaultDependencies=no

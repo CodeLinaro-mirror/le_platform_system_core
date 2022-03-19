@@ -84,6 +84,9 @@ case $TARGET in
 	*sxr2130* )
 		res="sxr2130";
 		;;
+	*sxrneo* )
+		res="sxrneo";
+		;;
 	*sdxnightjar* )
 		res="sdxnightjar";
 		;;

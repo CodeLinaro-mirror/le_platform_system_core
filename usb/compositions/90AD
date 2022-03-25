@@ -162,6 +162,7 @@ run_configfs() {
 	ln -s functions/mass_storage.0 configs/c.1/f6
 	ln -s functions/gsi.dpl configs/c.1/f7
 	rm -f /data/usb_bind_in_progress
+	echo 0x80 > configs/c.1/bmAttributes
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
 	cd /

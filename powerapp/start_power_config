@@ -29,6 +29,59 @@
 
 # PM Configuration
 
+enable_neo_ftrace_event_tracing()
+{
+    echo "++++ $0 -> ENABLE-FTRACE START" > /dev/kmsg
+    #Enable FTRACE_ENABLE on SDXLEMUR
+    #bail out if its perf config
+    if [ ! -d /sys/module/msm_rtb ]
+    then
+        return
+    fi
+
+    #bail out if coresight isn't present
+    if [ ! -d /sys/bus/coresight ]
+    then
+        return
+    fi
+
+    coresight
+    #echo sg > /sys/bus/coresight/devices/coresight-tmc-etr/mem_type
+
+    echo 0 > /sys/kernel/debug/tracing/events/enable
+    echo mem > /sys/bus/coresight/devices/coresight-tmc-etr/out_mode
+    echo 1 > /sys/bus/coresight/devices/coresight-tmc-etr/enable_sink
+    echo 1 > /sys/bus/coresight/devices/coresight-stm/enable_source
+    echo 1 > /sys/kernel/debug/tracing/tracing_on
+
+    #SoftIRQs
+    echo 1 > /sys/kernel/debug/tracing/events/irq/enable
+    echo 1 > /sys/kernel/debug/tracing/events/irq/softirq_entry/enable
+    echo 1 > /sys/kernel/debug/tracing/events/irq/softirq_exit/enable
+    echo 1 > /sys/kernel/debug/tracing/events/irq/softirq_raise/enable
+    #IRQs
+    echo 1 > /sys/kernel/debug/tracing/events/irq/enable
+    echo 1 > /sys/kernel/debug/tracing/events/irq/irq_handler_entry/enable
+    echo 1 > /sys/kernel/debug/tracing/events/irq/irq_handler_exit/enable
+    echo 1 > /sys/kernel/debug/tracing/events/workqueue/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/timer_expire_entry/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/timer_expire_exit/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/hrtimer_cancel/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/hrtimer_expire_entry/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/hrtimer_expire_exit/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/hrtimer_init/enable
+    echo 1 > /sys/kernel/debug/tracing/events/timer/hrtimer_start/enable
+
+    echo 1 > /sys/kernel/debug/tracing/events/sched/sched_switch/enable
+
+    echo 1 > /sys/kernel/debug/tracing/events/clk/enable
+    echo 1 > /sys/kernel/debug/tracing/events/regulator/enable
+    echo 1 > /sys/kernel/debug/tracing/events/rpmh/enable
+
+    echo 1 > /sys/kernel/debug/tracing/tracing_on
+    echo "++++ $0 -> ENABLE-FTRACE END" > /dev/kmsg
+}
+
 enable_lemur_ftrace_event_tracing()
 {
     echo "++++ $0 -> ENABLE-FTRACE START" > /dev/kmsg
@@ -946,6 +999,12 @@ case "$1" in
                 echo "done"
                 ;;
          esac
+
+	 case "$soc_id" in
+         "525" )
+		 enable_neo_ftrace_event_tracing
+                ;;
+          esac
          ;;
   stop)
         ;;

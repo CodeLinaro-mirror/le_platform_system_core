@@ -13,10 +13,19 @@ AM_CFLAGS = -Os \
             -Wno-unused-parameter \
             -D_XOPEN_SOURCE \
             -D_GNU_SOURCE \
-            -I../include
+            -I../include \
+            @GLIB_CFLAGS@ \
+            -Dstrlcpy=g_strlcpy
+
+AM_LDFLAGS = @GLIB_LIBS@
 
 if ENABLE_VM_POWER_CONFIG
     AM_CFLAGS += -DVM_POWER_CONFIG
+endif
+
+if USE_GLIB
+AM_CFLAGS  += $(GLIB_CFLAGS) -include glib.h -Dstrlcpy=g_strlcpy
+AM_LDFLAGS = $(GLIB_LIBS)
 endif
 
 powerapp_sbindir             = $(root_sbindir)

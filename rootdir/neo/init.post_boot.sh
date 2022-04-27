@@ -323,7 +323,13 @@ case "$target" in
         echo 50 > $qoslat/mem_latency/ratio_ceil
         done
     done
-    echo Y > /sys/module/lpm_levels/parameters/sleep_disabled
+
+    # enable LPMs for neo
+    echo  N  >  /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
+
+    # enable autosleep
+    echo mem > /sys/power/autosleep
+
     configure_memory_parameters
     ;;
 esac

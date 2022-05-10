@@ -1,5 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
+$(info MACHINE_ENABLED is $(MACHINE_ENABLED))
+
 root_sbindir = "/sbin"
 root_etcdir  = "/etc"
 root_libdir  = "/lib"
@@ -37,7 +39,7 @@ powerapp_sysconfdir       = $(root_etcdir)/initscripts
 powerapp_sysconf_SCRIPTS  = reboot
 powerapp_sysconf_SCRIPTS += reset_reboot_cookie
 powerapp_sysconf_SCRIPTS += shutdown
-powerapp_sysconf_SCRIPTS += start_power_config
+powerapp_sysconf_SCRIPTS += $(MACHINE_ENABLED)/start_power_config
 powerapp_sysconf_SCRIPTS += enable_autosleep
 
 install-data-hook:
@@ -52,7 +54,7 @@ powerapp_sysconfdir       = $(root_etcdir)/init.d
 powerapp_sysconf_SCRIPTS  = reboot
 powerapp_sysconf_SCRIPTS += reset_reboot_cookie
 powerapp_sysconf_SCRIPTS += shutdown
-powerapp_sysconf_SCRIPTS += start_power_config
+powerapp_sysconf_SCRIPTS += $(MACHINE_ENABLED)/start_power_config
 powerapp_sysconf_SCRIPTS += enable_autosleep
 
 install-data-hook:

@@ -12,6 +12,17 @@ AC_CONFIG_HEADER([config.h])
 
 AC_CONFIG_MACRO_DIRS([m4])
 
+#basemachine
+AC_MSG_CHECKING([which base machine to use])
+AC_ARG_WITH([basemachine],
+            [AS_HELP_STRING([--with-basemachine],
+            [Specify the base machine])],
+            [machine_selected="$withval"],
+            [machine_selected="common"])
+
+AC_MSG_RESULT([$machine_selected])
+AC_SUBST([MACHINE_ENABLED],[$machine_selected])
+
 # Checks for programs.
 AM_PROG_AS
 AC_PROG_CC

@@ -83,15 +83,15 @@ config_dcc_thermal()
     echo 0x17B79A90 4 > $DCC_PATH/config
 
     #Turing LLM
-    echo 0x32310220 3 > $DCC_PATH/config
-    echo 0x323102A0 3 > $DCC_PATH/config
-    echo 0x323104A0 6 > $DCC_PATH/config
-    echo 0x32310520 1 > $DCC_PATH/config
-    echo 0x32310588 1 > $DCC_PATH/config
-    echo 0x32310D90 8 > $DCC_PATH/config
-    echo 0x32311010 6 > $DCC_PATH/config
-    echo 0x32311090 6 > $DCC_PATH/config
-    echo 0x32311A90 3 > $DCC_PATH/config
+    #echo 0x32310220 3 > $DCC_PATH/config
+    #echo 0x323102A0 3 > $DCC_PATH/config
+    #echo 0x323104A0 6 > $DCC_PATH/config
+    #echo 0x32310520 1 > $DCC_PATH/config
+    #echo 0x32310588 1 > $DCC_PATH/config
+    #echo 0x32310D90 8 > $DCC_PATH/config
+    #echo 0x32311010 6 > $DCC_PATH/config
+    #echo 0x32311090 6 > $DCC_PATH/config
+    #echo 0x32311A90 3 > $DCC_PATH/config
 
     # Central Broadcast
     echo 0xEC80010 1 > $DCC_PATH/config

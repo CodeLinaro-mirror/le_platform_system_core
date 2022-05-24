@@ -12,6 +12,17 @@ AC_CONFIG_HEADER([config.h])
 
 AC_CONFIG_MACRO_DIRS([m4])
 
+#basemachine
+AC_MSG_CHECKING([which base machine to use])
+AC_ARG_WITH([basemachine],
+            [AS_HELP_STRING([--with-basemachine],
+            [Specify the base machine])],
+            [machine_selected="$withval"],
+            [machine_selected="common"])
+
+AC_MSG_RESULT([$machine_selected])
+AC_SUBST([MACHINE_ENABLED],[$machine_selected])
+
 # Checks for programs.
 AM_PROG_AS
 AC_PROG_CC
@@ -22,6 +33,25 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+PKG_PROG_PKG_CONFIG
+
+AC_ARG_WITH([glib],
+      AC_HELP_STRING([--with-glib],
+         [enable glib, building HLOS systems which use glib]))
+
+if (test "x${with_glib}" = "xyes"); then
+        AC_DEFINE(ENABLE_USEGLIB, 1, [Define if HLOS systems uses glib])
+        PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.16, dummy=yes,
+                                AC_MSG_ERROR(GThread >= 2.16 is required))
+        PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.16, dummy=yes,
+                                AC_MSG_ERROR(GLib >= 2.16 is required))
+        GLIB_CFLAGS="$GLIB_CFLAGS $GTHREAD_CFLAGS"
+        GLIB_LIBS="$GLIB_LIBS $GTHREAD_LIBS"
+
+        AC_SUBST(GLIB_CFLAGS)
+        AC_SUBST(GLIB_LIBS)
+fi
+AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
 #AC_CHECK_HEADERS([sys/uio.h])
 

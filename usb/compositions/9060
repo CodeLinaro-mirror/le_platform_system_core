@@ -122,6 +122,10 @@ case `source /sbin/usb/target` in
 	*9x25* )
 		run_9x25 &
 		;;
+	*lemans* )
+		udcname=a600000.dwc3
+		run_configfs $udcname &
+		;;
 	* )
 		if [ $configfs_supported = "y" ]; then
 			udcname=`ls -1 /sys/class/udc | head -n 1`

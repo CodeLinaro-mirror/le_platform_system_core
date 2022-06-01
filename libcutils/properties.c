@@ -18,14 +18,27 @@
 #include <string.h>
 #include <stdio.h>
 #include "property_ops.h"
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+
+static int atrace_shmid = -1;
+static char* atrace_ptext = MAP_FAILED;
+
 
 int property_get(const char *key, char *value, const char *default_value) {
     int rc = 0;
 #ifdef LE_PROPERTIES
-    if(get_property_value(key,value) == true)
+    if ( strcmp("debug.atrace.tags.enableflags", key) == 0 ) {
+        read_shm_atags_property(key,value);
         rc = strlen(value);
-    if( rc > 0) {
-      return rc;
+    } else if ( get_property_value(key,value) == true) {
+        rc = strlen(value);
+    }
+    if ( rc > 0) {
+        return rc;
     }
 #endif
     if (NULL != default_value) {
@@ -51,7 +64,11 @@ int property_set(const char *key, const char *value)
     strlcpy(prop_name, key, sizeof prop_name);
     strlcpy(prop_value, value, sizeof prop_value);
 
-    set_property_value(prop_name, prop_value);
+    if ( strcmp("debug.atrace.tags.enableflags", key) == 0 ) {
+        update_shm_atags_property(prop_name,prop_value);
+    } else {
+        set_property_value(prop_name, prop_value);
+    }
 #endif
     return 0;
 }
@@ -89,5 +106,71 @@ void dump_properties(void) {
 #ifdef LE_PROPERTIES
     dump_persist();
 #endif
+}
+
+void read_shm_atags_property(const char *key, char *value)
+{
+    if (atrace_shmid < 0)
+    {
+        atrace_shmid = shm_open(ATRACE_SHMEM_DEV, O_RDONLY, 0);
+        if (atrace_shmid < 0)
+        {
+            ALOGE("read shm atag, error open property_value, errno (%d)",errno);
+            return;
+        }
+    }
+
+    if (atrace_ptext == MAP_FAILED)
+    {
+        atrace_ptext = mmap(0, PROP_VALUE_MAX, PROT_READ, MAP_SHARED, atrace_shmid, 0);
+        if (atrace_ptext == MAP_FAILED)
+        {
+            ALOGE("read shm atag memory map fail, errno (%d)",errno);
+            return;
+        }
+    }
+
+    strlcpy(value, atrace_ptext, PROP_VALUE_MAX);
+
+    LOG("read shm atag fd %d ptext %p value %s",atrace_shmid,atrace_ptext,value);
+}
+
+void update_shm_atags_property(const char* search_name, const char* value)
+{
+    int ret = 0;
+    LOG("name: %s value %s",search_name,value);
+
+    if (atrace_shmid < 0)
+    {
+        atrace_shmid = shm_open(ATRACE_SHMEM_DEV, O_CREAT|O_RDWR, 0);
+        if (atrace_shmid < 0)
+        {
+            ALOGE("update shm stags, error open property_value, errno (%d)",errno);
+            return;
+        }
+
+        ret = ftruncate(atrace_shmid, PROP_VALUE_MAX);
+        if (ret != 0)
+        {
+             ALOGE("update shm stags, ftruncate fail, errno (%d)",errno);
+             return;
+        }
+    }
+
+    if (atrace_ptext == MAP_FAILED)
+    {
+        atrace_ptext = mmap(0, PROP_VALUE_MAX, PROT_WRITE, MAP_SHARED, atrace_shmid, 0);
+        if (atrace_ptext == MAP_FAILED)
+        {
+            ALOGE("update shm atags memory map fail, errno (%d)",errno);
+            return;
+        }
+    }
+
+    memset(atrace_ptext, 0, PROP_VALUE_MAX);
+    strlcpy(atrace_ptext, value, PROP_VALUE_MAX);
+
+    LOG("update shm atags fd %d ptext: %p value: %s",atrace_shmid,atrace_ptext,value);
+    return;
 }
 

@@ -173,6 +173,8 @@ static inline uint64_t atrace_is_tag_enabled(uint64_t tag)
 #define ATRACE_BEGIN(name) atrace_begin(ATRACE_TAG, name)
 static inline void atrace_begin(uint64_t tag, const char* name)
 {
+    //update atag by using shmem way, when atrace_begin be called
+    atrace_update_tags();
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
         void atrace_begin_body(const char*);
         atrace_begin_body(name);

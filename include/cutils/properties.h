@@ -37,6 +37,8 @@ extern "C" {
 #define PROPERTY_KEY_MAX   PROP_NAME_MAX
 #define PROPERTY_VALUE_MAX  PROP_VALUE_MAX
 
+#define ATRACE_SHMEM_DEV "/shm-atags"
+
 /* property_get: returns the length of the value which will never be
 ** greater than PROPERTY_VALUE_MAX - 1 and will always be zero terminated.
 ** (the length does not include the terminating zero).
@@ -103,6 +105,19 @@ int64_t property_get_int64(const char *key, int64_t default_value);
 ** conversion fails, the default value is returned.
 **/
 int32_t property_get_int32(const char *key, int32_t default_value);
+
+/**
+ * Function to allocate share memory to
+ * update the atags info in share memory.
+ * @param search_name, value
+ */
+void update_shm_atags_property(const char* search_name, const char* value);
+
+/**
+ * Function to get property from share memory.
+ * @param key, value
+ */
+void read_shm_atags_property(const char *key, char *value);
 
 /* property_set: returns 0 on success, < 0 on failure
 */

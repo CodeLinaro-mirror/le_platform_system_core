@@ -93,6 +93,9 @@ case `cat ${TARGET_DIR}` in
 	*DIREWOLF* )
 		res="direwolf";
 		;;
+	*LEMANS* )
+		res="lemans";
+		;;
 	* )
 		res="none"
 		;;

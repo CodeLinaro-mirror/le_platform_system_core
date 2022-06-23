@@ -300,6 +300,12 @@ void set_verity_enabled_state_service_le(int fd, void* cookie)
                     any_changed = true;
             }
         }
+        else if (strcmp(slot, "_c") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_c", "/",
+                                              enable)) {
+                    any_changed = true;
+            }
+        }
         else {
             if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot", "/",
                                               enable)) {

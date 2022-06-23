@@ -99,17 +99,19 @@ function configure_memory_parameters() {
     # Set allocstall_threshold to 0 for all targets.
     #
 
-if [ "$target" =~ ^neo.* ] ; then
-    # Enable ZRAM
-    configure_zram_parameters
+if [ "$target" == "neo-le" ] ; then
     configure_read_ahead_kb_values
     echo 0 > /proc/sys/vm/page-cluster
     echo 100 > /proc/sys/vm/swappiness
+    # Disable periodic kcompactd wakeups. We do not use THP, so having many
+    # huge pages is not as necessary.
+    #disable proactive compaction
+    echo 0 > /proc/sys/vm/compaction_proactiveness
 fi
 }
 
 case "$target" in
-    ^neo.*)
+    "neo-le")
 
     ddr_type=`od -An -tx /proc/device-tree/memory/ddr_device_type`
     ddr_type4="07"

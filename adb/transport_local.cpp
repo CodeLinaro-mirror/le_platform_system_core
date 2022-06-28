@@ -159,7 +159,8 @@ static void *server_socket_thread(void * arg)
             D("server: new connection on fd %d\n", fd);
             close_on_exec(fd);
             disable_tcp_nagle(fd);
-            register_socket_transport(fd, "host", port, 1);
+            std::string serial = android::base::StringPrintf("host-%d", fd);
+            register_socket_transport(fd, serial.c_str(), port, 1);
         }
     }
     D("transport: server_socket_thread() exiting\n");

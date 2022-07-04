@@ -36,6 +36,10 @@ else
     target=`getprop ro.board.platform`
 fi
 
+if [ -f /etc/init.qti.debug.sh ]; then
+    /etc/init.qti.debug.sh
+fi
+
 function configure_read_ahead_kb_values() {
     MemTotalStr=`cat /proc/meminfo | grep MemTotal`
     MemTotal=${MemTotalStr:16:8}

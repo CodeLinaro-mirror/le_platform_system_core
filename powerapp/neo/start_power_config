@@ -529,6 +529,7 @@ config_dcc_epss()
     echo 0x17D90320 1 > $DCC_PATH/config
     echo 0x17D90020 1 > $DCC_PATH/config
     echo 0x17D9034C 1 > $DCC_PATH/config
+    echo 0x17D90300 1 > $DCC_PATH/config
     # EPSSSLOW_CLKDOM1
     echo 0x17D9101C 1 > $DCC_PATH/config
     echo 0x17D910DC 1 > $DCC_PATH/config
@@ -536,6 +537,7 @@ config_dcc_epss()
     echo 0x17D91320 1 > $DCC_PATH/config
     echo 0x17D91020 1 > $DCC_PATH/config
     echo 0x17D9134C 1 > $DCC_PATH/config
+    echo 0x17D91300 1 > $DCC_PATH/config
 }
 
 config_dcc_misc()
@@ -1344,6 +1346,16 @@ config_dcc_gcc()
     echo 0x193004 1 > $DCC_PATH/config
     echo 0x193008 1 > $DCC_PATH/config
     echo 0x193144 1 > $DCC_PATH/config
+
+    echo 0x18400C 1 > $DCC_PATH/config
+    echo 0x184018 1 > $DCC_PATH/config
+    echo 0x18401C 1 > $DCC_PATH/config
+    echo 0x17B038 1 > $DCC_PATH/config
+    echo 0x17B02C 1 > $DCC_PATH/config
+    echo 0x17B054 1 > $DCC_PATH/config
+    echo 0x17B048 1 > $DCC_PATH/config
+    echo 0x17B020 1 > $DCC_PATH/config
+    echo 0x17B01C 1 > $DCC_PATH/config
 }
 
 config_dcc_smmu()
@@ -1494,6 +1506,9 @@ config_dcc_gemnoc()
     echo 0x1 > $DCC_PATH/loop
     echo 0x19181430 4 > $DCC_PATH/config
     echo 0x19181434 4 > $DCC_PATH/config
+
+    echo 0x191920A0 > $DCC_PATH/config
+    echo 0x191920A8 > $DCC_PATH/config
 }
 
 config_dcc_cnoc()

@@ -93,6 +93,9 @@ case `cat ${TARGET_DIR}` in
 	*DIREWOLF* )
 		res="direwolf";
 		;;
+	*SA8540P* )
+		res="sa8540p";
+		;;
 	* )
 		res="none"
 		;;

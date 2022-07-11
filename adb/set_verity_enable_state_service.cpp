@@ -239,6 +239,7 @@ static int set_verity_enabled_state(int fd, const char *block_device,
     }
 
     strlcpy(cmdline, hdr.cmdline, sizeof(cmdline));
+
     /*overwrite "verity=" to "noveri" */
     result = modify_string(cmdline, old_verity, new_verity);
     if (result == -1) {
@@ -289,25 +290,25 @@ void set_verity_enabled_state_service_le(int fd, void* cookie)
             WriteFdFmt(fd, "slot is %s\n", slot);
         }
         if (strcmp(slot, "_a") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_a", "/",
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_a", "/",
                                               enable)) {
                     any_changed = true;
             }
         }
         else if (strcmp(slot, "_b") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_b", "/",
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_b", "/",
                                               enable)) {
                     any_changed = true;
             }
         }
         else if (strcmp(slot, "_c") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_c", "/",
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_c", "/",
                                               enable)) {
                     any_changed = true;
             }
         }
         else {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot", "/",
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot", "/",
                                               enable)) {
                     any_changed = true;
             }

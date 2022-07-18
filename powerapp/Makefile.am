@@ -15,7 +15,11 @@ AM_CFLAGS = -Os \
             -Wno-unused-parameter \
             -D_XOPEN_SOURCE \
             -D_GNU_SOURCE \
-            -I../include
+            -I../include \
+            @GLIB_CFLAGS@ \
+            -Dstrlcpy=g_strlcpy
+
+AM_LDFLAGS = @GLIB_LIBS@
 
 if ENABLE_VM_POWER_CONFIG
     AM_CFLAGS += -DVM_POWER_CONFIG
@@ -49,6 +53,10 @@ powerapp_systemddir       = $(root_libdir)/systemd/system
 powerapp_systemd_DATA     = reset_reboot_cookie.service
 powerapp_systemd_DATA    += power_config.service
 powerapp_systemd_DATA    += enable_autosleep.service
+if ENABLE_VM_POWER_CONFIG
+powerapp_systemd_DATA    += powerapp.service
+endif
+
 else
 powerapp_sysconfdir       = $(root_etcdir)/init.d
 powerapp_sysconf_SCRIPTS  = reboot

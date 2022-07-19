@@ -207,8 +207,8 @@ case "$target" in
     # enable LPMs for neo
     echo  N  >  /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
-    # enable autosleep
-    echo mem > /sys/power/autosleep
+    # Disable autosleep
+    echo off > /sys/power/autosleep
 
     configure_memory_parameters
     ;;

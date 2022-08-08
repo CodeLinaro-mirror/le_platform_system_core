@@ -1307,6 +1307,8 @@ config_dcc_gpu()
     echo 0x3D7E340 1 > $DCC_PATH/config
     echo 0x3D3C000 1 > $DCC_PATH/config
     echo 0x3D3C004 1 > $DCC_PATH/config
+    echo 0x3DA2300 1 > $DCC_PATH/config
+    echo 0xAF09000 1 > $DCC_PATH/config
 }
 
 config_dcc_gic()
@@ -1449,6 +1451,8 @@ config_dcc_gcc()
     echo 0x18D214 1 > $DCC_PATH/config
     echo 0x18E114 1 > $DCC_PATH/config
     echo 0x18E214 1 > $DCC_PATH/config
+
+    echo 0x121004 5 > $DCC_PATH/config
 }
 
 config_dcc_smmu()
@@ -1561,44 +1565,60 @@ config_dcc_gemnoc()
     echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_llcc0_poc_dbg
-    echo 0x19101010 > $DCC_PATH/config
-    echo 0x40 > $DCC_PATH/loop
-    echo 0x19101020 > $DCC_PATH/config
-    echo 0x19101024 > $DCC_PATH/config
-    echo 0x19101038 > $DCC_PATH/config
-    echo 0x1 > $DCC_PATH/loop
-    echo 0x19101030 4 > $DCC_PATH/config
-    echo 0x19101034 4 > $DCC_PATH/config
+    echo 0x19101010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19101038 1 > $DCC_PATH/config
+    echo 0x19101030 2 > $DCC_PATH/config
+    echo 0x19101030 2 > $DCC_PATH/config
+    echo 0x19101030 2 > $DCC_PATH/config
+    echo 0x19101030 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
+    echo 0x19101010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19101020 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_llcc1_poc_dbg
-    echo 0x19141010 > $DCC_PATH/config
-    echo 0x40 > $DCC_PATH/loop
-    echo 0x19141020 > $DCC_PATH/config
-    echo 0x19141024 > $DCC_PATH/config
-    echo 0x19141038 > $DCC_PATH/config
-    echo 0x1 > $DCC_PATH/loop
-    echo 0x19141030 4 > $DCC_PATH/config
-    echo 0x19141034 4 > $DCC_PATH/config
+    echo 0x19141010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19141038 1 > $DCC_PATH/config
+    echo 0x19141030 2 > $DCC_PATH/config
+    echo 0x19141030 2 > $DCC_PATH/config
+    echo 0x19141030 2 > $DCC_PATH/config
+    echo 0x19141030 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
+    echo 0x19141010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19141020 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_pcie_poc_dbg
-    echo 0x19181010 > $DCC_PATH/config
-    echo 0x10 > $DCC_PATH/loop
-    echo 0x19181020 > $DCC_PATH/config
-    echo 0x19181024 > $DCC_PATH/config
-    echo 0x19181038 > $DCC_PATH/config
-    echo 0x1 > $DCC_PATH/loop
-    echo 0x19181030 4 > $DCC_PATH/config
-    echo 0x19181034 4 > $DCC_PATH/config
+    echo 0x19181010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19181038 1 > $DCC_PATH/config
+    echo 0x19181030 2 > $DCC_PATH/config
+    echo 0x19181030 2 > $DCC_PATH/config
+    echo 0x19181030 2 > $DCC_PATH/config
+    echo 0x19181030 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
+    echo 0x19181010 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19181020 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_cnoc_poc_dbg
-    echo 0x19181410 > $DCC_PATH/config
-    echo 0x10 > $DCC_PATH/loop
-    echo 0x19181420 > $DCC_PATH/config
-    echo 0x19181424 > $DCC_PATH/config
-    echo 0x19181438 > $DCC_PATH/config
-    echo 0x1 > $DCC_PATH/loop
-    echo 0x19181430 4 > $DCC_PATH/config
-    echo 0x19181434 4 > $DCC_PATH/config
+    echo 0x19181410 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19181438 1 > $DCC_PATH/config
+    echo 0x19181430 2 > $DCC_PATH/config
+    echo 0x19181430 2 > $DCC_PATH/config
+    echo 0x19181430 2 > $DCC_PATH/config
+    echo 0x19181430 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
+    echo 0x19181410 1 > $DCC_PATH/config
+    echo 0x40  > $DCC_PATH/loop
+    echo 0x19181420 2 > $DCC_PATH/config
+    echo 0x1  > $DCC_PATH/loop
 
     echo 0x191920A0 > $DCC_PATH/config
     echo 0x191920A8 > $DCC_PATH/config
@@ -1925,7 +1945,7 @@ enable_dcc()
     config_dcc_lpass_ag_noc
     config_dcc_dc_dch_noc
     config_dcc_dc_ch01
-    config_dcc_cdsp
+    #config_dcc_cdsp
     config_dcc_adsp
     config_dcc_wpss
 

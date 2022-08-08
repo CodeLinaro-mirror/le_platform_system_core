@@ -29,7 +29,6 @@
 
 # PM Configuration
 
-
 enable_lemur_ftrace_event_tracing()
 {
     echo "++++ $0 -> ENABLE-FTRACE START" > /dev/kmsg

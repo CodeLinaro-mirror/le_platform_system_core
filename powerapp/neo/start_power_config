@@ -538,6 +538,23 @@ config_dcc_epss()
     echo 0x17D91020 1 > $DCC_PATH/config
     echo 0x17D9134C 1 > $DCC_PATH/config
     echo 0x17D91300 1 > $DCC_PATH/config
+
+    echo 0x12822000 1 > $DCC_PATH/config
+    echo 0x12822004 1 > $DCC_PATH/config
+    echo 0x12824C00 1 > $DCC_PATH/config
+    echo 0x12824D04 1 > $DCC_PATH/config
+    echo 0x12824D08 1 > $DCC_PATH/config
+    echo 0x17D98014 1 > $DCC_PATH/config
+    echo 0x17D98018 1 > $DCC_PATH/config
+    echo 0x17D9801C 1 > $DCC_PATH/config
+    echo 0x17D98020 1 > $DCC_PATH/config
+    echo 0x17D900E0 1 > $DCC_PATH/config
+    echo 0x17D90410 1 > $DCC_PATH/config
+    echo 0x17D90074 1 > $DCC_PATH/config
+    echo 0x17D90064 1 > $DCC_PATH/config
+    echo 0x17D91074 1 > $DCC_PATH/config
+    echo 0x17D910E0 1 > $DCC_PATH/config
+    echo 0x17D91410 1 > $DCC_PATH/config
 }
 
 config_dcc_misc()
@@ -1573,10 +1590,6 @@ config_dcc_gemnoc()
     echo 0x19101030 2 > $DCC_PATH/config
     echo 0x19101030 2 > $DCC_PATH/config
     echo 0x1  > $DCC_PATH/loop
-    echo 0x19101010 1 > $DCC_PATH/config
-    echo 0x40  > $DCC_PATH/loop
-    echo 0x19101020 2 > $DCC_PATH/config
-    echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_llcc1_poc_dbg
     echo 0x19141010 1 > $DCC_PATH/config
@@ -1586,10 +1599,6 @@ config_dcc_gemnoc()
     echo 0x19141030 2 > $DCC_PATH/config
     echo 0x19141030 2 > $DCC_PATH/config
     echo 0x19141030 2 > $DCC_PATH/config
-    echo 0x1  > $DCC_PATH/loop
-    echo 0x19141010 1 > $DCC_PATH/config
-    echo 0x40  > $DCC_PATH/loop
-    echo 0x19141020 2 > $DCC_PATH/config
     echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_pcie_poc_dbg
@@ -1601,10 +1610,6 @@ config_dcc_gemnoc()
     echo 0x19181030 2 > $DCC_PATH/config
     echo 0x19181030 2 > $DCC_PATH/config
     echo 0x1  > $DCC_PATH/loop
-    echo 0x19181010 1 > $DCC_PATH/config
-    echo 0x40  > $DCC_PATH/loop
-    echo 0x19181020 2 > $DCC_PATH/config
-    echo 0x1  > $DCC_PATH/loop
 
     #gem_noc_qns_cnoc_poc_dbg
     echo 0x19181410 1 > $DCC_PATH/config
@@ -1614,10 +1619,6 @@ config_dcc_gemnoc()
     echo 0x19181430 2 > $DCC_PATH/config
     echo 0x19181430 2 > $DCC_PATH/config
     echo 0x19181430 2 > $DCC_PATH/config
-    echo 0x1  > $DCC_PATH/loop
-    echo 0x19181410 1 > $DCC_PATH/config
-    echo 0x40  > $DCC_PATH/loop
-    echo 0x19181420 2 > $DCC_PATH/config
     echo 0x1  > $DCC_PATH/loop
 
     echo 0x191920A0 > $DCC_PATH/config

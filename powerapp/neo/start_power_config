@@ -4737,6 +4737,9 @@ case "$1" in
          case "$soc_id" in
          "525" | "554" )
                 echo -n "Starting powerconfig for neo: "
+
+                enable_neo_debug
+
                 # Disable Core control
                 echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
 
@@ -4807,7 +4810,6 @@ case "$1" in
 
                 echo "++++ $0 -> done sched settings" > /dev/kmsg
 
-                enable_neo_debug
                 ;;
           esac
          ;;

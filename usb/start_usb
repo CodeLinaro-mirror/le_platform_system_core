@@ -99,6 +99,7 @@ case "$1" in
 		mkdir strings/0x409
 		mkdir configs/c.1
 		mkdir configs/c.1/strings/0x409
+		mkdir functions/acm.0
 		mkdir functions/mass_storage.0
 		mkdir functions/mass_storage.1
 		mkdir functions/ffs.adb
@@ -249,7 +250,7 @@ case "$1" in
 		cd /sys/kernel/config/usb_gadget/g1/functions/uvc.0
 
 		echo 3072 > streaming_maxpacket
-		echo 4 > streaming_maxburst
+		echo 10 > streaming_maxburst
 		mkdir control/header/h
 		ln -s control/header/h control/class/fs/
 		ln -s control/header/h control/class/ss
@@ -392,7 +393,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		/sbin/usb/compositions/$pid y
@@ -411,7 +412,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		# check if more than 1 argument is passed

@@ -186,7 +186,31 @@ configure_sa6155_sku_parameters() {
 
     echo "Feature ID is " $feature_id
 
-    if [ $feature_id == 6 ]; then
+    if [ $feature_id == 7 ]; then
+        echo "SKU Configured : SA4150P"
+        echo 576000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
+        echo 768000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
+        echo 768000 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
+        echo 576000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+        echo 576000 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
+        echo 576000 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq
+        echo 576000 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq
+        echo 576000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
+        echo 576000 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_max_freq
+        echo 768000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_max_freq
+        echo 768000 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_max_freq
+        echo 940800000 > /sys/class/devfreq/18321110.qcom,cpu0-cpu-l3-lat/min_freq
+        echo 1017600000 > /sys/class/devfreq/18321110.qcom,cpu0-cpu-l3-lat/max_freq
+        echo 940800000 > /sys/class/devfreq/18321110.qcom,cpu6-cpu-l3-lat/min_freq
+        echo 1017600000 > /sys/class/devfreq/18321110.qcom,cpu6-cpu-l3-lat/max_freq
+        echo 4 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
+        echo 1016 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
+    elif [ $feature_id == 6 ]; then
         echo "SKU Configured : SA6145"
         echo 748800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
         echo 748800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq

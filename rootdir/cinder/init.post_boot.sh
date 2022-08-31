@@ -31,4 +31,4 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+# Empty file

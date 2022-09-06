@@ -544,7 +544,6 @@ case "$target" in
     echo 60 > /sys/devices/system/cpu/cpu0/core_ctl/busy_up_thres
     echo 40 > /sys/devices/system/cpu/cpu0/core_ctl/busy_down_thres
     echo 100 > /sys/devices/system/cpu/cpu0/core_ctl/offline_delay_ms
-    echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/is_big_cluster
     echo 8 > /sys/devices/system/cpu/cpu0/core_ctl/task_thres
     echo 0 > /sys/devices/system/cpu/cpu6/core_ctl/enable
 
@@ -556,9 +555,6 @@ case "$target" in
     echo 85 > /proc/sys/kernel/sched_group_downmigrate
     echo 100 > /proc/sys/kernel/sched_group_upmigrate
     echo 1 > /proc/sys/kernel/sched_walt_rotate_big_tasks
-
-    # colocation v3 settings
-    echo 740000 > /proc/sys/kernel/sched_little_cluster_coloc_fmin_khz
 
 
     # configure governor settings for little cluster
@@ -578,8 +574,8 @@ case "$target" in
     echo -6 >  /sys/devices/system/cpu/cpu7/sched_load_boost
     echo 85 > /sys/devices/system/cpu/cpu6/cpufreq/schedutil/hispeed_load
 
-    echo "0:1209600" > /sys/module/cpu_boost/parameters/input_boost_freq
-    echo 40 > /sys/module/cpu_boost/parameters/input_boost_ms
+    echo "0:1209600" > /sys/devices/system/cpu/cpu_boost/input_boost_freq
+    echo 40 > /sys/devices/system/cpu/cpu_boost/input_boost_ms
     configure_sa6155_sku_parameters
 esac
 

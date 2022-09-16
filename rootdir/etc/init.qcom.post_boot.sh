@@ -1601,6 +1601,14 @@ case "$target" in
     ;;
 esac
 
+case "$target" in
+    "lemansau_ivi" | "lemansau_adas_h" | "lemansau_ivi_adas" | "lemansau_adas")
+
+        # Turn on sleep modes.
+        echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
+;;
+esac
+
 echo "init_qcom_post_boot completed"
 ;;
 stop)

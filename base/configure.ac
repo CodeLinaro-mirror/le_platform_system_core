@@ -26,6 +26,16 @@ PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
 
 #obtain  system-core source path.
 
+AC_ARG_WITH([core_includes],
+      AC_HELP_STRING([--with-core-includes=@<:@dir@:>@],
+         [Specify the location of the core headers]),
+      [core_incdir=$withval],
+      with_core_includes=no)
+
+  if test "x$with_core_includes" != "xno"; then
+     CFLAGS="${CFLAGS} -I${core_incdir}"
+  fi
+
 AC_ARG_WITH([core_sourcedir],
     AC_HELP_STRING([--with-core-sourcedir=@<:@dir@:>@],
        [Specify the location of the core headers]),

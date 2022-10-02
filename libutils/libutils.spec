@@ -10,7 +10,7 @@ URL: https://www.codelinaro.org/
 #Source0: libutils-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: autoconf automake libtool gcc-g++ libsafe-iop-dev
+BuildRequires: autoconf automake libtool gcc-g++
 
 %description
 This library provides miscellaneous utility functions and common

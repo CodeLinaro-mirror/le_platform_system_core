@@ -111,6 +111,9 @@ case $TARGET in
 	*cinder* )
 		res="cinder"
 		;;
+	*kalama* )
+		res="kalama"
+		;;
 	* )
 		res="none"
 		;;

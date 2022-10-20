@@ -47,17 +47,6 @@ PKG_CHECK_MODULES([EXT4UTILS], [ext4_utils])
 AC_SUBST([EXT4UTILS_CFLAGS])
 AC_SUBST([EXT4UTILS_LIBS])
 
-AC_ARG_WITH([core_includes],
-    AC_HELP_STRING([--with-core-includes=@<:@dir@:>@],
-       [Specify the location of the core headers]),
-    [core_incdir=$withval],
-    with_core_includes=no)
-
-if test "x$with_core_includes" != "xno"; then
-   CPPFLAGS="${CPPFLAGS} -I${core_incdir}"
-   AC_SUBST(core_incdir,${core_incdir})
-fi
-
 AS_CASE([$host],
         [arm*], [ARM=yes],
         [ARM=no]

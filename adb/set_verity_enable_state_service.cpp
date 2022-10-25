@@ -240,6 +240,12 @@ static int set_verity_enabled_state(int fd, const char *block_device,
 
     strlcpy(cmdline, hdr.cmdline, sizeof(cmdline));
 
+    // Check for "noveri" in cmdline i.e., if disable-verity is already called
+    if((strstr(cmdline, new_verity))) {
+        WriteFdFmt(fd, "Nothing to do. disable-verity is called again ? \n");
+        goto errout;
+    }
+
     /*overwrite "verity=" to "noveri" */
     result = modify_string(cmdline, old_verity, new_verity);
     if (result == -1) {
@@ -266,7 +272,7 @@ static int set_verity_enabled_state(int fd, const char *block_device,
                    block_device, strerror(errno));
         goto errout;
     }
-    WriteFdFmt(fd, "Verity %s on %s\n", enable ? "enabled" : "disabled", mount_point);
+    WriteFdFmt(fd, "Verity is %s \n", enable ? "enabled" : "disabled");
     retval = 0;
 errout:
     if (device != -1)
@@ -280,7 +286,7 @@ void set_verity_enabled_state_service_le(int fd, void* cookie)
     char slot[3]= {};
     bool enable = (cookie != NULL);
     if (kAllowDisableVerity) {
-	bool any_changed = false;
+        bool any_changed = false;
         fp = popen("getslotsuffix", "r");
         if (fp == NULL) {
             WriteFdFmt(fd, "failed to get slot\n");

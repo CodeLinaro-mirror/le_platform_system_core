@@ -6966,7 +6966,7 @@ enable_neo_debug()
 
     enable_neo_ftrace_event_tracing
     enable_dcc
-    enable_cpuss_register
+    #enable_cpuss_register
     echo "++++ $0 -> enable_neo_debug END" > /dev/kmsg
 }
 

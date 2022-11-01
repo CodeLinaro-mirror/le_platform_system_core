@@ -8,8 +8,11 @@ License: Apache-2.0
 URL: https://www.codelinaro.org/
 #Source0: liblog-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
+# The source tarball must contain the liblog/ and include/ directories
+# for access to the necessary headers in include/log/ and other headers
+# liblog depends on
 
-BuildRequires: autoconf automake libtool gcc-g++ system-core-headers
+BuildRequires: autoconf automake libtool gcc-g++
 
 %description
 liblog  represents  an interface to the volatile Android Logging system for
@@ -32,7 +35,7 @@ related items necessary for software development.
 
 %build
 autoreconf -if
-%configure
+%configure --with-core-includes=%{_builddir}/include
 
 %make_build
 
@@ -49,3 +52,13 @@ autoreconf -if
 %files -n liblog-dev
 %{_libdir}/liblog.so
 %{_libdir}/pkgconfig/liblog.pc
+%dir %{_includedir}/android
+%{_includedir}/android/log.h
+%dir %{_includedir}/log
+%{_includedir}/log/event_tag_map.h
+%{_includedir}/log/logd.h
+%{_includedir}/log/logger.h
+%{_includedir}/log/log.h
+%{_includedir}/log/logprint.h
+%{_includedir}/log/log_read.h
+%{_includedir}/log/uio.h

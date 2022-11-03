@@ -24,6 +24,7 @@ base_include_HEADERS += $(srcdir)/include/base/logging.h
 base_include_HEADERS += $(srcdir)/include/base/memory.h
 base_include_HEADERS += $(srcdir)/include/base/strings.h
 base_include_HEADERS += $(srcdir)/include/base/stringprintf.h
+base_include_HEADERS += $(srcdir)/include/base/macros.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libbase.pc

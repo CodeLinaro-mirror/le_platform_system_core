@@ -441,10 +441,12 @@ bool load_properties_from_file(const char *filename)
 }
 
 bool load_default_properties() {
-    return load_properties_from_file(PROP_FILE_DEFAULT_PATH);
+    return load_properties_from_file(PROP_FILE_DEFAULT_PATH) || \
+            load_properties_from_file("/vendor"PROP_FILE_DEFAULT_PATH);
 }
 
 bool load_persist_properties() {
     persist_storage_ready = 1;
-    return load_properties_from_file(PROP_FILE_PERSIST_PATH);
+    return load_properties_from_file(PROP_FILE_PERSIST_PATH) || \
+            load_properties_from_file("/vendor"PROP_FILE_PERSIST_PATH);
 }

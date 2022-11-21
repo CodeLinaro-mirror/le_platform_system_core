@@ -50,10 +50,6 @@ set_debug_transport()
     else
         # set adb tansport to usb mode
         printf "usb\0" > /data/adb.conf
-        pid=`cat /etc/usb/boot_hsusb_comp`
-        if [ "$pid" == "none" ]; then
-               echo 9060 > /etc/usb/boot_hsusb_comp
-        fi
         echo -n "start_pcie: Debug transport mode is set to usb. Update /data/debug_transport.conf to pcie and reboot to switch" > /dev/kmsg
     fi
 }

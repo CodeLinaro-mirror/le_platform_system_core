@@ -210,6 +210,9 @@ case "$1" in
 				esac
 			fi
 		        ;;
+		*sa8775p* )
+			echo 4EE7 > /etc/usb/boot_hsusb_comp
+		        ;;
 	esac
 
 	#
@@ -322,6 +325,19 @@ case "$1" in
             if [ -z "$pid" ]
 			then
 				pid = "901D"
+			fi
+			/sbin/usb/compositions/$pid
+		;;
+	esac
+
+	# sa8650p to be removed later once sa8775p h/w available.
+	case `source /sbin/usb/target` in
+		*sa8775p* | *sa8650p* )
+			pid=`cat /etc/usb/boot_hsusb_comp`
+			# make 4EE7 as default composition
+            if [ -z "$pid" ]
+			then
+				pid = "4EE7"
 			fi
 			/sbin/usb/compositions/$pid
 		;;

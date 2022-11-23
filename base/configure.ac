@@ -19,11 +19,6 @@ AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
 
-
-# Checks for libraries.
-PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
-
-
 #obtain  system-core source path.
 
 AC_ARG_WITH([core_sourcedir],

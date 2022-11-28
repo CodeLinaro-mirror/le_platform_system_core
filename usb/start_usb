@@ -401,18 +401,6 @@ case "$1" in
 		cd /
 	fi
 
-	pid=`cat /etc/usb/boot_hsusb_comp`
-	if [ "$pid" == "none" ]; then
-		case `source /sbin/usb/target` in
-			*cinder* )
-				echo 9060 > /etc/usb/boot_hsusb_comp
-				;;
-			*sdxlemur* )
-				echo 90DB > /etc/usb/boot_hsusb_comp
-				;;
-		esac
-	fi
-
 	# enable debug message
 	if [ -f /sbin/usb/debuger/default_debug ];
 	then

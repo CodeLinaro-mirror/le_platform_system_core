@@ -263,6 +263,14 @@ if [ -f /dev/block/bootdevice/by-name/misc ]; then
     setprop persist.vendor.mmi.misc_dev_path $real_path
 fi
 
+# set the io-scheduler default to bfq on all mq support devices
+echo "bfq" > /sys/class/block/mmcblk0/queue/scheduler
+echo "bfq" > /sys/class/block/mmcblk1/queue/scheduler
+
+# update io-scheduler tunables
+echo 0 > /sys/class/block/mmcblk0/queue/iosched/slice_idle
+echo 0 > /sys/class/block/mmcblk1/queue/iosched/slice_idle
+
 # Setting perf prop to signal postboot completion
 setprop vendor.post_boot.parsed 1
 echo "init_post_boot completed"

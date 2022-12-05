@@ -210,6 +210,9 @@ case "$target" in
     # enable autosleep
     echo mem > /sys/power/autosleep
 
+    # enable support for SPAD activity based sleep/wakeup sequence
+    echo 1 > /sys/devices/platform/soc/19200000.cache-controller/spad_act_slp_wake_enable
+
     configure_memory_parameters
     ;;
 esac

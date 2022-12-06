@@ -40,7 +40,7 @@ Description=Logd logging Service
 [Service]
 Type=forking
 Restart=on-failure
-ExecStartPre=/bin/sh -c '/bin/echo 900 > /proc/sys/net/unix/max_dgram_qlen'
+ExecStartPre=/bin/sh -c '/bin/echo 600 > /proc/sys/net/unix/max_dgram_qlen'
 ExecStartPre=+/bin/chmod 0777 /dev/socket
 ExecStart=/bin/sh -c '/sbin/logd & echo $! >/var/run/logd.pid'
 PIDFile=/var/run/logd.pid

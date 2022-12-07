@@ -7,4 +7,4 @@ Name: mincrypt
 Description: Mincrypt library
 Version: @VERSION@
 Libs: -L${libdir} -lmincrypt
-Cflags: -I${includedir}
+Cflags: -I${includedir}/mincrypt

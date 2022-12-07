@@ -7,4 +7,4 @@ Name: logwarp
 Description: logwrap library
 Version: @VERSION@
 Libs: -L${libdir} -llogwrap
-Cflags: -I${includedir}
+Cflags: -I${includedir}/logwrapper

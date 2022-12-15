@@ -96,6 +96,12 @@ case `cat ${TARGET_DIR}` in
 	*SA8540P* )
 		res="sa8540p";
 		;;
+	*LEMANSAU_ADAS_H* )
+		res="sa8650p";
+		;;
+	*LEMANSAU_IVI_ADAS* )
+		res="sa8775p";
+		;;
 	* )
 		res="none"
 		;;

@@ -20,6 +20,31 @@
 #include <sys/stat.h>
 #include <string>
 
+#include "base/macros.h"
+
+
+class TemporaryFile {
+ public:
+  TemporaryFile();
+  explicit TemporaryFile(const std::string& tmp_dir);
+  ~TemporaryFile();
+
+  // Release the ownership of fd, caller is reponsible for closing the
+  // fd or stream properly.
+  int release();
+  // Don't remove the temporary file in the destructor.
+  void DoNotRemove() { remove_file_ = false; }
+
+  int fd;
+  char path[1024];
+
+ private:
+  void init(const std::string& tmp_dir);
+
+  bool remove_file_ = true;
+
+  DISALLOW_COPY_AND_ASSIGN(TemporaryFile);
+};
 namespace android {
 namespace base {
 
@@ -37,6 +62,16 @@ bool WriteStringToFile(const std::string& content, const std::string& path,
 bool ReadFully(int fd, void* data, size_t byte_count);
 bool WriteFully(int fd, const void* data, size_t byte_count);
 
+
+#if !defined(_WIN32)
+bool Readlink(const std::string& path, std::string* result);
+#endif
+std::string GetExecutablePath();
+std::string GetExecutableDirectory();
+// Like the regular basename and dirname, but thread-safe on all
+// platforms and capable of correctly handling exotic Windows paths.
+std::string Basename(const std::string& path);
+std::string Dirname(const std::string& path);
 }  // namespace base
 }  // namespace android
 

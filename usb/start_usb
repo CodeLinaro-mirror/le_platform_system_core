@@ -100,6 +100,7 @@ case "$1" in
 		mkdir functions/mass_storage.0
 		mkdir functions/mass_storage.1
 		mkdir functions/ffs.adb
+		mkdir functions/ffs.mtp
 		mkdir functions/diag.diag
 		mkdir functions/diag.diag_mdm
 		mkdir functions/cser.dun.0
@@ -157,7 +158,11 @@ case "$1" in
 		echo "$product_string" > /sys/class/android_usb/android0/iProduct
 	fi
 
-	# mount functionfs
+	# mount mtp functionfs
+	mkdir -p /dev/usb-ffs/mtp
+	mount -o uid=2000,gid=2000 -t functionfs mtp /dev/usb-ffs/mtp
+
+	# mount adb functionfs
 	mkdir -p /dev/usb-ffs/adb
 	mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
 

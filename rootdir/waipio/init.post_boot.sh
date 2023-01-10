@@ -1,5 +1,5 @@
 #! /bin/sh
-
+#
 # Copyright (c) 2012-2013, 2016-2021, The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,6 +27,9 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+#Changes from Qualcomm Innovation Center are provided under the following license:
+#Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+#SPDX-License-Identifier: BSD-3-Clause-Clear
 
 echo -n "Starting init_post_boot: "
 
@@ -207,11 +210,8 @@ case "$target" in
     # enable LPMs for neo
     echo  N  >  /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
-    # Disable autosleep
-    echo off > /sys/power/autosleep
-
-    # enable support for SPAD activity based sleep/wakeup sequence
-    echo 1 > /sys/devices/platform/soc/19200000.cache-controller/spad_act_slp_wake_enable
+    # enable autosleep
+    echo mem > /sys/power/autosleep
 
     configure_memory_parameters
     ;;
@@ -265,14 +265,6 @@ if [ -f /dev/block/bootdevice/by-name/misc ]; then
     real_path=${misc_link##*>}
     setprop persist.vendor.mmi.misc_dev_path $real_path
 fi
-
-# set the io-scheduler default to bfq on all mq support devices
-echo "bfq" > /sys/class/block/mmcblk0/queue/scheduler
-echo "bfq" > /sys/class/block/mmcblk1/queue/scheduler
-
-# update io-scheduler tunables
-echo 0 > /sys/class/block/mmcblk0/queue/iosched/slice_idle
-echo 0 > /sys/class/block/mmcblk1/queue/iosched/slice_idle
 
 # Setting perf prop to signal postboot completion
 setprop vendor.post_boot.parsed 1

@@ -106,7 +106,7 @@ function configure_memory_parameters() {
     # Set allocstall_threshold to 0 for all targets.
     #
 
-if [ "$target" == "neo-le" ] ; then
+if [ "$target" == "waipio" ] ; then
     configure_read_ahead_kb_values
     echo 0 > /proc/sys/vm/page-cluster
     echo 100 > /proc/sys/vm/swappiness
@@ -118,7 +118,7 @@ fi
 }
 
 case "$target" in
-    "neo-le")
+    "waipio")
 
     # Make unbound workqueue not run on cpu0, since all irqs are
     # handled by cpu0 as default, it will preempt the workqueue if
@@ -207,7 +207,7 @@ case "$target" in
     done
 
 
-    # enable LPMs for neo
+    # enable LPMs for waipio
     echo  N  >  /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
     # enable autosleep

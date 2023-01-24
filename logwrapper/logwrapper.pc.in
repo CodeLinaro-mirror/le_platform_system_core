@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: logwarp
-Description: logwrap library
+Name: logwrap
+Description: logwrapper library
 Version: @VERSION@
 Libs: -L${libdir} -llogwrap
-Cflags: -I${includedir}/logwrapper
+Cflags: -I${includedir}

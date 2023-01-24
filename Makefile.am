@@ -4,7 +4,6 @@ BUILD_COMPONENTS :=
 #BUILD_COMPONENTS += libzarchive
 
 if BUILD_DEVICE 
-BUILD_COMPONENTS += logwrapper
 if !NO_LIBSYNC
 BUILD_COMPONENTS += libsync
 endif

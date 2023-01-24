@@ -24,6 +24,9 @@ AC_SUBST([LIBSELINUX_CFLAGS])
 AC_SUBST([LIBSELINUX_LIBS])
 
 PKG_CHECK_MODULES([LIBBASE], [libbase])
+PKG_CHECK_MODULES([LIBCUTILS], [libcutils])
+PKG_CHECK_MODULES([LIBLOG], [liblog])
+PKG_CHECK_MODULES([LOGWRAPPER], [logwrapper])
 
 AS_CASE([$host],
         [arm*], [ARM=yes],
@@ -150,8 +153,6 @@ AC_MSG_NOTICE([fec image size $FEC_SIZE detected.])
 
 AC_CONFIG_FILES([ \
     Makefile \
-    logwrapper/Makefile \
-    logwrapper/logwrapper.pc \
     libsync/Makefile \
     libsync/libsync.pc \
     fs_mgr/Makefile \

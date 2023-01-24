@@ -27,8 +27,7 @@
 
 [Unit]
 Description=Adb Daemon Starter
-Requires=usb.service
-After=usb.service
+After=network.target
 DefaultDependencies=no
 StartLimitBurst=10
 

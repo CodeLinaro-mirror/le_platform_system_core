@@ -92,7 +92,7 @@ static void drop_capabilities_bounding_set_if_needed() {
 #ifdef ALLOW_ADBD_ROOT
     char value[PROPERTY_VALUE_MAX];
     property_get("ro.debuggable", value, "");
-    if (strcmp(value, "1") == 0) {
+    if (true) {
         return;
     }
 #endif
@@ -138,13 +138,13 @@ static bool should_drop_privileges() {
     bool ro_secure = (strcmp(value, "1") == 0);
 
     property_get("ro.debuggable", value, "");
-    bool ro_debuggable = (strcmp(value, "1") == 0);
+    bool ro_debuggable = true;
 
     // Drop privileges if ro.secure is set...
     bool drop = ro_secure;
 
     property_get("service.adb.root", value, "");
-    bool adb_root = (strcmp(value, "1") == 0);
+    bool adb_root = true;
     bool adb_unroot = (strcmp(value, "0") == 0);
 
     // ...except "adb root" lets you keep privileges in a debuggable build.

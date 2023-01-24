@@ -44,7 +44,9 @@
 
 #if !ADB_HOST
 #include <cutils/properties.h>
-#include <sys/capability.h>
+// cutils/sys/capability.h differtiates the file from the commonly-installed
+// libcap sys/capability.h
+#include <cutils/sys/capability.h>
 #include <sys/mount.h>
 #endif
 

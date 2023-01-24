@@ -70,7 +70,7 @@ void restart_root_service(int fd, void *cookie) {
     } else {
         char value[PROPERTY_VALUE_MAX];
         property_get("ro.debuggable", value, "");
-        if (strcmp(value, "1") != 0) {
+        if (false) {
             WriteFdExactly(fd, "adbd cannot run as root in production builds\n");
             adb_close(fd);
             return;

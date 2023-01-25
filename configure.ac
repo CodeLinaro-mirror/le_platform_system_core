@@ -27,6 +27,7 @@ PKG_CHECK_MODULES([LIBBASE], [libbase])
 PKG_CHECK_MODULES([LIBCUTILS], [libcutils])
 PKG_CHECK_MODULES([LIBLOG], [liblog])
 PKG_CHECK_MODULES([LOGWRAPPER], [logwrapper])
+PKG_CHECK_MODULES([FSMGR], [fs_mgr])
 
 AS_CASE([$host],
         [arm*], [ARM=yes],
@@ -155,8 +156,6 @@ AC_CONFIG_FILES([ \
     Makefile \
     libsync/Makefile \
     libsync/libsync.pc \
-    fs_mgr/Makefile \
-    fs_mgr/fs_mgr.pc \
     libsysutils/Makefile \
     logcat/Makefile \
     logd/Makefile \

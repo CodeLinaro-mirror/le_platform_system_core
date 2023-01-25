@@ -29,7 +29,6 @@ libadbd_la_SOURCES += usb_linux_client.cpp
 
 libadbd_la_CPPFLAGS := -I$(top_srcdir)/include
 libadbd_la_CPPFLAGS += -I$(top_srcdir)/base/include
-libadbd_la_CPPFLAGS += -I$(top_srcdir)/fs_mgr/include
 libadbd_la_CPPFLAGS += -Wall -Wno-unused-parameter
 libadbd_la_CPPFLAGS += -Wno-deprecated-declarations
 libadbd_la_CPPFLAGS += -std=c++14 -fpermissive
@@ -38,7 +37,6 @@ libadbd_la_CPPFLAGS += -DADB_HOST=0
 libadbd_la_CPPFLAGS += -DADB_REVISION='"$(adb_version)"'
 libadbd_la_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
-libadbd_la_LIBADD   := ../fs_mgr/libfs_mgr.la
 libadbd_la_LDFLAGS  := -lselinux -lcutils -lext4_utils -lmincrypt -lresolv -lbase
 
 # Build adb daemon
@@ -55,7 +53,7 @@ adbd_SOURCES  += set_verity_enable_state_service.cpp
 
 adbd_CPPFLAGS := -I$(top_srcdir)/include
 adbd_CPPFLAGS += -I$(top_srcdir)/base/include
-adbd_CPPFLAGS += -I$(top_srcdir)/fs_mgr/include
+adbd_CPPFLAGS += @FSMGR_CFLAGS@
 adbd_CPPFLAGS += -I$(top_srcdir)/mkbootimg
 adbd_CPPFLAGS += $(GLIB_CFLAGS) -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy -include glib.h
 adbd_CPPFLAGS += -Wall -Wno-unused-parameter
@@ -84,8 +82,8 @@ if ADB_AVB20
 adbd_CPPFLAGS += -DADB_AVB20=1
 endif
 adbd_LDADD   := libadbd.la
-adbd_LDADD   += ../fs_mgr/libfs_mgr.la
-adbd_LDFLAGS := -lcutils -lresolv -lmincrypt -lselinux -lbase
+adbd_LDFLAGS := -lcutils -lresolv -lmincrypt -lselinux -lbase @LIBLOG_LIBS@ @FSMGR_LIBS@
+adbd_LDFLAGS += @GLIB_LIBS@
 endif
 
 # adb host tool for linux

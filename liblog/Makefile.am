@@ -20,6 +20,7 @@ lib_LTLIBRARIES    := liblog.la
 liblog_la_CPPFLAGS := -DHAVE_PTHREADS
 liblog_la_CPPFLAGS += -DHAVE_SYS_UIO_H
 liblog_la_CPPFLAGS += -DLINUX_ENABLED
+liblog_la_CPPFLAGS += -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy
 liblog_la_CPPFLAGS += -D__linux__
 liblog_la_CPPFLAGS += -DLIBLOG_LOG_TAG=1005
 

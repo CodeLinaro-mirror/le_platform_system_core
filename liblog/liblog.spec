@@ -10,7 +10,8 @@ URL: https://www.codelinaro.org/
 #Source0: liblog-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: autoconf automake libtool gcc-g++
+BuildRequires: autoconf automake libtool gcc-g++ glib2-devel
+Requires: glib2
 
 %description
 liblog  represents  an interface to the volatile Android Logging system for
@@ -34,7 +35,7 @@ related items necessary for software development.
 
 %build
 autoreconf -if
-%configure --with-core-includes=%{_builddir}/include
+%configure --with-core-includes=%{_builddir}/include --with-glib
 
 %make_build
 

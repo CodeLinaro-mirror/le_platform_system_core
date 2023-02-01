@@ -5,10 +5,12 @@ Summary: liblog - Android NDK logger interfaces
 
 License: Apache-2.0
 
-Group: base
 URL: https://www.codelinaro.org/
 #Source0: liblog-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
+# The source tarball must contain the liblog/ and include/ directories
+# for access to the necessary headers in include/log/ and other headers
+# liblog depends on
 
 BuildRequires: autoconf automake libtool gcc-g++ glib2-devel
 Requires: glib2
@@ -21,7 +23,6 @@ or reading logs.
 %package -n liblog-dev
 Summary: liblog - Android NDK logger interfaces - Development files
 License: Apache-2.0
-Group: devel
 Requires: %{name} = %{version}-%{release}
 
 %description -n liblog-dev
@@ -41,24 +42,24 @@ autoreconf -if
 
 %install
 %make_install
-%check
 
 %files
 %license NOTICE
-%doc
 %{_libdir}/liblog.a
 %{_libdir}/liblog.la
 %{_libdir}/liblog.so.0
 %{_libdir}/liblog.so.0.0.0
 
 %files -n liblog-dev
-%{_includedir}/android/log.h
-%{_includedir}/log/event_tag_map.h
-%{_includedir}/log/log.h
-%{_includedir}/log/log_read.h
-%{_includedir}/log/logd.h
-%{_includedir}/log/logger.h
-%{_includedir}/log/logprint.h
-%{_includedir}/log/uio.h
 %{_libdir}/liblog.so
 %{_libdir}/pkgconfig/liblog.pc
+%dir %{_includedir}/android
+%{_includedir}/android/log.h
+%dir %{_includedir}/log
+%{_includedir}/log/event_tag_map.h
+%{_includedir}/log/logd.h
+%{_includedir}/log/logger.h
+%{_includedir}/log/log.h
+%{_includedir}/log/logprint.h
+%{_includedir}/log/log_read.h
+%{_includedir}/log/uio.h

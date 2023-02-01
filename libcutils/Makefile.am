@@ -44,8 +44,6 @@ host_sources := ashmem-host.c
 host_sources += trace-host.c
 host_sources += dlmalloc_stubs.c
 
-requiredlibs = -lpthread
-
 # Build libcutils.so
 lib_LTLIBRARIES := libcutils.la
 
@@ -57,7 +55,7 @@ libcutils_la_CPPFLAGS += -D_GNU_SOURCE
 if LE_PROPERTIES
 libcutils_la_CPPFLAGS += -DLE_PROPERTIES
 endif
-libcutils_la_LDFLAGS  := -lpthread -llog
+libcutils_la_LDFLAGS  := -lpthread @LIBLOG_LIBS@
 
 if BUILD_HOST
 libcutils_la_SOURCES  += $(host_sources)
@@ -77,7 +75,6 @@ if ARM64
 libcutils_la_SOURCES  += arch-arm64/android_memset.S
 endif
 
-libcutils_la_LDFLAGS  := -lpthread -llog
 
 # Export headers
 cutils_includedir=$(includedir)/cutils

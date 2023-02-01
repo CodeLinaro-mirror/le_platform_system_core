@@ -5,10 +5,11 @@ Summary: Android utils library for C
 
 License: Apache-2.0
 
-Group: base
 URL: https://www.codelinaro.org/
 #Source0: libcutils-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
+# The source tarball must contain the cutils/ and include/ directories
+# for access to the necessary headers in include/{cutils,private,sys}/
 
 BuildRequires: autoconf automake libtool gcc-g++ liblog-dev
 
@@ -18,8 +19,6 @@ basically any Unix utility or daemon application written in C.
 
 %package -n libcutils-dev
 Summary: Android utils library for C - Development files
-License: Apache-2.0
-Group: devel
 Requires: %{name} = %{version}-%{release}
 
 %description -n libcutils-dev
@@ -39,11 +38,9 @@ autoreconf -if
 
 %install
 %make_install
-%check
 
 %files
 %license NOTICE
-%doc
 %{_libdir}/libcutils.a
 %{_libdir}/libcutils.la
 %{_libdir}/libcutils.so.0
@@ -52,6 +49,7 @@ autoreconf -if
 %files -n libcutils-dev
 %{_libdir}/libcutils.so
 %{_libdir}/pkgconfig/libcutils.pc
+%dir %{_includedir}/cutils
 %{_includedir}/cutils/android_reboot.h
 %{_includedir}/cutils/aref.h
 %{_includedir}/cutils/ashmem.h
@@ -81,10 +79,12 @@ autoreconf -if
 %{_includedir}/cutils/sockets.h
 %{_includedir}/cutils/stdatomic.h
 %{_includedir}/cutils/str_parms.h
-%{_includedir}/cutils/sys/capability.h
-%{_includedir}/cutils/sys/system_properties.h
 %{_includedir}/cutils/threads.h
 %{_includedir}/cutils/trace.h
 %{_includedir}/cutils/uevent.h
+%dir %{_includedir}/cutils/sys
+%{_includedir}/cutils/sys/capability.h
+%{_includedir}/cutils/sys/system_properties.h
+%dir %{_includedir}/private
 %{_includedir}/private/android_filesystem_capability.h
 %{_includedir}/private/android_filesystem_config.h

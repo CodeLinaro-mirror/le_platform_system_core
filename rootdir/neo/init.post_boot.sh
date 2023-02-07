@@ -207,9 +207,6 @@ case "$target" in
     # enable LPMs for neo
     echo  N  >  /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
-    # Disable autosleep
-    echo off > /sys/power/autosleep
-
     # enable support for SPAD activity based sleep/wakeup sequence
     echo 1 > /sys/devices/platform/soc/19200000.cache-controller/spad_act_slp_wake_enable
 

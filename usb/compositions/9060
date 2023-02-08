@@ -136,13 +136,20 @@ case $target in
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
 							| *sxrneo* | *cinder* | *sm8450p* )
-		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || [ $target == "cinder" || [ $target == "sm8450p" ]
+		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || [ $target == "cinder" ] || [ $target == "sm8450p" ]
 		then
 			qdss_func="qdss.qdss_mdm"
 		else
 			qdss_func="qdss.qdss"
 		fi
-		udcname=`ls -1 /sys/class/udc | head -n 1`
+
+		if [ $target == "sm8450p" ]
+		then
+			udcname="a600000.dwc3"
+		else
+			udcname=`ls -1 /sys/class/udc | head -n 1`
+		fi
+
 		run_configfs $udcname &
 		;;
 	* )

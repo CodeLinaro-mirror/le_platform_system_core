@@ -7,4 +7,4 @@ Name: libbacktrace
 Description: libbacktrace library
 Version: @VERSION@
 Libs: -L${libdir} -lbacktrace
-Cflags: -I${includedir}/backtrace
+Cflags: -I${includedir}

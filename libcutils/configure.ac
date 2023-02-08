@@ -18,9 +18,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
-# Check for required libraries.
-PKG_CHECK_MODULES([LIBLOG], [liblog])
-
 AC_ARG_WITH([core_includes],
     AC_HELP_STRING([--with-core-includes=@<:@dir@:>@],
        [Specify the location of the core headers]),

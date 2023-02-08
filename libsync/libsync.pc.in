@@ -7,4 +7,4 @@ Name: libsync
 Description: libsync library
 Version: @VERSION@
 Libs: -L${libdir} -llibsync
-Cflags: -I${includedir}/sync
+Cflags: -I${includedir}

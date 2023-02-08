@@ -7,4 +7,4 @@ Name: cutils
 Description: cutils library
 Version: @VERSION@
 Libs: -L${libdir} -lcutils
-Cflags: -I${includedir}/cutils -I${includedir}/sys/cutils -I${includedir}/private
+Cflags: -I${includedir}

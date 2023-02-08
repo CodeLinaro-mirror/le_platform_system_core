@@ -12,7 +12,7 @@ endif
 target_sources += log_is_loggable.c
 target_sources += logprint.c
 
-requiredlibs = -lpthread
+requiredlibs = -lpthread -lglib-2.0
 
 # Build liblog.so
 lib_LTLIBRARIES    := liblog.la
@@ -25,9 +25,10 @@ liblog_la_CPPFLAGS += -DLIBLOG_LOG_TAG=1005
 
 if USE_GLIB
 liblog_la_CPPFLAGS += -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy
-liblog_la_CPPFLAGS  += -DUSE_GLIB @GLIB_CFLAGS@
+liblog_la_CPPFLAGS  += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@
 liblog_la_LDFLAGS := @GLIB_LIBS@
 endif
+
 
 if BUILD_DEVICE
 liblog_la_SOURCES  := $(target_sources)

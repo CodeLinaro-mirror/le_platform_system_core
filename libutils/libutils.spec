@@ -5,14 +5,12 @@ Summary: Android Utility Function Library
 
 License: Apache-2.0
 
+Group: base
 URL: https://www.codelinaro.org/
 #Source0: libutils-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
 
 BuildRequires: autoconf automake libtool gcc-g++
-# The source tarball must contain the utils/ and include/ directories
-# for access to the necessary headers in include/utils/ and other headers
-# libutils depends on
 
 %description
 This library provides miscellaneous utility functions and common
@@ -20,6 +18,8 @@ definitions, such as log, thread, buffer, vector and mutex.
 
 %package -n libutils-dev
 Summary: Android utils library for C - Development files
+License: Apache-2.0
+Group: devel
 Requires: %{name} = %{version}-%{release}
 
 %description -n libutils-dev
@@ -39,18 +39,17 @@ autoreconf -if
 
 %install
 %make_install
+%check
 
 %files
 %license NOTICE
+%doc
 %{_libdir}/libutils.a
 %{_libdir}/libutils.la
 %{_libdir}/libutils.so.0
 %{_libdir}/libutils.so.0.0.0
 
 %files -n libutils-dev
-%{_libdir}/libutils.so
-%{_libdir}/pkgconfig/libutils.pc
-%dir %{_includedir}/utils
 %{_includedir}/utils/AndroidThreads.h
 %{_includedir}/utils/ashmem.h
 %{_includedir}/utils/Atomic.h
@@ -99,3 +98,6 @@ autoreconf -if
 %{_includedir}/utils/Unicode.h
 %{_includedir}/utils/Vector.h
 %{_includedir}/utils/VectorImpl.h
+%{_libdir}/libutils.so
+%{_libdir}/pkgconfig/libutils.pc
+

@@ -56,6 +56,7 @@ AC_ARG_WITH([logd-logging],
 
 AM_CONDITIONAL(USE_LOGD, [test "x${with_logd_logging}" = "xyes"])
 
+
 AC_ARG_WITH([glib],
                  AS_HELP_STRING([--with-glib],
                                       [enable glib, building HLOS systems which use glib]))
@@ -73,6 +74,7 @@ AC_ARG_WITH([glib],
   fi
 
   AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
+
 
 AC_CONFIG_FILES([ \
     Makefile \

@@ -8,14 +8,14 @@ lib_LTLIBRARIES := libbase.la
 
 libbase_la_SOURCES  := $(libbase_sources)
 libbase_la_CPPFLAGS := -I@core_srcdir@/include
-libbase_la_CPPFLAGS += -I$(srcdir)/include @LIBCUTILS_CFLAGS@ @LIBUTILS_CFLAGS@
+libbase_la_CPPFLAGS += -I$(srcdir)/include
 if BUILD_DEVICE
 libbase_la_CPPFLAGS += -std=c++14
 endif
 if BUILD_HOST
 libbase_la_CPPFLAGS += -std=c++11
 endif
-libbase_la_LDFLAGS  := @LIBCUTILS_LIBS@
+libbase_la_LDFLAGS  := -lcutils
 
 # Export headers
 base_includedir=$(includedir)/base

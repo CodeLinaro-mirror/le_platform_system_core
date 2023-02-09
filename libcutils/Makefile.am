@@ -44,6 +44,8 @@ host_sources := ashmem-host.c
 host_sources += trace-host.c
 host_sources += dlmalloc_stubs.c
 
+requiredlibs = -lpthread
+
 # Build libcutils.so
 lib_LTLIBRARIES := libcutils.la
 
@@ -55,7 +57,7 @@ libcutils_la_CPPFLAGS += -D_GNU_SOURCE
 if LE_PROPERTIES
 libcutils_la_CPPFLAGS += -DLE_PROPERTIES
 endif
-libcutils_la_LDFLAGS  := -lrt -lpthread @LIBLOG_LIBS@
+libcutils_la_LDFLAGS  := -lrt -lpthread -llog
 
 if BUILD_HOST
 libcutils_la_SOURCES  += $(host_sources)

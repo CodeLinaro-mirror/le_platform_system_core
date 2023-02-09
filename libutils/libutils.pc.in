@@ -7,4 +7,4 @@ Name: utils
 Description: utils library
 Version: @VERSION@
 Libs: -L${libdir} -lutils
-Cflags: -I${includedir}/utils
+Cflags: -I${includedir}

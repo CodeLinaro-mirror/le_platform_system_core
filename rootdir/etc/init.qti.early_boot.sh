@@ -32,23 +32,45 @@ echo -n "Starting init_early_boot: [$target] "
 
 case "$target" in
     "sa8155p" | "sa8155" )
-        for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
-        do
-            echo  902400000 > $l3lat/min_freq
-            echo 1612800000 > $l3lat/max_freq
-        done
+        if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
+            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
+            do
+                echo  902400 > $l3lat/min_freq
+                echo 1612800 > $l3lat/max_freq
+            done
+        else
+            for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
+            do
+                echo  902400000 > $l3lat/min_freq
+                echo 1612800000 > $l3lat/max_freq
+            done
+        fi
         ;;
     "sa8195p" )
-        for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
-        do
-            echo 940800000 > $l3lat/min_freq
-        done
+        if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
+            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
+            do
+                echo 940800 > $l3lat/min_freq
+            done
+        else
+            for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
+            do
+                echo 940800000 > $l3lat/min_freq
+            done
+        fi
         ;;
     "sa6155p" | "sa6155" )
-        for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
-        do
-            echo 940800000 > $l3lat/min_freq
-        done
+        if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
+            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
+            do
+                echo 940800 > $l3lat/min_freq
+            done
+        else
+            for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
+            do
+                echo 940800000 > $l3lat/min_freq
+            done
+        fi
         ;;
     *)
         ;;

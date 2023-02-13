@@ -228,16 +228,6 @@ case "$1" in
 				esac
 			fi
 		        ;;
-		*sm8450p* )
-			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
-				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
-				case "$default_mode" in
-				    "none")
-					echo peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
-				    ;;
-				esac
-			fi
-		        ;;
 	esac
 
 	#

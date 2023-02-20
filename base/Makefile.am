@@ -15,7 +15,7 @@ endif
 if BUILD_HOST
 libbase_la_CPPFLAGS += -std=c++11
 endif
-libbase_la_LDFLAGS  := -lcutils
+libbase_la_LDFLAGS  := @LIBCUTILS_LIBS@
 
 # Export headers
 base_includedir=$(includedir)/base

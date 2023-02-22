@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #define TRACE_TAG TRACE_SERVICES
 
 #include "sysdeps.h"
@@ -46,6 +53,7 @@
 #include "remount_service.h"
 #include "transport.h"
 
+
 struct stinfo {
     void (*func)(int fd, void *cookie);
     int fd;
@@ -70,15 +78,21 @@ void restart_root_service(int fd, void *cookie) {
     } else {
         char value[PROPERTY_VALUE_MAX];
         property_get("ro.debuggable", value, "");
+#ifdef USING_SYSTEM_PROPERTIES
         if (strcmp(value, "1") != 0) {
             WriteFdExactly(fd, "adbd cannot run as root in production builds\n");
             adb_close(fd);
             return;
         }
+#endif // USING_SYSTEM_PROPERTIES
 
         property_set("service.adb.root", "1");
         WriteFdExactly(fd, "restarting adbd as root\n");
         adb_close(fd);
+#ifndef USING_SYSTEM_PROPERTIES
+        no_sysprop_set_adb_run_as_root();
+        exit(1);
+#endif // USING_SYSTEM_PROPERTIES
     }
 }
 
@@ -90,6 +104,10 @@ void restart_unroot_service(int fd, void *cookie) {
         property_set("service.adb.root", "0");
         WriteFdExactly(fd, "restarting adbd as non root\n");
         adb_close(fd);
+#ifndef USING_SYSTEM_PROPERTIES
+        no_sysprop_set_adb_run_as_nonroot();
+        exit(1);
+#endif // USING_SYSTEM_PROPERTIES
     }
 }
 

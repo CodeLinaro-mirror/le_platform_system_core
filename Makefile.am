@@ -7,7 +7,6 @@ if BUILD_DEVICE
 if !NO_LIBSYNC
 BUILD_COMPONENTS += libsync
 endif
-BUILD_COMPONENTS += adb
 if USE_LOGD
 BUILD_COMPONENTS += logcat
 BUILD_COMPONENTS += libsysutils

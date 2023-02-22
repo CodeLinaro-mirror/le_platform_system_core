@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #ifndef __ADB_H
 #define __ADB_H
 
@@ -42,6 +49,14 @@
 
 // Increment this when we want to force users to start a new adb server.
 #define ADB_SERVER_VERSION 32
+
+#ifndef USING_SYSTEM_PROPERTIES
+#define NO_SYSPROP_ADB_RUN_AS_ROOT_PATH "/etc/adbd/run_as_root"
+void no_sysprop_set_adb_run_as_root();
+void no_sysprop_set_adb_run_as_nonroot();
+// Return true for root, false for nonroot
+bool no_sysprop_get_adb_run_as_root_conf();
+#endif // USING_SYSTEM_PROPERTIES
 
 struct atransport;
 struct usb_handle;

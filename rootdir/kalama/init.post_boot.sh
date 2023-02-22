@@ -166,6 +166,14 @@ if [ -f /sys/devices/soc0/soc_id ]; then
         platformid=`cat /sys/devices/soc0/soc_id`
 fi
 
+case "$platformid" in 
+    "603")
+    # Disable Core control on silver/gold/gold_plus
+    echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
+    echo 0 > /sys/devices/system/cpu/cpu3/core_ctl/enable
+    echo 0 > /sys/devices/system/cpu/cpu7/core_ctl/enable
+esac
+
 case "$platformid" in
     "519"|"536"|"600"|"601"|"603")
     rev=`cat /sys/devices/soc0/revision`

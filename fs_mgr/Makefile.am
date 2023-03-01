@@ -6,10 +6,10 @@ lib_LTLIBRARIES := libfs_mgr.la
 libfs_mgr_la_SOURCES := $(fs_mgr_c_sources)
 libfs_mgr_la_CFLAGS  := -I$(top_srcdir)/include
 libfs_mgr_la_CFLAGS  += -I$(top_srcdir)/fs_mgr/include
-libfs_mgr_la_CFLAGS  += -I$(top_srcdir)/logwrapper/include
+libfs_mgr_la_CFLAGS  += @LIBLOG_CFLAGS@ @LIBCUTILS_CFLAGS@ @LOGWRAPPER_CFLAGS@
 libfs_mgr_la_CFLAGS  += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@
 libfs_mgr_la_LDFLAGS := -lm -lpthread -lcutils @GLIB_LIBS@
-libfs_mgr_la_LDFLAGS += ../logwrapper/liblogwrap.la
+libfs_mgr_la_LDFLAGS += @LIBLOG_LIBS@ @LIBCUTILS_LIBS@ @LOGWRAPPER_LIBS@
 
 # Build fs_mgr daemon
 bin_PROGRAMS = fs_mgr

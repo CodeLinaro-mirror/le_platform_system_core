@@ -23,6 +23,12 @@ liblog_la_CPPFLAGS += -DLINUX_ENABLED
 liblog_la_CPPFLAGS += -D__linux__
 liblog_la_CPPFLAGS += -DLIBLOG_LOG_TAG=1005
 
+if USE_GLIB
+liblog_la_CPPFLAGS += -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy
+liblog_la_CPPFLAGS  += -DUSE_GLIB @GLIB_CFLAGS@
+liblog_la_LDFLAGS := @GLIB_LIBS@
+endif
+
 if BUILD_DEVICE
 liblog_la_SOURCES  := $(target_sources)
 liblog_la_CPPFLAGS += -DANDROID_SMP=0

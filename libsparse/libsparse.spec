@@ -9,7 +9,7 @@ URL: https://www.codelinaro.org/
 #Source0: libsparse-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: autoconf automake libtool gcc-g++
+BuildRequires: autoconf automake libtool gcc-g++ zlib-devel
 
 %description
 Libparse is a library in common use by the various Android core host

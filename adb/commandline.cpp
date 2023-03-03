@@ -31,8 +31,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <memory>
 #include <string>
 
+#include <base/logging.h>
 #include <base/stringprintf.h>
 
 #if !defined(_WIN32)
@@ -46,10 +48,12 @@
 #include "adb_io.h"
 #include "adb_utils.h"
 #include "file_sync_service.h"
+#include "shell_service.h"
+#include "transport.h"
 
-static int install_app(transport_type t, const char* serial, int argc, const char** argv);
-static int install_multiple_app(transport_type t, const char* serial, int argc, const char** argv);
-static int uninstall_app(transport_type t, const char* serial, int argc, const char** argv);
+static int install_app(TransportType t, const char* serial, int argc, const char** argv);
+static int install_multiple_app(TransportType t, const char* serial, int argc, const char** argv);
+static int uninstall_app(TransportType t, const char* serial, int argc, const char** argv);
 
 static std::string gProductOutPath;
 extern int gListenAll;
@@ -271,19 +275,60 @@ static void stdin_raw_restore(int fd) {
 }
 #endif
 
-static void read_and_dump(int fd) {
+// Reads from |fd| and prints received data. If |use_shell_protocol| is true
+// this expects that incoming data will use the shell protocol, in which case
+// stdout/stderr are routed independently and the remote exit code will be
+// returned.
+static int read_and_dump(int fd, bool use_shell_protocol=false) {
+    int exit_code = 0;
+    std::unique_ptr<ShellProtocol> protocol;
+    int length = 0;
+    FILE* outfile = stdout;
+
+    char raw_buffer[BUFSIZ];
+    char* buffer_ptr = raw_buffer;
+    if (use_shell_protocol) {
+        protocol.reset(new ShellProtocol(fd));
+        if (!protocol) {
+            LOG(ERROR) << "failed to allocate memory for ShellProtocol object";
+            return 1;
+        }
+        buffer_ptr = protocol->data();
+    }
+
     while (fd >= 0) {
-        D("read_and_dump(): pre adb_read(fd=%d)\n", fd);
-        char buf[BUFSIZ];
-        int len = adb_read(fd, buf, sizeof(buf));
-        D("read_and_dump(): post adb_read(fd=%d): len=%d\n", fd, len);
-        if (len <= 0) {
-            break;
+        if (use_shell_protocol) {
+            if (!protocol->Read()) {
+                break;
+            }
+            switch (protocol->id()) {
+                case ShellProtocol::kIdStdout:
+                    outfile = stdout;
+                    break;
+                case ShellProtocol::kIdStderr:
+                    outfile = stderr;
+                    break;
+                case ShellProtocol::kIdExit:
+                    exit_code = protocol->data()[0];
+                    continue;
+                default:
+                    continue;
+            }
+            length = protocol->data_length();
+        } else {
+            D("read_and_dump(): pre adb_read(fd=%d)", fd);
+            length = adb_read(fd, raw_buffer, sizeof(raw_buffer));
+            D("read_and_dump(): post adb_read(fd=%d): length=%d", fd, length);
+            if (length <= 0) {
+                break;
+            }
         }
 
-        fwrite(buf, 1, len, stdout);
-        fflush(stdout);
+        fwrite(buffer_ptr, 1, length, outfile);
+        fflush(outfile);
     }
+
+    return exit_code;
 }
 
 static void read_status_line(int fd, char* buf, size_t count)
@@ -311,7 +356,7 @@ static void copy_to_file(int inFd, int outFd) {
     int len;
     long total = 0;
 
-    D("copy_to_file(%d -> %d)\n", inFd, outFd);
+    D("copy_to_file(%d -> %d)", inFd, outFd);
 
     if (inFd == STDIN_FILENO) {
         stdin_raw_init(STDIN_FILENO);
@@ -324,15 +369,15 @@ static void copy_to_file(int inFd, int outFd) {
             len = adb_read(inFd, buf, BUFSIZE);
         }
         if (len == 0) {
-            D("copy_to_file() : read 0 bytes; exiting\n");
+            D("copy_to_file() : read 0 bytes; exiting");
             break;
         }
         if (len < 0) {
             if (errno == EINTR) {
-                D("copy_to_file() : EINTR, retrying\n");
+                D("copy_to_file() : EINTR, retrying");
                 continue;
             }
-            D("copy_to_file() : error %d\n", errno);
+            D("copy_to_file() : error %d", errno);
             break;
         }
         if (outFd == STDOUT_FILENO) {
@@ -348,34 +393,49 @@ static void copy_to_file(int inFd, int outFd) {
         stdin_raw_restore(STDIN_FILENO);
     }
 
-    D("copy_to_file() finished after %lu bytes\n", total);
+    D("copy_to_file() finished after %lu bytes", total);
     free(buf);
 }
 
-static void *stdin_read_thread(void *x)
-{
-    int fd, fdi;
-    unsigned char buf[1024];
-    int r, n;
+namespace {
+
+// Used to pass multiple values to the stdin read thread.
+struct StdinReadArgs {
+    int stdin_fd, write_fd;
+    std::unique_ptr<ShellProtocol> protocol;
+};
+
+}  // namespace
+
+// Loops to read from stdin and push the data to the given FD.
+// The argument should be a pointer to a StdinReadArgs object. This function
+// will take ownership of the object and delete it when finished.
+static void* stdin_read_thread(void* x) {
+    std::unique_ptr<StdinReadArgs> args(reinterpret_cast<StdinReadArgs*>(x));
     int state = 0;
 
-    int *fds = (int*) x;
-    fd = fds[0];
-    fdi = fds[1];
-    free(fds);
+    adb_thread_setname("stdin reader");
 
-    for(;;) {
-        /* fdi is really the client's stdin, so use read, not adb_read here */
-        D("stdin_read_thread(): pre unix_read(fdi=%d,...)\n", fdi);
-        r = unix_read(fdi, buf, 1024);
-        D("stdin_read_thread(): post unix_read(fdi=%d,...)\n", fdi);
+    char raw_buffer[1024];
+    char* buffer_ptr = raw_buffer;
+    size_t buffer_size = sizeof(raw_buffer);
+    if (args->protocol) {
+        buffer_ptr = args->protocol->data();
+        buffer_size = args->protocol->data_capacity();
+    }
+
+    while (true) {
+        // Use unix_read() rather than adb_read() for stdin.
+        D("stdin_read_thread(): pre unix_read(fdi=%d,...)", args->stdin_fd);
+        int r = unix_read(args->stdin_fd, buffer_ptr, buffer_size);
+        D("stdin_read_thread(): post unix_read(fdi=%d,...)", args->stdin_fd);
         if(r == 0) break;
         if(r < 0) {
             if(errno == EINTR) continue;
             break;
         }
-        for(n = 0; n < r; n++){
-            switch(buf[n]) {
+        for (int n = 0; n < r; n++){
+            switch(buffer_ptr[n]) {
             case '\n':
                 state = 1;
                 break;
@@ -388,51 +448,63 @@ static void *stdin_read_thread(void *x)
             case '.':
                 if(state == 2) {
                     fprintf(stderr,"\n* disconnect *\n");
-                    stdin_raw_restore(fdi);
+                    stdin_raw_restore(args->stdin_fd);
                     exit(0);
                 }
             default:
                 state = 0;
             }
         }
-        r = adb_write(fd, buf, r);
-        if(r <= 0) {
-            break;
+        if (args->protocol) {
+            if (!args->protocol->Write(ShellProtocol::kIdStdin, r)) {
+                break;
+            }
+        } else {
+            if (!WriteFdExactly(args->write_fd, buffer_ptr, r)) {
+                break;
+            }
         }
     }
-    return 0;
+
+    return nullptr;
 }
 
-static int interactive_shell() {
-    adb_thread_t thr;
-    int fdi;
-
+static int interactive_shell(bool use_shell_protocol) {
     std::string error;
     int fd = adb_connect("shell:", &error);
     if (fd < 0) {
         fprintf(stderr,"error: %s\n", error.c_str());
         return 1;
     }
-    fdi = 0; //dup(0);
 
-    int* fds = reinterpret_cast<int*>(malloc(sizeof(int) * 2));
-    if (fds == nullptr) {
-        fprintf(stderr, "couldn't allocate fds array: %s\n", strerror(errno));
+    StdinReadArgs* args = new StdinReadArgs;
+    if (!args) {
+        LOG(ERROR) << "couldn't allocate StdinReadArgs object";
         return 1;
     }
+    args->stdin_fd = 0;
+    args->write_fd = fd;
+    if (use_shell_protocol) {
+        args->protocol.reset(new ShellProtocol(args->write_fd));
+    }
 
-    fds[0] = fd;
-    fds[1] = fdi;
+    stdin_raw_init(args->stdin_fd);
 
-    stdin_raw_init(fdi);
-    adb_thread_create(&thr, stdin_read_thread, fds);
-    read_and_dump(fd);
-    stdin_raw_restore(fdi);
-    return 0;
+    int exit_code = 0;
+    if (!adb_thread_create(stdin_read_thread, args)) {
+        PLOG(ERROR) << "error starting stdin read thread";
+        exit_code = 1;
+        delete args;
+    } else {
+        exit_code = read_and_dump(fd, use_shell_protocol);
+    }
+
+    stdin_raw_restore(args->stdin_fd);
+    return exit_code;
 }
 
 
-static std::string format_host_command(const char* command, transport_type type, const char* serial) {
+static std::string format_host_command(const char* command, TransportType type, const char* serial) {
     if (serial) {
         return android::base::StringPrintf("host-serial:%s:%s", serial, command);
     }
@@ -463,8 +535,8 @@ static int adb_download_buffer(const char *service, const char *fn, const void* 
     const uint8_t* ptr = reinterpret_cast<const uint8_t*>(data);
 
     if (show_progress) {
-        char *x = strrchr(service, ':');
-        if(x) service = x + 1;
+        const char* x = strrchr(service, ':');
+        if (x) service = x + 1;
     }
 
     while (sz > 0) {
@@ -674,7 +746,7 @@ static int ppp(int argc, const char** argv) {
 #endif /* !defined(_WIN32) */
 }
 
-static bool wait_for_device(const char* service, transport_type t, const char* serial) {
+static bool wait_for_device(const char* service, TransportType t, const char* serial) {
     // Was the caller vague about what they'd like us to wait for?
     // If so, check they weren't more specific in their choice of transport type.
     if (strcmp(service, "wait-for-device") == 0) {
@@ -690,15 +762,15 @@ static bool wait_for_device(const char* service, transport_type t, const char* s
     std::string cmd = format_host_command(service, t, serial);
     std::string error;
     if (adb_command(cmd, &error)) {
-        D("failure: %s *\n", error.c_str());
-        fprintf(stderr,"error: %s\n", error.c_str());
+        D("failure: %s *", error.c_str());
+        fprintf(stderr,"error: %s", error.c_str());
         return false;
     }
 
     return true;
 }
 
-static int send_shell_command(transport_type transport_type, const char* serial,
+static int send_shell_command(TransportType transport_type, const char* serial,
                               const std::string& command) {
     int fd;
     while (true) {
@@ -720,7 +792,7 @@ static int send_shell_command(transport_type transport_type, const char* serial,
     return rc;
 }
 
-static int logcat(transport_type transport, const char* serial, int argc, const char** argv) {
+static int logcat(TransportType transport, const char* serial, int argc, const char** argv) {
     char* log_tags = getenv("ANDROID_LOG_TAGS");
     std::string quoted = escape_arg(log_tags == nullptr ? "" : log_tags);
 
@@ -737,25 +809,6 @@ static int logcat(transport_type transport, const char* serial, int argc, const 
     }
 
     return send_shell_command(transport, serial, cmd);
-}
-
-static int mkdirs(const char *path)
-{
-    int ret;
-    char *x = (char *)path + 1;
-
-    for(;;) {
-        x = adb_dirstart(x);
-        if(x == 0) return 0;
-        *x = 0;
-        ret = adb_mkdir(path, 0775);
-        *x = OS_PATH_SEPARATOR;
-        if((ret < 0) && (errno != EEXIST)) {
-            return ret;
-        }
-        x++;
-    }
-    return 0;
 }
 
 static int backup(int argc, const char** argv) {
@@ -795,7 +848,7 @@ static int backup(int argc, const char** argv) {
         cmd += " " + escape_arg(*argv++);
     }
 
-    D("backup. filename=%s cmd=%s\n", filename, cmd.c_str());
+    D("backup. filename=%s cmd=%s", filename, cmd.c_str());
     std::string error;
     int fd = adb_connect(cmd, &error);
     if (fd < 0) {
@@ -849,25 +902,25 @@ static int restore(int argc, const char** argv) {
  * Given <hint>, try to construct an absolute path to the
  * ANDROID_PRODUCT_OUT dir.
  */
-static std::string find_product_out_path(const char* hint) {
-    if (hint == NULL || hint[0] == '\0') {
+static std::string find_product_out_path(const std::string& hint) {
+    if (hint.empty()) {
         return "";
     }
 
     // If it's already absolute, don't bother doing any work.
-    if (adb_is_absolute_host_path(hint)) {
+    if (adb_is_absolute_host_path(hint.c_str())) {
         return hint;
     }
 
     // If there are any slashes in it, assume it's a relative path;
     // make it absolute.
-    if (adb_dirstart(hint) != nullptr) {
+    if (hint.find_first_of(OS_PATH_SEPARATORS) != std::string::npos) {
         std::string cwd;
         if (!getcwd(&cwd)) {
             fprintf(stderr, "adb: getcwd failed: %s\n", strerror(errno));
             return "";
         }
-        return android::base::StringPrintf("%s%s%s", cwd.c_str(), OS_PATH_SEPARATOR_STR, hint);
+        return android::base::StringPrintf("%s%c%s", cwd.c_str(), OS_PATH_SEPARATOR, hint.c_str());
     }
 
     // It's a string without any slashes.  Try to do something with it.
@@ -891,21 +944,21 @@ static std::string find_product_out_path(const char* hint) {
     path += hint;
     if (!directory_exists(path)) {
         fprintf(stderr, "adb: Couldn't find a product dir based on -p %s; "
-                        "\"%s\" doesn't exist\n", hint, path.c_str());
+                        "\"%s\" doesn't exist\n", hint.c_str(), path.c_str());
         return "";
     }
     return path;
 }
 
 static void parse_push_pull_args(const char **arg, int narg, char const **path1,
-                                 char const **path2, int *show_progress,
+                                 char const **path2, bool* show_progress,
                                  int *copy_attrs) {
-    *show_progress = 0;
+    *show_progress = false;
     *copy_attrs = 0;
 
     while (narg > 0) {
         if (!strcmp(*arg, "-p")) {
-            *show_progress = 1;
+            *show_progress = true;
         } else if (!strcmp(*arg, "-a")) {
             *copy_attrs = 1;
         } else {
@@ -949,15 +1002,27 @@ static int adb_query_command(const std::string& command) {
     return 0;
 }
 
+// Checks whether the device indicated by |transport_type| and |serial| supports
+// |feature|. Returns the response string, which will be empty if the device
+// could not be found or the feature is not supported.
+static std::string CheckFeature(const std::string& feature,
+                                TransportType transport_type,
+                                const char* serial) {
+    std::string result, error, command("check-feature:" + feature);
+    if (!adb_query(format_host_command(command.c_str(), transport_type, serial),
+                   &result, &error)) {
+        return "";
+    }
+    return result;
+}
+
 int adb_commandline(int argc, const char **argv) {
     int no_daemon = 0;
     int is_daemon = 0;
     int is_server = 0;
     int persist = 0;
     int r;
-    transport_type ttype = kTransportAny;
-    const char* serial = NULL;
-    const char* server_port_str = NULL;
+    TransportType transport_type = kTransportAny;
 
     // If defined, this should be an absolute path to
     // the directory containing all of the various system images
@@ -970,10 +1035,10 @@ int adb_commandline(int argc, const char **argv) {
     }
     // TODO: also try TARGET_PRODUCT/TARGET_DEVICE as a hint
 
-    serial = getenv("ANDROID_SERIAL");
+    const char* serial = getenv("ANDROID_SERIAL");
 
     /* Validate and assign the server port */
-    server_port_str = getenv("ANDROID_ADB_SERVER_PORT");
+    const char* server_port_str = getenv("ANDROID_ADB_SERVER_PORT");
     int server_port = DEFAULT_ADB_PORT;
     if (server_port_str && strlen(server_port_str) > 0) {
         server_port = (int) strtol(server_port_str, NULL, 0);
@@ -1006,7 +1071,7 @@ int adb_commandline(int argc, const char **argv) {
             } else {
                 product = argv[0] + 2;
             }
-            gProductOutPath = find_product_out_path(product);
+            if (product) gProductOutPath = find_product_out_path(product);
             if (gProductOutPath.empty()) {
                 fprintf(stderr, "adb: could not resolve \"-p %s\"\n", product);
                 return usage();
@@ -1021,9 +1086,9 @@ int adb_commandline(int argc, const char **argv) {
                 argv++;
             }
         } else if (!strcmp(argv[0],"-d")) {
-            ttype = kTransportUsb;
+            transport_type = kTransportUsb;
         } else if (!strcmp(argv[0],"-e")) {
-            ttype = kTransportLocal;
+            transport_type = kTransportLocal;
         } else if (!strcmp(argv[0],"-a")) {
             gListenAll = 1;
         } else if (!strncmp(argv[0], "-H", 2)) {
@@ -1068,7 +1133,7 @@ int adb_commandline(int argc, const char **argv) {
         argv++;
     }
 
-    adb_set_transport(ttype, serial);
+    adb_set_transport(transport_type, serial);
     adb_set_tcp_specifics(server_port);
 
     if (is_server) {
@@ -1091,7 +1156,7 @@ int adb_commandline(int argc, const char **argv) {
     if (!strncmp(argv[0], "wait-for-", strlen("wait-for-"))) {
         const char* service = argv[0];
 
-        if (!wait_for_device(service, ttype, serial)) {
+        if (!wait_for_device(service, transport_type, serial)) {
             return 1;
         }
 
@@ -1152,9 +1217,19 @@ int adb_commandline(int argc, const char **argv) {
             fflush(stdout);
         }
 
+        bool use_shell_protocol;
+        if (CheckFeature(kFeatureShell2, transport_type, serial).empty()) {
+            D("shell protocol not supported, using raw data transfer");
+            use_shell_protocol = false;
+        } else {
+            D("using shell protocol");
+            use_shell_protocol = true;
+        }
+
+
         if (argc < 2) {
-            D("starting interactive shell\n");
-            r = interactive_shell();
+            D("starting interactive shell");
+            r = interactive_shell(use_shell_protocol);
             if (h) {
                 printf("\x1b[0m");
                 fflush(stdout);
@@ -1172,16 +1247,15 @@ int adb_commandline(int argc, const char **argv) {
         }
 
         while (true) {
-            D("interactive shell loop. cmd=%s\n", cmd.c_str());
+            D("non-interactive shell loop. cmd=%s", cmd.c_str());
             std::string error;
             int fd = adb_connect(cmd, &error);
             int r;
             if (fd >= 0) {
-                D("about to read_and_dump(fd=%d)\n", fd);
-                read_and_dump(fd);
-                D("read_and_dump() done.\n");
+                D("about to read_and_dump(fd=%d)", fd);
+                r = read_and_dump(fd, use_shell_protocol);
+                D("read_and_dump() done.");
                 adb_close(fd);
-                r = 0;
             } else {
                 fprintf(stderr,"error: %s\n", error.c_str());
                 r = -1;
@@ -1196,7 +1270,7 @@ int adb_commandline(int argc, const char **argv) {
                     printf("\x1b[0m");
                     fflush(stdout);
                 }
-                D("interactive shell loop. return r=%d\n", r);
+                D("non-interactive shell loop. return r=%d", r);
                 return r;
             }
         }
@@ -1266,7 +1340,7 @@ int adb_commandline(int argc, const char **argv) {
     }
     else if (!strcmp(argv[0], "bugreport")) {
         if (argc != 1) return usage();
-        return send_shell_command(ttype, serial, "shell:bugreport");
+        return send_shell_command(transport_type, serial, "shell:bugreport");
     }
     /* adb_command() wrapper commands */
     else if (!strcmp(argv[0], "forward") || !strcmp(argv[0], "reverse")) {
@@ -1307,9 +1381,9 @@ int adb_commandline(int argc, const char **argv) {
             if (serial) {
                 snprintf(host_prefix, sizeof host_prefix, "host-serial:%s",
                         serial);
-            } else if (ttype == kTransportUsb) {
+            } else if (transport_type == kTransportUsb) {
                 snprintf(host_prefix, sizeof host_prefix, "host-usb");
-            } else if (ttype == kTransportLocal) {
+            } else if (transport_type == kTransportLocal) {
                 snprintf(host_prefix, sizeof host_prefix, "host-local");
             } else {
                 snprintf(host_prefix, sizeof host_prefix, "host");
@@ -1356,45 +1430,37 @@ int adb_commandline(int argc, const char **argv) {
     /* do_sync_*() commands */
     else if (!strcmp(argv[0], "ls")) {
         if (argc != 2) return usage();
-        return do_sync_ls(argv[1]);
+        return do_sync_ls(argv[1]) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "push")) {
-        int show_progress = 0;
-        int copy_attrs = 0; // unused
+        bool show_progress = false;
+        int copy_attrs = 0;
         const char* lpath = NULL, *rpath = NULL;
 
         parse_push_pull_args(&argv[1], argc - 1, &lpath, &rpath, &show_progress, &copy_attrs);
-
-        if ((lpath != NULL) && (rpath != NULL)) {
-            return do_sync_push(lpath, rpath, show_progress);
-        }
-
-        return usage();
+        if (!lpath || !rpath || copy_attrs != 0) return usage();
+        return do_sync_push(lpath, rpath, show_progress) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "pull")) {
-        int show_progress = 0;
+        bool show_progress = false;
         int copy_attrs = 0;
         const char* rpath = NULL, *lpath = ".";
 
         parse_push_pull_args(&argv[1], argc - 1, &rpath, &lpath, &show_progress, &copy_attrs);
-
-        if (rpath != NULL) {
-            return do_sync_pull(rpath, lpath, show_progress, copy_attrs);
-        }
-
-        return usage();
+        if (!rpath) return usage();
+        return do_sync_pull(rpath, lpath, show_progress, copy_attrs) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "install")) {
         if (argc < 2) return usage();
-        return install_app(ttype, serial, argc, argv);
+        return install_app(transport_type, serial, argc, argv);
     }
     else if (!strcmp(argv[0], "install-multiple")) {
         if (argc < 2) return usage();
-        return install_multiple_app(ttype, serial, argc, argv);
+        return install_multiple_app(transport_type, serial, argc, argv);
     }
     else if (!strcmp(argv[0], "uninstall")) {
         if (argc < 2) return usage();
-        return uninstall_app(ttype, serial, argc, argv);
+        return uninstall_app(transport_type, serial, argc, argv);
     }
     else if (!strcmp(argv[0], "sync")) {
         std::string src;
@@ -1426,31 +1492,31 @@ int adb_commandline(int argc, const char **argv) {
         std::string vendor_src_path = product_file("vendor");
         std::string oem_src_path = product_file("oem");
 
-        int rc = 0;
-        if (rc == 0 && (src.empty() || src == "system")) {
-            rc = do_sync_sync(system_src_path, "/system", list_only);
+        bool okay = true;
+        if (okay && (src.empty() || src == "system")) {
+            okay = do_sync_sync(system_src_path, "/system", list_only);
         }
-        if (rc == 0 && (src.empty() || src == "vendor") && directory_exists(vendor_src_path)) {
-            rc = do_sync_sync(vendor_src_path, "/vendor", list_only);
+        if (okay && (src.empty() || src == "vendor") && directory_exists(vendor_src_path)) {
+            okay = do_sync_sync(vendor_src_path, "/vendor", list_only);
         }
-        if (rc == 0 && (src.empty() || src == "oem") && directory_exists(oem_src_path)) {
-            rc = do_sync_sync(oem_src_path, "/oem", list_only);
+        if (okay && (src.empty() || src == "oem") && directory_exists(oem_src_path)) {
+            okay = do_sync_sync(oem_src_path, "/oem", list_only);
         }
-        if (rc == 0 && (src.empty() || src == "data")) {
-            rc = do_sync_sync(data_src_path, "/data", list_only);
+        if (okay && (src.empty() || src == "data")) {
+            okay = do_sync_sync(data_src_path, "/data", list_only);
         }
-        return rc;
+        return okay ? 0 : 1;
     }
     /* passthrough commands */
     else if (!strcmp(argv[0],"get-state") ||
         !strcmp(argv[0],"get-serialno") ||
         !strcmp(argv[0],"get-devpath"))
     {
-        return adb_query_command(format_host_command(argv[0], ttype, serial));
+        return adb_query_command(format_host_command(argv[0], transport_type, serial));
     }
     /* other commands */
     else if (!strcmp(argv[0],"logcat") || !strcmp(argv[0],"lolcat") || !strcmp(argv[0],"longcat")) {
-        return logcat(ttype, serial, argc, argv);
+        return logcat(transport_type, serial, argc, argv);
     }
     else if (!strcmp(argv[0],"ppp")) {
         return ppp(argc, argv);
@@ -1486,9 +1552,7 @@ int adb_commandline(int argc, const char **argv) {
     return 1;
 }
 
-static int pm_command(transport_type transport, const char* serial,
-                      int argc, const char** argv)
-{
+static int pm_command(TransportType transport, const char* serial, int argc, const char** argv) {
     std::string cmd = "shell:pm";
 
     while (argc-- > 0) {
@@ -1498,9 +1562,7 @@ static int pm_command(transport_type transport, const char* serial,
     return send_shell_command(transport, serial, cmd);
 }
 
-static int uninstall_app(transport_type transport, const char* serial, int argc,
-                         const char** argv)
-{
+static int uninstall_app(TransportType transport, const char* serial, int argc, const char** argv) {
     /* if the user choose the -k option, we refuse to do it until devices are
        out with the option to uninstall the remaining data somehow (adb/ui) */
     if (argc == 3 && strcmp(argv[1], "-k") == 0)
@@ -1517,26 +1579,12 @@ static int uninstall_app(transport_type transport, const char* serial, int argc,
     return pm_command(transport, serial, argc, argv);
 }
 
-static int delete_file(transport_type transport, const char* serial, char* filename)
-{
+static int delete_file(TransportType transport, const char* serial, const std::string& filename) {
     std::string cmd = "shell:rm -f " + escape_arg(filename);
     return send_shell_command(transport, serial, cmd);
 }
 
-static const char* get_basename(const char* filename)
-{
-    const char* basename = adb_dirstop(filename);
-    if (basename) {
-        basename++;
-        return basename;
-    } else {
-        return filename;
-    }
-}
-
-static int install_app(transport_type transport, const char* serial, int argc,
-                       const char** argv)
-{
+static int install_app(TransportType transport, const char* serial, int argc, const char** argv) {
     static const char *const DATA_DEST = "/data/local/tmp/%s";
     static const char *const SD_DEST = "/sdcard/tmp/%s";
     const char* where = DATA_DEST;
@@ -1554,7 +1602,7 @@ static int install_app(transport_type transport, const char* serial, int argc,
     int last_apk = -1;
     for (i = argc - 1; i >= 0; i--) {
         const char* file = argv[i];
-        char* dot = strrchr(file, '.');
+        const char* dot = strrchr(file, '.');
         if (dot && !strcasecmp(dot, ".apk")) {
             if (stat(file, &sb) == -1 || !S_ISREG(sb.st_mode)) {
                 fprintf(stderr, "Invalid APK file: %s\n", file);
@@ -1571,24 +1619,19 @@ static int install_app(transport_type transport, const char* serial, int argc,
         return -1;
     }
 
+    int result = -1;
     const char* apk_file = argv[last_apk];
-    char apk_dest[PATH_MAX];
-    snprintf(apk_dest, sizeof apk_dest, where, get_basename(apk_file));
-    int err = do_sync_push(apk_file, apk_dest, 0 /* no show progress */);
-    if (err) {
-        goto cleanup_apk;
-    } else {
-        argv[last_apk] = apk_dest; /* destination name, not source location */
-    }
-
-    err = pm_command(transport, serial, argc, argv);
+    std::string apk_dest = android::base::StringPrintf(where, adb_basename(apk_file).c_str());
+    if (!do_sync_push(apk_file, apk_dest.c_str(), false)) goto cleanup_apk;
+    argv[last_apk] = apk_dest.c_str(); /* destination name, not source location */
+    result = pm_command(transport, serial, argc, argv);
 
 cleanup_apk:
     delete_file(transport, serial, apk_dest);
-    return err;
+    return result;
 }
 
-static int install_multiple_app(transport_type transport, const char* serial, int argc,
+static int install_multiple_app(TransportType transport, const char* serial, int argc,
                                 const char** argv)
 {
     int i;
@@ -1600,7 +1643,7 @@ static int install_multiple_app(transport_type transport, const char* serial, in
     int first_apk = -1;
     for (i = argc - 1; i >= 0; i--) {
         const char* file = argv[i];
-        char* dot = strrchr(file, '.');
+        const char* dot = strrchr(file, '.');
         if (dot && !strcasecmp(dot, ".apk")) {
             if (stat(file, &sb) == -1 || !S_ISREG(sb.st_mode)) {
                 fprintf(stderr, "Invalid APK file: %s\n", file);
@@ -1671,7 +1714,7 @@ static int install_multiple_app(transport_type transport, const char* serial, in
 #else
         std::string cmd = android::base::StringPrintf(
                 "exec:pm install-write -S %" PRIu64 " %d %d_%s -",
-                static_cast<uint64_t>(sb.st_size), session_id, i, get_basename(file));
+                static_cast<uint64_t>(sb.st_size), session_id, i, adb_basename(file).c_str());
 #endif
 
         int localFd = adb_open(file, O_RDONLY);

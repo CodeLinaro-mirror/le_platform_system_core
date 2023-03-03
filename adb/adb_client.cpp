@@ -36,35 +36,13 @@
 
 #include "adb_io.h"
 
-static transport_type __adb_transport = kTransportAny;
+static TransportType __adb_transport = kTransportAny;
 static const char* __adb_serial = NULL;
 
 static int __adb_server_port = DEFAULT_ADB_PORT;
 static const char* __adb_server_name = NULL;
 
-static std::string perror_str(const char* msg) {
-    return android::base::StringPrintf("%s: %s", msg, strerror(errno));
-}
-
-static bool ReadProtocolString(int fd, std::string* s, std::string* error) {
-    char buf[5];
-    if (!ReadFdExactly(fd, buf, 4)) {
-        *error = perror_str("protocol fault (couldn't read status length)");
-        return false;
-    }
-    buf[4] = 0;
-
-    unsigned long len = strtoul(buf, 0, 16);
-    s->resize(len, '\0');
-    if (!ReadFdExactly(fd, &(*s)[0], len)) {
-        *error = perror_str("protocol fault (couldn't read status message)");
-        return false;
-    }
-
-    return true;
-}
-
-void adb_set_transport(transport_type type, const char* serial)
+void adb_set_transport(TransportType type, const char* serial)
 {
     __adb_transport = type;
     __adb_serial = serial;
@@ -140,14 +118,14 @@ static int switch_socket_transport(int fd, std::string* error) {
         adb_close(fd);
         return -1;
     }
-    D("Switch transport in progress\n");
+    D("Switch transport in progress");
 
     if (!adb_status(fd, error)) {
         adb_close(fd);
-        D("Switch transport failed: %s\n", error->c_str());
+        D("Switch transport failed: %s", error->c_str());
         return -1;
     }
-    D("Switch transport success\n");
+    D("Switch transport success");
     return 0;
 }
 
@@ -173,7 +151,7 @@ bool adb_status(int fd, std::string* error) {
 }
 
 int _adb_connect(const std::string& service, std::string* error) {
-    D("_adb_connect: %s\n", service.c_str());
+    D("_adb_connect: %s", service.c_str());
     if (service.empty() || service.size() > 1024) {
         *error = android::base::StringPrintf("bad service name length (%d)",
                                              static_cast<int>(service.size()));
@@ -195,7 +173,7 @@ int _adb_connect(const std::string& service, std::string* error) {
         return -1;
     }
 
-    if(!SendProtocolString(fd, service)) {
+    if (!SendProtocolString(fd, service)) {
         *error = perror_str("write failure during connection");
         adb_close(fd);
         return -1;
@@ -206,7 +184,7 @@ int _adb_connect(const std::string& service, std::string* error) {
         return -1;
     }
 
-    D("_adb_connect: return fd %d\n", fd);
+    D("_adb_connect: return fd %d", fd);
     return fd;
 }
 
@@ -214,7 +192,7 @@ int adb_connect(const std::string& service, std::string* error) {
     // first query the adb server's version
     int fd = _adb_connect("host:version", error);
 
-    D("adb_connect: service %s\n", service.c_str());
+    D("adb_connect: service %s", service.c_str());
     if (fd == -2 && __adb_server_name) {
         fprintf(stderr,"** Cannot start server on remote host\n");
         return fd;
@@ -277,7 +255,7 @@ int adb_connect(const std::string& service, std::string* error) {
     } else if(fd == -2) {
         fprintf(stderr,"** daemon still not running\n");
     }
-    D("adb_connect: return fd %d\n", fd);
+    D("adb_connect: return fd %d", fd);
 
     return fd;
 error:
@@ -302,7 +280,7 @@ int adb_command(const std::string& service, std::string* error) {
 }
 
 bool adb_query(const std::string& service, std::string* result, std::string* error) {
-    D("adb_query: %s\n", service.c_str());
+    D("adb_query: %s", service.c_str());
     int fd = adb_connect(service, error);
     if (fd < 0) {
         fprintf(stderr,"error: %s\n", error->c_str());

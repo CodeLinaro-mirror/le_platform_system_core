@@ -93,9 +93,6 @@ void* device_poll_thread(void* unused);
 /// Initializes this module
 void usb_init();
 
-/// Cleans up this module
-void usb_cleanup();
-
 /// Opens usb interface (device) by interface (device) name.
 usb_handle* do_usb_open(const wchar_t* interface_name);
 
@@ -170,7 +167,8 @@ int register_new_device(usb_handle* handle) {
 }
 
 void* device_poll_thread(void* unused) {
-  D("Created device thread\n");
+  adb_thread_setname("Device Poll");
+  D("Created device thread");
 
   while(1) {
     find_devices();
@@ -181,14 +179,9 @@ void* device_poll_thread(void* unused) {
 }
 
 void usb_init() {
-  adb_thread_t tid;
-
-  if(adb_thread_create(&tid, device_poll_thread, NULL)) {
+  if (!adb_thread_create(device_poll_thread, nullptr)) {
     fatal_errno("cannot create input thread");
   }
-}
-
-void usb_cleanup() {
 }
 
 usb_handle* do_usb_open(const wchar_t* interface_name) {
@@ -263,7 +256,7 @@ int usb_write(usb_handle* handle, const void* data, int len) {
   unsigned long written = 0;
   int ret;
 
-  D("usb_write %d\n", len);
+  D("usb_write %d", len);
   if (NULL != handle) {
     // Perform write
     ret = AdbWriteEndpointSync(handle->adb_write_pipe,
@@ -275,7 +268,7 @@ int usb_write(usb_handle* handle, const void* data, int len) {
 
     if (ret) {
       // Make sure that we've written what we were asked to write
-      D("usb_write got: %ld, expected: %d\n", written, len);
+      D("usb_write got: %ld, expected: %d", written, len);
       if (written == (unsigned long)len) {
         if(handle->zero_mask && (len & handle->zero_mask) == 0) {
           // Send a zero length packet
@@ -294,11 +287,11 @@ int usb_write(usb_handle* handle, const void* data, int len) {
     }
     errno = saved_errno;
   } else {
-    D("usb_write NULL handle\n");
+    D("usb_write NULL handle");
     SetLastError(ERROR_INVALID_HANDLE);
   }
 
-  D("usb_write failed: %d\n", errno);
+  D("usb_write failed: %d", errno);
 
   return -1;
 }
@@ -308,7 +301,7 @@ int usb_read(usb_handle *handle, void* data, int len) {
   unsigned long read = 0;
   int ret;
 
-  D("usb_read %d\n", len);
+  D("usb_read %d", len);
   if (NULL != handle) {
     while (len > 0) {
       int xfer = (len > 4096) ? 4096 : len;
@@ -319,7 +312,7 @@ int usb_read(usb_handle *handle, void* data, int len) {
                                   &read,
                                   time_out);
       int saved_errno = GetLastError();
-      D("usb_write got: %ld, expected: %d, errno: %d\n", read, xfer, saved_errno);
+      D("usb_write got: %ld, expected: %d, errno: %d", read, xfer, saved_errno);
       if (ret) {
         data = (char *)data + read;
         len -= read;
@@ -335,11 +328,11 @@ int usb_read(usb_handle *handle, void* data, int len) {
       errno = saved_errno;
     }
   } else {
-    D("usb_read NULL handle\n");
+    D("usb_read NULL handle");
     SetLastError(ERROR_INVALID_HANDLE);
   }
 
-  D("usb_read failed: %d\n", errno);
+  D("usb_read failed: %d", errno);
 
   return -1;
 }
@@ -376,7 +369,7 @@ void usb_kick(usb_handle* handle) {
 }
 
 int usb_close(usb_handle* handle) {
-  D("usb_close\n");
+  D("usb_close");
 
   if (NULL != handle) {
     // Remove handle from the list
@@ -485,7 +478,7 @@ void find_devices() {
         if (NULL != handle) {
         // Lets see if this interface (device) belongs to us
         if (recognized_device(handle)) {
-          D("adding a new device %s\n", interf_name);
+          D("adding a new device %s", interf_name);
           char serial_number[512];
           unsigned long serial_number_len = sizeof(serial_number);
           if (AdbGetSerialNumber(handle->adb_interface,
@@ -496,12 +489,12 @@ void find_devices() {
             if (register_new_device(handle)) {
               register_usb_transport(handle, serial_number, NULL, 1);
             } else {
-              D("register_new_device failed for %s\n", interf_name);
+              D("register_new_device failed for %s", interf_name);
               usb_cleanup_handle(handle);
               free(handle);
             }
           } else {
-            D("cannot get serial number\n");
+            D("cannot get serial number");
             usb_cleanup_handle(handle);
             free(handle);
           }

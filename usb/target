@@ -114,6 +114,9 @@ case $TARGET in
 	*sm8450p* )
 		res="sm8450p"
 		;;
+	*kalama* )
+		res="kalama"
+		;;
 	* )
 		res="none"
 		;;

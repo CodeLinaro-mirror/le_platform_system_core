@@ -31,7 +31,10 @@
 #include <time.h>
 
 #include <string>
+#include <vector>
+#include <unordered_map>
 
+#include <base/logging.h>
 #include <base/stringprintf.h>
 #include <base/strings.h>
 
@@ -48,12 +51,10 @@
 #include <sys/mount.h>
 #endif
 
-ADB_MUTEX_DEFINE( D_lock );
-
-int HOST = 0;
-
 #if !ADB_HOST
 const char *adb_device_banner = "device";
+#else
+const char* adb_device_banner = "host";
 #endif
 
 void fatal(const char *fmt, ...)
@@ -99,7 +100,7 @@ void start_device_log(void) {
     dup2(fd, STDOUT_FILENO);
     dup2(fd, STDERR_FILENO);
     fprintf(stderr, "--- adb starting (pid %d) ---\n", getpid());
-    adb_close(fd);
+    unix_close(fd);
 }
 #endif
 
@@ -130,66 +131,46 @@ std::string get_trace_setting() {
 #endif
 }
 
-// Split the comma/space/colum/semi-column separated list of tags from the trace
-// setting and build the trace mask from it. note that '1' and 'all' are special
-// cases to enable all tracing.
+// Split the space separated list of tags from the trace setting and build the
+// trace mask from it. note that '1' and 'all' are special cases to enable all
+// tracing.
 //
 // adb's trace setting comes from the ADB_TRACE environment variable, whereas
 // adbd's comes from the system property persist.adb.trace_mask.
 void adb_trace_init() {
     const std::string trace_setting = get_trace_setting();
 
-    static const struct {
-        const char*  tag;
-        int           flag;
-    } tags[] = {
-        { "1", 0 },
-        { "all", 0 },
-        { "adb", TRACE_ADB },
-        { "sockets", TRACE_SOCKETS },
-        { "packets", TRACE_PACKETS },
-        { "rwx", TRACE_RWX },
-        { "usb", TRACE_USB },
-        { "sync", TRACE_SYNC },
-        { "sysdeps", TRACE_SYSDEPS },
-        { "transport", TRACE_TRANSPORT },
-        { "jdwp", TRACE_JDWP },
-        { "services", TRACE_SERVICES },
-        { "auth", TRACE_AUTH },
-        { NULL, 0 }
-    };
+    std::unordered_map<std::string, int> trace_flags = {
+        {"1", 0},
+        {"all", 0},
+        {"adb", TRACE_ADB},
+        {"sockets", TRACE_SOCKETS},
+        {"packets", TRACE_PACKETS},
+        {"rwx", TRACE_RWX},
+        {"usb", TRACE_USB},
+        {"sync", TRACE_SYNC},
+        {"sysdeps", TRACE_SYSDEPS},
+        {"transport", TRACE_TRANSPORT},
+        {"jdwp", TRACE_JDWP},
+        {"services", TRACE_SERVICES},
+        {"auth", TRACE_AUTH},
+        {"shell", TRACE_SHELL}};
 
-    if (trace_setting.empty()) {
-        return;
-    }
-
-    // Use a comma/colon/semi-colon/space separated list
-    const char* p = trace_setting.c_str();
-    while (*p) {
-        int  len, tagn;
-
-        const char* q = strpbrk(p, " ,:;");
-        if (q == NULL) {
-            q = p + strlen(p);
+    std::vector<std::string> elements = android::base::Split(trace_setting, " ");
+    for (const auto& elem : elements) {
+        const auto& flag = trace_flags.find(elem);
+        if (flag == trace_flags.end()) {
+            D("Unknown trace flag: %s", flag->first.c_str());
+            continue;
+         }
+        if (flag->second == 0) {
+            // 0 is used for the special values "1" and "all" that enable all
+            // tracing.
+            adb_trace_mask = ~0;
+            return;
+        } else {
+            adb_trace_mask |= 1 << flag->second;
         }
-        len = q - p;
-
-        for (tagn = 0; tags[tagn].tag != NULL; tagn++) {
-            int  taglen = strlen(tags[tagn].tag);
-
-            if (len == taglen && !memcmp(tags[tagn].tag, p, len)) {
-                int  flag = tags[tagn].flag;
-                if (flag == 0) {
-                    adb_trace_mask = ~0;
-                    return;
-                }
-                adb_trace_mask |= (1 << flag);
-                break;
-            }
-        }
-        p = q;
-        if (*p)
-            p++;
     }
 
 #if !ADB_HOST
@@ -215,13 +196,13 @@ void put_apacket(apacket *p)
 
 void handle_online(atransport *t)
 {
-    D("adb: online\n");
+    D("adb: online");
     t->online = 1;
 }
 
 void handle_offline(atransport *t)
 {
-    D("adb: offline\n");
+    D("adb: offline");
     //Close the associated usb
     t->online = 0;
     run_transport_disconnects(t);
@@ -270,7 +251,7 @@ void print_packet(const char *label, apacket *p)
 
 static void send_ready(unsigned local, unsigned remote, atransport *t)
 {
-    D("Calling send_ready \n");
+    D("Calling send_ready");
     apacket *p = get_apacket();
     p->msg.command = A_OKAY;
     p->msg.arg0 = local;
@@ -280,7 +261,7 @@ static void send_ready(unsigned local, unsigned remote, atransport *t)
 
 static void send_close(unsigned local, unsigned remote, atransport *t)
 {
-    D("Calling send_close \n");
+    D("Calling send_close");
     apacket *p = get_apacket();
     p->msg.command = A_CLSE;
     p->msg.arg0 = local;
@@ -288,45 +269,50 @@ static void send_close(unsigned local, unsigned remote, atransport *t)
     send_packet(p, t);
 }
 
-static size_t fill_connect_data(char *buf, size_t bufsize)
-{
-#if ADB_HOST
-    return snprintf(buf, bufsize, "host::") + 1;
-#else
-    static const char *cnxn_props[] = {
+std::string get_connection_string() {
+    std::vector<std::string> connection_properties;
+
+#if !ADB_HOST
+    static const char* cnxn_props[] = {
         "ro.product.name",
         "ro.product.model",
         "ro.product.device",
     };
-    static const int num_cnxn_props = ARRAY_SIZE(cnxn_props);
-    int i;
-    size_t remaining = bufsize;
-    size_t len;
 
-    len = snprintf(buf, remaining, "%s::", adb_device_banner);
-    remaining -= len;
-    buf += len;
-    for (i = 0; i < num_cnxn_props; i++) {
+    for (const auto& prop_name : cnxn_props) {
         char value[PROPERTY_VALUE_MAX];
-        property_get(cnxn_props[i], value, "");
-        len = snprintf(buf, remaining, "%s=%s;", cnxn_props[i], value);
-        remaining -= len;
-        buf += len;
+        property_get(prop_name, value, "");
+        connection_properties.push_back(
+            android::base::StringPrintf("%s=%s", prop_name, value));
     }
-
-    return bufsize - remaining + 1;
 #endif
+
+    connection_properties.push_back(android::base::StringPrintf(
+        "features=%s", android::base::Join(supported_features(), ',').c_str()));
+
+    return android::base::StringPrintf(
+        "%s::%s", adb_device_banner,
+        android::base::Join(connection_properties, ';').c_str());
 }
 
-void send_connect(atransport *t)
-{
-    D("Calling send_connect \n");
-    apacket *cp = get_apacket();
+void send_connect(atransport* t) {
+    D("Calling send_connect");
+    apacket* cp = get_apacket();
     cp->msg.command = A_CNXN;
-    cp->msg.arg0 = A_VERSION;
-    cp->msg.arg1 = MAX_PAYLOAD;
-    cp->msg.data_length = fill_connect_data((char *)cp->data,
-                                            sizeof(cp->data));
+    cp->msg.arg0 = t->get_protocol_version();
+    cp->msg.arg1 = t->get_max_payload();
+
+    std::string connection_str = get_connection_string();
+    // Connect and auth packets are limited to MAX_PAYLOAD_V1 because we don't
+    // yet know how much data the other size is willing to accept.
+    if (connection_str.length() > MAX_PAYLOAD_V1) {
+        LOG(FATAL) << "Connection banner is too long (length = "
+                   << connection_str.length() << ")";
+    }
+
+    memcpy(cp->data, connection_str.c_str(), connection_str.length());
+    cp->msg.data_length = connection_str.length();
+
     send_packet(cp, t);
 }
 
@@ -339,8 +325,8 @@ static void qual_overwrite(char** dst, const std::string& src) {
     *dst = strdup(src.c_str());
 }
 
-void parse_banner(const char* banner, atransport* t) {
-    D("parse_banner: %s\n", banner);
+void parse_banner(const std::string& banner, atransport* t) {
+    D("parse_banner: %s", banner.c_str());
 
     // The format is something like:
     // "device::ro.product.name=x;ro.product.model=y;ro.product.device=z;".
@@ -363,38 +349,65 @@ void parse_banner(const char* banner, atransport* t) {
                 qual_overwrite(&t->model, value);
             } else if (key == "ro.product.device") {
                 qual_overwrite(&t->device, value);
+            } else if (key == "features") {
+                for (const auto& feature : android::base::Split(value, ",")) {
+                    t->add_feature(feature);
+                }
             }
         }
     }
 
     const std::string& type = pieces[0];
     if (type == "bootloader") {
-        D("setting connection_state to CS_BOOTLOADER\n");
-        t->connection_state = CS_BOOTLOADER;
+        D("setting connection_state to kCsBootloader");
+        t->connection_state = kCsBootloader;
         update_transports();
     } else if (type == "device") {
-        D("setting connection_state to CS_DEVICE\n");
-        t->connection_state = CS_DEVICE;
+        D("setting connection_state to kCsDevice");
+        t->connection_state = kCsDevice;
         update_transports();
     } else if (type == "recovery") {
-        D("setting connection_state to CS_RECOVERY\n");
-        t->connection_state = CS_RECOVERY;
+        D("setting connection_state to kCsRecovery");
+        t->connection_state = kCsRecovery;
         update_transports();
     } else if (type == "sideload") {
-        D("setting connection_state to CS_SIDELOAD\n");
-        t->connection_state = CS_SIDELOAD;
+        D("setting connection_state to kCsSideload");
+        t->connection_state = kCsSideload;
         update_transports();
     } else {
-        D("setting connection_state to CS_HOST\n");
-        t->connection_state = CS_HOST;
+        D("setting connection_state to kCsHost");
+        t->connection_state = kCsHost;
     }
+}
+
+static void handle_new_connection(atransport* t, apacket* p) {
+    if (t->connection_state != kCsOffline) {
+        t->connection_state = kCsOffline;
+        handle_offline(t);
+    }
+
+    t->update_version(p->msg.arg0, p->msg.arg1);
+    std::string banner(reinterpret_cast<const char*>(p->data),
+                       p->msg.data_length);
+    parse_banner(banner, t);
+
+#if ADB_HOST
+    handle_online(t);
+#else
+    if (!auth_required) {
+        handle_online(t);
+        send_connect(t);
+    } else {
+        send_auth_request(t);
+    }
+#endif
 }
 
 void handle_packet(apacket *p, atransport *t)
 {
     asocket *s;
 
-    D("handle_packet() %c%c%c%c\n", ((char*) (&(p->msg.command)))[0],
+    D("handle_packet() %c%c%c%c", ((char*) (&(p->msg.command)))[0],
             ((char*) (&(p->msg.command)))[1],
             ((char*) (&(p->msg.command)))[2],
             ((char*) (&(p->msg.command)))[3]);
@@ -404,34 +417,23 @@ void handle_packet(apacket *p, atransport *t)
     case A_SYNC:
         if(p->msg.arg0){
             send_packet(p, t);
-            if(HOST) send_connect(t);
+#if ADB_HOST
+            send_connect(t);
+#endif
         } else {
-            t->connection_state = CS_OFFLINE;
+            t->connection_state = kCsOffline;
             handle_offline(t);
             send_packet(p, t);
         }
         return;
 
-    case A_CNXN: /* CONNECT(version, maxdata, "system-id-string") */
-            /* XXX verify version, etc */
-        if(t->connection_state != CS_OFFLINE) {
-            t->connection_state = CS_OFFLINE;
-            handle_offline(t);
-        }
-
-        parse_banner(reinterpret_cast<const char*>(p->data), t);
-
-        if (HOST || !auth_required) {
-            handle_online(t);
-            if (!HOST) send_connect(t);
-        } else {
-            send_auth_request(t);
-        }
+    case A_CNXN:  // CONNECT(version, maxdata, "system-id-string")
+        handle_new_connection(t, p);
         break;
 
     case A_AUTH:
         if (p->msg.arg0 == ADB_AUTH_TOKEN) {
-            t->connection_state = CS_UNAUTHORIZED;
+            t->connection_state = kCsUnauthorized;
             t->key = adb_auth_nextkey(t->key);
             if (t->key) {
                 send_auth_response(p->data, p->msg.data_length, t);
@@ -457,7 +459,7 @@ void handle_packet(apacket *p, atransport *t)
         if (t->online && p->msg.arg0 != 0 && p->msg.arg1 == 0) {
             char *name = (char*) p->data;
             name[p->msg.data_length > 0 ? p->msg.data_length - 1 : 0] = 0;
-            s = create_local_service_socket(name);
+            s = create_local_service_socket(name, t);
             if(s == 0) {
                 send_close(0, p->msg.arg0, t);
             } else {
@@ -481,7 +483,7 @@ void handle_packet(apacket *p, atransport *t)
                     /* Other READY messages must use the same local-id */
                     s->ready(s);
                 } else {
-                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s\n",
+                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s",
                       p->msg.arg0, p->msg.arg1, s->peer->id, p->msg.arg1, t->serial);
                 }
             }
@@ -502,7 +504,7 @@ void handle_packet(apacket *p, atransport *t)
                  * socket has a peer on the same transport.
                  */
                 if (p->msg.arg0 == 0 && s->peer && s->peer->transport != t) {
-                    D("Invalid A_CLSE(0, %u) from transport %s, expected transport %s\n",
+                    D("Invalid A_CLSE(0, %u) from transport %s, expected transport %s",
                       p->msg.arg1, t->serial, s->peer->transport->serial);
                 } else {
                     s->close(s);
@@ -518,7 +520,7 @@ void handle_packet(apacket *p, atransport *t)
                 p->len = p->msg.data_length;
 
                 if(s->enqueue(s, p) == 0) {
-                    D("Enqueue the socket\n");
+                    D("Enqueue the socket");
                     send_ready(s->id, rid, t);
                 }
                 return;
@@ -696,7 +698,7 @@ int launch_server(int server_port)
 // Try to handle a network forwarding request.
 // This returns 1 on success, 0 on failure, and -1 to indicate this is not
 // a forwarding-related request.
-int handle_forward_request(const char* service, transport_type ttype, char* serial, int reply_fd)
+int handle_forward_request(const char* service, TransportType type, const char* serial, int reply_fd)
 {
     if (!strcmp(service, "list-forward")) {
         // Create the list of forward redirections.
@@ -757,13 +759,13 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
         }
 
         std::string error_msg;
-        transport = acquire_one_transport(CS_ANY, ttype, serial, &error_msg);
+        transport = acquire_one_transport(kCsAny, type, serial, &error_msg);
         if (!transport) {
             SendFail(reply_fd, error_msg);
             return 1;
         }
 
-        install_status_t r;
+        InstallStatus r;
         if (createForward) {
             r = install_listener(local, remote, transport, no_rebind);
         } else {
@@ -796,13 +798,12 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
     return 0;
 }
 
-int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s)
-{
-    if(!strcmp(service, "kill")) {
-        fprintf(stderr,"adb server killed by remote request\n");
+int handle_host_request(const char* service, TransportType type,
+                        const char* serial, int reply_fd, asocket* s) {
+    if (strcmp(service, "kill") == 0) {
+        fprintf(stderr, "adb server killed by remote request\n");
         fflush(stdout);
         SendOkay(reply_fd);
-        usb_cleanup();
         exit(0);
     }
 
@@ -813,7 +814,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     // "transport-local:" is used for switching transport to the only local transport
     // "transport-any:" is used for switching transport to the only transport
     if (!strncmp(service, "transport", strlen("transport"))) {
-        transport_type type = kTransportAny;
+        TransportType type = kTransportAny;
 
         if (!strncmp(service, "transport-usb", strlen("transport-usb"))) {
             type = kTransportUsb;
@@ -827,7 +828,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         }
 
         std::string error_msg = "unknown failure";
-        transport = acquire_one_transport(CS_ANY, type, serial, &error_msg);
+        transport = acquire_one_transport(kCsAny, type, serial, &error_msg);
 
         if (transport) {
             s->transport = transport;
@@ -842,9 +843,9 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     if (!strncmp(service, "devices", 7)) {
         bool long_listing = (strcmp(service+7, "-l") == 0);
         if (long_listing || service[7] == 0) {
-            D("Getting device list...\n");
+            D("Getting device list...");
             std::string device_list = list_transports(long_listing);
-            D("Sending device list...\n");
+            D("Sending device list...");
             SendOkay(reply_fd);
             SendProtocolString(reply_fd, device_list);
             return 0;
@@ -890,7 +891,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
 
     if(!strncmp(service,"get-serialno",strlen("get-serialno"))) {
         const char *out = "unknown";
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         if (transport && transport->serial) {
             out = transport->serial;
         }
@@ -900,7 +901,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     }
     if(!strncmp(service,"get-devpath",strlen("get-devpath"))) {
         const char *out = "unknown";
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         if (transport && transport->devpath) {
             out = transport->devpath;
         }
@@ -917,14 +918,14 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     }
 
     if(!strncmp(service,"get-state",strlen("get-state"))) {
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         SendOkay(reply_fd);
         SendProtocolString(reply_fd, transport->connection_state_name());
         return 0;
     }
 #endif // ADB_HOST
 
-    int ret = handle_forward_request(service, ttype, serial, reply_fd);
+    int ret = handle_forward_request(service, type, serial, reply_fd);
     if (ret >= 0)
       return ret - 1;
     return -1;

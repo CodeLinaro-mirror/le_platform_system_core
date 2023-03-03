@@ -45,12 +45,14 @@ libadbd_la_LDFLAGS  += @LIBBASE_LIBS@ @MINCRYPT_LIBS@ @EXT4UTILS_LIBS@
 root_sbindir       := "/sbin"
 root_sbin_PROGRAMS := adbd
 
-adbd_SOURCES  := adb_main.cpp
+adbd_SOURCES  := daemon/main.cpp
 adbd_SOURCES  += services.cpp
+adbd_SOURCES  += shell_service.cpp
 adbd_SOURCES  += file_sync_service.cpp
 adbd_SOURCES  += framebuffer_service.cpp
 adbd_SOURCES  += remount_service.cpp
 adbd_SOURCES  += set_verity_enable_state_service.cpp
+adbd_SOURCES  += shell_service_protocol.cpp
 
 adbd_CPPFLAGS := -I@core_incdir@/../mkbootimg @FSMGR_CFLAGS@
 adbd_CPPFLAGS += -Wall -Wno-unused-parameter
@@ -75,7 +77,7 @@ adbd_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy @GLIB_CFLAGS
 adbd_CPPFLAGS += @EXT4UTILS_CFLAGS@
 
 adbd_LDADD   := libadbd.la
-adbd_LDFLAGS := -lpthread -lresolv -lselinux
+adbd_LDFLAGS := -lpthread -lresolv -lselinux -lutil
 adbd_LDFLAGS += @LIBLOG_LIBS@ @GLIB_LIBS@ @LIBCUTILS_LIBS@
 adbd_LDFLAGS += @LIBBASE_LIBS@ @FSMGR_LIBS@ @MINCRYPT_LIBS@
 endif
@@ -87,6 +89,7 @@ if BUILD_HOST
 lib_LTLIBRARIES := libadb.la
 
 libadb_la_SOURCES := $(adb_sources) $(adb_linux_sources)
+libadb_la_SOURCES += client/main.cpp
 libadb_la_SOURCES += adb_auth_host.cpp
 
 libadbd_la_CPPFLAGS := -I$(top_srcdir) @LIBCUTILS_CFLAGS@

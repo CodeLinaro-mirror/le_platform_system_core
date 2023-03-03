@@ -20,16 +20,101 @@
 #include <sys/types.h>
 
 #include <string>
+#include <unordered_set>
 
 #include "adb.h"
 
+typedef std::unordered_set<std::string> FeatureSet;
+
+const FeatureSet& supported_features();
+
+const extern char kFeatureShell2[];
+
+class atransport {
+public:
+    // TODO(danalbert): We expose waaaaaaay too much stuff because this was
+    // historically just a struct, but making the whole thing a more idiomatic
+    // class in one go is a very large change. Given how bad our testing is,
+    // it's better to do this piece by piece.
+
+    atransport() {
+        auth_fde = {};
+        transport_fde = {};
+        protocol_version = A_VERSION;
+        max_payload = MAX_PAYLOAD;
+    }
+
+    virtual ~atransport() {}
+
+    int (*read_from_remote)(apacket* p, atransport* t) = nullptr;
+    int (*write_to_remote)(apacket* p, atransport* t) = nullptr;
+    void (*close)(atransport* t) = nullptr;
+    void (*kick)(atransport* t) = nullptr;
+
+    int fd = -1;
+    int transport_socket = -1;
+    fdevent transport_fde;
+    int ref_count = 0;
+    uint32_t sync_token = 0;
+    ConnectionState connection_state = kCsOffline;
+    bool online = false;
+    TransportType type = kTransportAny;
+
+    // USB handle or socket fd as needed.
+    usb_handle* usb = nullptr;
+    int sfd = -1;
+
+    // Used to identify transports for clients.
+    char* serial = nullptr;
+    char* product = nullptr;
+    char* model = nullptr;
+    char* device = nullptr;
+    char* devpath = nullptr;
+    int adb_port = -1;  // Use for emulators (local transport)
+    bool kicked = false;
+
+    // A list of adisconnect callbacks called when the transport is kicked.
+    adisconnect disconnects = {};
+
+    void* key = nullptr;
+    unsigned char token[TOKEN_SIZE] = {};
+    fdevent auth_fde;
+    size_t failed_auth_attempts = 0;
+
+    const char* connection_state_name() const;
+
+    void update_version(int version, size_t payload);
+    int get_protocol_version() const;
+    size_t get_max_payload() const;
+
+    inline const FeatureSet features() const {
+        return features_;
+    }
+
+    bool has_feature(const std::string& feature) const;
+    void add_feature(const std::string& feature);
+
+    // Returns true if both we and the other end of the transport support the
+    // feature.
+    bool CanUseFeature(const std::string& feature) const;
+
+private:
+    // A set of features transmitted in the banner with the initial connection.
+    // This is stored in the banner as 'features=feature0,feature1,etc'.
+    FeatureSet features_;
+    int protocol_version;
+    size_t max_payload;
+
+    DISALLOW_COPY_AND_ASSIGN(atransport);
+};
+
 /*
  * Obtain a transport from the available transports.
- * If state is != CS_ANY, only transports in that state are considered.
+ * If state is != kCsAny, only transports in that state are considered.
  * If serial is non-NULL then only the device with that serial will be chosen.
  * If no suitable transport is found, error is set.
  */
-atransport* acquire_one_transport(int state, transport_type ttype,
+atransport* acquire_one_transport(ConnectionState state, TransportType type,
                                   const char* serial, std::string* error_out);
 void add_transport_disconnect(atransport* t, adisconnect* dis);
 void remove_transport_disconnect(atransport* t, adisconnect* dis);
@@ -50,14 +135,14 @@ void register_usb_transport(usb_handle* h, const char* serial,
 /* cause new transports to be init'd and added to the list */
 int register_socket_transport(int s, const char* serial, int port, int local);
 
-/* this should only be used for transports with connection_state == CS_NOPERM */
+// This should only be used for transports with connection_state == kCsNoPerm.
 void unregister_usb_transport(usb_handle* usb);
 
 /* these should only be used for the "adb disconnect" command */
 void unregister_transport(atransport* t);
 void unregister_all_tcp_transports();
 
-int check_header(apacket* p);
+int check_header(apacket* p, atransport* t);
 int check_data(apacket* p);
 
 /* for MacOS X cleanup */

@@ -26,7 +26,6 @@ libbase_test_src_files := \
     stringprintf_test.cpp \
     strings_test.cpp \
     test_main.cpp \
-    test_utils.cpp \
 
 libbase_cppflags := \
     -Wall \

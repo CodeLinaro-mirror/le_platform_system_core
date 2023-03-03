@@ -32,7 +32,27 @@ bool SendProtocolString(int fd, const std::string& s) {
         length = 0xffff;
     }
 
-    return WriteFdFmt(fd, "%04x", length) && WriteFdExactly(fd, s);
+    // The cost of sending two strings outweighs the cost of formatting.
+    // "adb sync" performance is affected by this.
+    return WriteFdFmt(fd, "%04x%.*s", length, length, s.c_str());
+}
+
+bool ReadProtocolString(int fd, std::string* s, std::string* error) {
+    char buf[5];
+    if (!ReadFdExactly(fd, buf, 4)) {
+        *error = perror_str("protocol fault (couldn't read status length)");
+        return false;
+    }
+    buf[4] = 0;
+
+    unsigned long len = strtoul(buf, 0, 16);
+    s->resize(len, '\0');
+    if (!ReadFdExactly(fd, &(*s)[0], len)) {
+        *error = perror_str("protocol fault (couldn't read status message)");
+        return false;
+    }
+
+    return true;
 }
 
 bool SendOkay(int fd) {
@@ -48,23 +68,23 @@ bool ReadFdExactly(int fd, void* buf, size_t len) {
 
     size_t len0 = len;
 
-    D("readx: fd=%d wanted=%zu\n", fd, len);
+    D("readx: fd=%d wanted=%zu", fd, len);
     while (len > 0) {
         int r = adb_read(fd, p, len);
         if (r > 0) {
             len -= r;
             p += r;
         } else if (r == -1) {
-            D("readx: fd=%d error %d: %s\n", fd, errno, strerror(errno));
+            D("readx: fd=%d error %d: %s", fd, errno, strerror(errno));
             return false;
         } else {
-            D("readx: fd=%d disconnected\n", fd);
+            D("readx: fd=%d disconnected", fd);
             errno = 0;
             return false;
         }
     }
 
-    D("readx: fd=%d wanted=%zu got=%zu\n", fd, len0, len0 - len);
+    D("readx: fd=%d wanted=%zu got=%zu", fd, len0, len0 - len);
     if (ADB_TRACING) {
         dump_hex(reinterpret_cast<const unsigned char*>(buf), len0);
     }
@@ -84,12 +104,12 @@ bool WriteFdExactly(int fd, const void* buf, size_t len) {
     while (len > 0) {
         r = adb_write(fd, p, len);
         if (r == -1) {
-            D("writex: fd=%d error %d: %s\n", fd, errno, strerror(errno));
+            D("writex: fd=%d error %d: %s", fd, errno, strerror(errno));
             if (errno == EAGAIN) {
                 adb_sleep_ms(1); // just yield some cpu time
                 continue;
             } else if (errno == EPIPE) {
-                D("writex: fd=%d disconnected\n", fd);
+                D("writex: fd=%d disconnected", fd);
                 errno = 0;
                 return false;
             } else {

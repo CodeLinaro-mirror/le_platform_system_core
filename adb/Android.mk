@@ -16,6 +16,7 @@ adb_version := $(shell git -C $(LOCAL_PATH) rev-parse --short=12 HEAD 2>/dev/nul
 ADB_COMMON_CFLAGS := \
     -Wall -Werror \
     -Wno-unused-parameter \
+    -Wno-missing-field-initializers \
     -DADB_REVISION='"$(adb_version)"' \
 
 # libadb
@@ -45,7 +46,6 @@ LIBADB_TEST_SRCS := \
 
 LIBADB_CFLAGS := \
     $(ADB_COMMON_CFLAGS) \
-    -Wno-missing-field-initializers \
     -fvisibility=hidden \
 
 LIBADB_darwin_SRC_FILES := \
@@ -77,6 +77,10 @@ LOCAL_SRC_FILES := \
 
 LOCAL_SHARED_LIBRARIES := libbase
 
+# Even though we're building a static library (and thus there's no link step for
+# this to take effect), this adds the includes to our path.
+LOCAL_STATIC_LIBRARIES := libbase
+
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -91,8 +95,8 @@ LOCAL_SRC_FILES := \
 LOCAL_SHARED_LIBRARIES := libbase
 
 # Even though we're building a static library (and thus there's no link step for
-# this to take effect), this adds the SSL includes to our path.
-LOCAL_STATIC_LIBRARIES := libcrypto_static
+# this to take effect), this adds the includes to our path.
+LOCAL_STATIC_LIBRARIES := libcrypto_static libbase
 
 ifeq ($(HOST_OS),windows)
     LOCAL_C_INCLUDES += development/host/windows/usb/api/
@@ -104,7 +108,12 @@ include $(CLEAR_VARS)
 LOCAL_CLANG := true
 LOCAL_MODULE := adbd_test
 LOCAL_CFLAGS := -DADB_HOST=0 $(LIBADB_CFLAGS)
-LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS)
+LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS) \
+    shell_service.cpp \
+    shell_service_protocol.cpp \
+    shell_service_protocol_test.cpp \
+    shell_service_test.cpp \
+
 LOCAL_STATIC_LIBRARIES := libadbd
 LOCAL_SHARED_LIBRARIES := liblog libbase libcutils
 include $(BUILD_NATIVE_TEST)
@@ -113,7 +122,12 @@ include $(CLEAR_VARS)
 LOCAL_CLANG := $(adb_host_clang)
 LOCAL_MODULE := adb_test
 LOCAL_CFLAGS := -DADB_HOST=1 $(LIBADB_CFLAGS)
-LOCAL_SRC_FILES := $(LIBADB_TEST_SRCS) services.cpp
+LOCAL_SRC_FILES := \
+    $(LIBADB_TEST_SRCS) \
+    services.cpp \
+    shell_service_protocol.cpp \
+    shell_service_protocol_test.cpp \
+
 LOCAL_SHARED_LIBRARIES := liblog libbase
 LOCAL_STATIC_LIBRARIES := \
     libadb \
@@ -167,12 +181,13 @@ endif
 LOCAL_CLANG := $(adb_host_clang)
 
 LOCAL_SRC_FILES := \
-    adb_main.cpp \
+    client/main.cpp \
     console.cpp \
     commandline.cpp \
     adb_client.cpp \
     services.cpp \
     file_sync_client.cpp \
+    shell_service_protocol.cpp \
 
 LOCAL_CFLAGS += \
     $(ADB_COMMON_CFLAGS) \
@@ -222,12 +237,14 @@ include $(CLEAR_VARS)
 LOCAL_CLANG := true
 
 LOCAL_SRC_FILES := \
-    adb_main.cpp \
+    daemon/main.cpp \
     services.cpp \
     file_sync_service.cpp \
     framebuffer_service.cpp \
     remount_service.cpp \
     set_verity_enable_state_service.cpp \
+    shell_service.cpp \
+    shell_service_protocol.cpp \
 
 LOCAL_CFLAGS := \
     $(ADB_COMMON_CFLAGS) \
@@ -254,10 +271,10 @@ LOCAL_STATIC_LIBRARIES := \
     libbase \
     libfs_mgr \
     liblog \
-    libcutils \
-    libc \
     libmincrypt \
     libselinux \
     libext4_utils_static \
+    libcutils \
+    libbase \
 
 include $(BUILD_EXECUTABLE)

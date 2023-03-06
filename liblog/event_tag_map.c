@@ -85,14 +85,14 @@ EventTagMap* android_openEventTagMap(const char* fileName)
         goto fail;
     }
 
-    newTagMap->mapAddr = mmap(NULL, end, PROT_READ | PROT_WRITE, MAP_PRIVATE,
+    newTagMap->mapAddr = mmap(NULL, (size_t)end, PROT_READ | PROT_WRITE, MAP_PRIVATE,
                                 fd, 0);
     if (newTagMap->mapAddr == MAP_FAILED) {
         fprintf(stderr, "%s: mmap(%s) failed: %s\n",
             OUT_TAG, fileName, strerror(errno));
         goto fail;
     }
-    newTagMap->mapLen = end;
+    newTagMap->mapLen = (size_t)end;
 
     if (processFile(newTagMap) != 0)
         goto fail;
@@ -123,7 +123,7 @@ void android_closeEventTagMap(EventTagMap* map)
  *
  * The entries are sorted by tag number, so we can do a binary search.
  */
-const char* android_lookupEventTag(const EventTagMap* map, int tag)
+const char* android_lookupEventTag(const EventTagMap* map, uint32_t tag)
 {
     int hi, lo, mid;
 
@@ -134,7 +134,7 @@ const char* android_lookupEventTag(const EventTagMap* map, int tag)
         int cmp;
 
         mid = (lo+hi)/2;
-        cmp = map->tagArray[mid].tagIndex - tag;
+        cmp = (int)(map->tagArray[mid].tagIndex - tag);
         if (cmp < 0) {
             /* tag is bigger */
             lo = mid + 1;
@@ -193,7 +193,7 @@ static int processFile(EventTagMap* map)
     //printf("+++ found %d tags\n", map->numTags);
 
     /* allocate storage for the tag index array */
-    map->tagArray = calloc(1, sizeof(EventTag) * map->numTags);
+    map->tagArray = calloc(1, sizeof(EventTag) * (size_t)map->numTags);
     if (map->tagArray == NULL)
         return -1;
 
@@ -345,7 +345,7 @@ static int scanTagLine(char** pData, EventTag* tag, int lineNum)
     if (endp != cp)
         fprintf(stderr, "ARRRRGH\n");
 
-    tag->tagIndex = val;
+    tag->tagIndex = (uint32_t)val;
 
     while (*++cp != '\n' && isCharWhitespace(*cp))
         ;
@@ -393,7 +393,7 @@ static int compareEventTags(const void* v1, const void* v2)
     const EventTag* tag1 = (const EventTag*) v1;
     const EventTag* tag2 = (const EventTag*) v2;
 
-    return tag1->tagIndex - tag2->tagIndex;
+    return (int)(tag1->tagIndex - tag2->tagIndex);
 }
 
 /*
@@ -406,11 +406,11 @@ static int sortTags(EventTagMap* map)
 {
     int i;
 
-    qsort(map->tagArray, map->numTags, sizeof(EventTag), compareEventTags);
+    qsort(map->tagArray, (size_t)map->numTags, sizeof(EventTag), compareEventTags);
 
     for (i = 1; i < map->numTags; i++) {
         if (map->tagArray[i].tagIndex == map->tagArray[i-1].tagIndex) {
-            fprintf(stderr, "%s: duplicate tag entries (%d:%s and %d:%s)\n",
+            fprintf(stderr, "%s: duplicate tag entries (%u:%s and %u:%s)\n",
                 OUT_TAG,
                 map->tagArray[i].tagIndex, map->tagArray[i].tagStr,
                 map->tagArray[i-1].tagIndex, map->tagArray[i-1].tagStr);

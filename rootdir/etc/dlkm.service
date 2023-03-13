@@ -1,0 +1,16 @@
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+[Unit]
+SourcePath=/etc/initscripts/dlkm
+Description=QTI dlkm Service
+ConditionVirtualization=!container
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart= /bin/sh -c '/etc/initscripts/dlkm start'
+
+[Install]
+WantedBy=multi-user.target

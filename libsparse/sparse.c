@@ -124,7 +124,8 @@ static int sparse_file_write_block(struct output_file *out,
 		ret = write_fill_chunk(out, backed_block_len(bb),
 				       backed_block_fill_val(bb));
 		break;
-	}
+	default: break;
+        }
 
 	return ret;
 }

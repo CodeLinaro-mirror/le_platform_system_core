@@ -380,6 +380,7 @@ void RefBase::forceIncStrong(const void* id) const
         // fall through...
     case 0:
         refs->mBase->onFirstRef();
+    default: break;
     }
 }
 

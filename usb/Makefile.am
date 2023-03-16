@@ -2,6 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 root_sbindir = "/sbin"
 root_libdir  = "/lib"
+root_etcdir = "/etc"
 
 bin_PROGRAMS = usb_composition_switch usbd
 
@@ -50,3 +51,10 @@ usb_systemddir    = $(root_libdir)/systemd/system
 usb_systemd_DATA  = usb.service
 usb_systemd_DATA += usbd.service
 endif
+
+usb_extcon_udev_rules = $(shell find  $(srcdir)/usb-extcon/$(MACHINE_ENABLED)/ -type f -name usb-extcon.rules)
+usb_extcon_script =  $(shell find  $(srcdir)/usb-extcon/$(MACHINE_ENABLED)/ -type f -name usb_post_extcon.sh)
+
+udevdir = $(root_libdir)/udev/rules.d
+udev_DATA  = $(usb_extcon_udev_rules)
+root_etc_SCRIPTS = $(usb_extcon_script)

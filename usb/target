@@ -111,7 +111,7 @@ case $TARGET in
 	*cinder* )
 		res="cinder"
 		;;
-	*sm8450p* )
+	*sm8450p* | *waipio* )
 		res="sm8450p"
 		;;
 	*kalama* )

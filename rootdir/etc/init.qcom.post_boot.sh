@@ -137,9 +137,9 @@ configure_memory_parameters () {
 
 configure_sa8155_sku_parameters () {
     if [ -f /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem ]; then
-        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
+        reg_val=`cat /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
     else
-        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom1/nvmem | od -An -t d4`
+        reg_val=`cat /sys/devices/platform/soc/780130.qfprom/qfprom1/nvmem | od -An -t d4`
     fi
     feature_id=$(((reg_val >> 20) & 0xFF))
 
@@ -312,11 +312,7 @@ configure_sa6155_sku_parameters() {
 }
 
 configure_sa8195_sku_parameters() {
-    if [ -f /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem ]; then
-        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
-    else
-        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom1/nvmem | od -An -t d4`
-    fi
+    reg_val=`cat /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
     feature_id=$(((reg_val >> 20) & 0xFF))
 
     echo "Feature ID is " $feature_id

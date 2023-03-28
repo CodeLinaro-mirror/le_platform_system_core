@@ -24,6 +24,7 @@
 #  undef _WIN32
 #endif
 
+#include <string>
 #include <vector>
 /*
  * TEMP_FAILURE_RETRY is defined by some, but not all, versions of

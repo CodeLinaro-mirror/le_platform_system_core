@@ -20,7 +20,6 @@ PKG_PROG_PKG_CONFIG
 
 # Check for required libraries.
 PKG_CHECK_MODULES([LIBLOG], [liblog])
-PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
 PKG_CHECK_MODULES([LIBBASE], [libbase])
 PKG_CHECK_MODULES([LIBCUTILS], [libcutils])
 PKG_CHECK_MODULES([LIBMINCRYPT], [libmincrypt])
@@ -89,6 +88,17 @@ if (test "x${with_glib}" = "xyes"); then
         AC_SUBST(GLIB_LIBS)
 fi
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
+
+AC_ARG_ENABLE(selinux,
+      AC_HELP_STRING([--enable-selinux], [DISTRO enable selinux feature.]),
+         [selinux_enable=${enableval}], [selinux_enable="no"])
+
+if (test "x${selinux_enable}" = "xyes"); then
+        PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
+        AC_SUBST([LIBSELINUX_CFLAGS])
+        AC_SUBST([LIBSELINUX_LIBS])
+fi
+AM_CONDITIONAL(SELINUX_ENABLE, [test "x${selinux_enable}" = "xyes"])
 
 AC_ARG_ENABLE(adb-root,
       AC_HELP_STRING([--disable-adb-root], [Disable root privileges for adbd (default: enable)]),

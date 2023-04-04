@@ -26,28 +26,13 @@
 
 struct cache {
     const prop_info *pinfo;
-    uint32_t serial;
+    int32_t serial;
     char c;
 };
 
-static void refresh_cache(struct cache *cache, const char *key)
+static void refresh_cache(struct cache *cache)
 {
-    uint32_t serial;
-    char buf[PROP_VALUE_MAX];
-#if 0
-    if (!cache->pinfo) {
-        cache->pinfo = __system_property_find(key);
-        if (!cache->pinfo) {
-            return;
-        }
-    }
-    serial = __system_property_serial(cache->pinfo);
-    if (serial == cache->serial) {
-        return;
-    }
-    cache->serial = serial;
-    __system_property_read(cache->pinfo, 0, buf);
-#endif
+    char buf[PROP_VALUE_MAX] = {0};
     cache->c = buf[0];
 }
 
@@ -57,12 +42,10 @@ static int __android_log_level(const char *tag, int def)
 {
     /* sizeof() is used on this array below */
     static const char log_namespace[] = "persist.log.tag.";
-    static const size_t base_offset = 8; /* skip "persist." */
     /* calculate the size of our key temporary buffer */
     const size_t taglen = (tag && *tag) ? strlen(tag) : 0;
     /* sizeof(log_namespace) = strlen(log_namespace) + 1 */
     char key[sizeof(log_namespace) + taglen];
-    char *kp;
     size_t i;
     char c = 0;
     /*
@@ -75,8 +58,8 @@ static int __android_log_level(const char *tag, int def)
      * system global default. We do not support ro.log.tag* .
      */
     static char *last_tag;
-    static uint32_t global_serial;
-    uint32_t current_global_serial;
+    static int32_t global_serial;
+    int32_t current_global_serial;
     static struct cache tag_cache[2] = {
         { NULL, -1, 0 },
         { NULL, -1, 0 }
@@ -93,7 +76,7 @@ static int __android_log_level(const char *tag, int def)
 //    current_global_serial = __system_property_area_serial();
 
     if (taglen) {
-        uint32_t current_local_serial = current_global_serial;
+        int32_t current_local_serial = current_global_serial;
 
         if (!last_tag || strcmp(last_tag, tag)) {
             /* invalidate log.tag.<tag> cache */
@@ -111,18 +94,15 @@ static int __android_log_level(const char *tag, int def)
         }
         strcpy(key + sizeof(log_namespace) - 1, tag);
 
-        kp = key;
         for(i = 0; i < (sizeof(tag_cache) / sizeof(tag_cache[0])); ++i) {
             if (current_local_serial != global_serial) {
-                refresh_cache(&tag_cache[i], kp);
+                refresh_cache(&tag_cache[i]);
             }
 
             if (tag_cache[i].c) {
                 c = tag_cache[i].c;
                 break;
             }
-
-            kp = key + base_offset;
         }
     }
 
@@ -140,18 +120,15 @@ static int __android_log_level(const char *tag, int def)
         /* clear '.' after log.tag */
         key[sizeof(log_namespace) - 2] = '\0';
 
-        kp = key;
         for(i = 0; i < (sizeof(global_cache) / sizeof(global_cache[0])); ++i) {
             if (current_global_serial != global_serial) {
-                refresh_cache(&global_cache[i], kp);
+                refresh_cache(&global_cache[i]);
             }
 
             if (global_cache[i].c) {
                 c = global_cache[i].c;
                 break;
             }
-
-            kp = key + base_offset;
         }
         break;
     }
@@ -169,6 +146,8 @@ static int __android_log_level(const char *tag, int def)
     case 'F': /* FALLTHRU */ /* Not officially supported */
     case 'A': return ANDROID_LOG_FATAL;
     case 'S': return -1; /* ANDROID_LOG_SUPPRESS */
+    default:
+        return def;
     }
     return def;
 }

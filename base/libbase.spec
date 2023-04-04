@@ -10,7 +10,7 @@ URL: https://www.codelinaro.org/
 Source0: %{name}-%{version}.tar.gz
 # The source tarball should contain the base/ directory only.
 
-BuildRequires: autoconf automake libtool gcc-g++ libcutils-dev
+BuildRequires: autoconf automake libtool gcc-g++ libselinux-devel libcutils-dev libutils-dev
 
 %description
 This library provides APIs for basic tasks like handling files,

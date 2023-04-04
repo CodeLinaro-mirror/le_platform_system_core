@@ -12,7 +12,8 @@ Source0: %{name}-%{version}.tar.gz
 # for access to the necessary headers in include/log/ and other headers
 # liblog depends on
 
-BuildRequires: autoconf automake libtool gcc-g++
+BuildRequires: autoconf automake libtool gcc-g++ glib2-devel
+Requires: glib2
 
 %description
 liblog  represents  an interface to the volatile Android Logging system for
@@ -35,7 +36,7 @@ related items necessary for software development.
 
 %build
 autoreconf -if
-%configure --with-core-includes=%{_builddir}/include
+%configure --with-core-includes=%{_builddir}/include --with-glib
 
 %make_build
 

@@ -56,7 +56,7 @@ static inline int android_get_control_socket(const char *name)
 	}
 
 	errno = 0;
-	int fd = strtol(val, NULL, 10);
+	int fd = (int)strtol(val, NULL, 10);
 	if (errno) {
 		return -1;
 	}

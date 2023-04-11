@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_TRANSPORT
+#define TRACE_TAG TRANSPORT
 
 #include "sysdeps.h"
 #include "transport.h"
@@ -88,7 +88,7 @@ void run_transport_disconnects(atransport* t)
     }
 }
 
-static void dump_packet(const char* name, const char* func, apacket* p) {
+static std::string dump_packet(const char* name, const char* func, apacket* p) {
     unsigned  command = p->msg.command;
     int       len     = p->msg.data_length;
     char      cmd[9];
@@ -119,9 +119,10 @@ static void dump_packet(const char* name, const char* func, apacket* p) {
     else
         snprintf(arg1, sizeof arg1, "0x%x", p->msg.arg1);
 
-    D("%s: %s: [%s] arg0=%s arg1=%s (len=%d) ",
-        name, func, cmd, arg0, arg1, len);
-    dump_hex(p->data, len);
+    std::string result = android::base::StringPrintf("%s: %s: [%s] arg0=%s arg1=%s (len=%d) ",
+                                                     name, func, cmd, arg0, arg1, len);
+    result += dump_hex(p->data, len);
+    return result;
 }
 
 static int
@@ -147,9 +148,7 @@ read_packet(int  fd, const char* name, apacket** ppacket)
         }
     }
 
-    if (ADB_TRACING) {
-        dump_packet(name, "from remote", *ppacket);
-    }
+    VLOG(TRANSPORT) << dump_packet(name, "from remote", *ppacket);
     return 0;
 }
 
@@ -164,9 +163,7 @@ write_packet(int  fd, const char* name, apacket** ppacket)
         name = buff;
     }
 
-    if (ADB_TRACING) {
-        dump_packet(name, "to remote", *ppacket);
-    }
+    VLOG(TRANSPORT) << dump_packet(name, "to remote", *ppacket);
     len = sizeof(ppacket);
     while(len > 0) {
         r = adb_write(fd, p, len);
@@ -852,32 +849,42 @@ size_t atransport::get_max_payload() const {
     return max_payload;
 }
 
-// Do not use any of [:;=,] in feature strings, they have special meaning
-// in the connection banner.
-// TODO(dpursell): add this in once we can pass features through to the client.
-const char kFeatureShell2[] = "shell_2";
+namespace {
 
-// The list of features supported by the current system. Will be sent to the
-// other side of the connection in the banner.
-static const FeatureSet gSupportedFeatures = {
-        kFeatureShell2,
-};
+constexpr char kFeatureStringDelimiter = ',';
+
+}  // namespace
 
 const FeatureSet& supported_features() {
-    return gSupportedFeatures;
+    // Local static allocation to avoid global non-POD variables.
+    static const FeatureSet* features = new FeatureSet{
+        kFeatureShell2
+    };
+
+    return *features;
+}
+
+std::string FeatureSetToString(const FeatureSet& features) {
+    return android::base::Join(features, kFeatureStringDelimiter);
+}
+
+FeatureSet StringToFeatureSet(const std::string& features_string) {
+    auto names = android::base::Split(features_string,
+                                      {kFeatureStringDelimiter});
+    return FeatureSet(names.begin(), names.end());
+}
+
+bool CanUseFeature(const FeatureSet& feature_set, const std::string& feature) {
+    return feature_set.count(feature) > 0 &&
+            supported_features().count(feature) > 0;
 }
 
 bool atransport::has_feature(const std::string& feature) const {
     return features_.count(feature) > 0;
 }
 
-void atransport::add_feature(const std::string& feature) {
-    features_.insert(feature);
-}
-
-bool atransport::CanUseFeature(const std::string& feature) const {
-    return has_feature(feature) &&
-           supported_features().count(feature) > 0;
+void atransport::SetFeatures(const std::string& features_string) {
+    features_ = StringToFeatureSet(features_string);
 }
 
 #if ADB_HOST
@@ -914,9 +921,6 @@ static void append_transport(const atransport* t, std::string* result,
         append_transport_info(result, "product:", t->product, false);
         append_transport_info(result, "model:", t->model, true);
         append_transport_info(result, "device:", t->device, false);
-        append_transport_info(result, "features:",
-                              android::base::Join(t->features(), ',').c_str(),
-                              false);
     }
     *result += '\n';
 }
@@ -1065,19 +1069,16 @@ void unregister_usb_transport(usb_handle *usb) {
     adb_mutex_unlock(&transport_lock);
 }
 
-#undef TRACE_TAG
-#define TRACE_TAG  TRACE_RWX
-
 int check_header(apacket *p, atransport *t)
 {
     if(p->msg.magic != (p->msg.command ^ 0xffffffff)) {
-        D("check_header(): invalid magic");
+        VLOG(RWX) << "check_header(): invalid magic";
         return -1;
     }
 
     if(p->msg.data_length > t->get_max_payload()) {
-        D("check_header(): %u > atransport::max_payload = %zu",
-            p->msg.data_length, t->get_max_payload());
+        VLOG(RWX) << "check_header(): " << p->msg.data_length << " atransport::max_payload = "
+                  << t->get_max_payload();
         return -1;
     }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_ADB
+#define TRACE_TAG ADB
 
 #include "sysdeps.h"
 
@@ -174,7 +174,7 @@ int adb_main(int is_daemon, int server_port) {
 int main(int argc, char** argv) {
     // adb client/server
     adb_sysdeps_init();
-    adb_trace_init();
+    adb_trace_init(argv);
     D("Handling commandline()");
     return adb_commandline(argc - 1, const_cast<const char**>(argv + 1));
 }

@@ -29,7 +29,7 @@
 
 #include <log/log.h>
 #include <syslog.h>
-
+#include <stdlib.h>
 #define LOG_BUF_SIZE 1024
 
 #ifndef __unused
@@ -58,7 +58,7 @@ int __android_log_write(int prio, const char *tag, const char *msg)
     return __android_log_buf_write(LOG_ID_MAIN, prio, tag, msg);
 }
 
-int __android_log_buf_write(int bufID, int prio, const char *tag, const char *msg)
+int __android_log_buf_write(int bufID __unused, int prio, const char *tag, const char *msg)
 {
 
     syslog(prio, "%s - %s", tag, msg);
@@ -74,7 +74,7 @@ int __android_log_vprint(int prio, const char *tag, const char *fmt, va_list ap)
     return __android_log_write(prio, tag, buf);
 }
 
-int __android_log_print(int prio, const char *tag, const char *fmt, ...)
+int __android_log_print(int prio, const char *tag __unused, const char *fmt, ...)
 {
     va_list ap;
 
@@ -85,7 +85,7 @@ int __android_log_print(int prio, const char *tag, const char *fmt, ...)
     return 0;
 }
 
-int __android_log_buf_print(int bufID, int prio, const char *tag, const char *fmt, ...)
+int __android_log_buf_print(int bufID __unused, int prio, const char *tag __unused, const char *fmt, ...)
 {
     va_list ap;
 
@@ -132,7 +132,7 @@ int __android_log_bswrite(int32_t tag __unused, const char *payload __unused)
     return -1;
 }
 
-int __android_log_btwrite(int32_t tag __unused, char type __unused, const void *payload,
+int __android_log_btwrite(int32_t tag __unused, char type __unused, const void *payload __unused,
                           size_t len __unused)
 {
     return -1;

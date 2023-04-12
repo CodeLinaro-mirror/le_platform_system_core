@@ -139,11 +139,11 @@ log_time log_time::operator-= (const timespec &T) {
         return *this = EPOCH;
     }
 
-    if (this->tv_nsec < (unsigned long int)T.tv_nsec) {
+    if (this->tv_nsec < (uint64_t)T.tv_nsec) {
         --this->tv_sec;
-        this->tv_nsec = NS_PER_SEC + this->tv_nsec - T.tv_nsec;
+        this->tv_nsec = NS_PER_SEC + this->tv_nsec - (uint64_t)T.tv_nsec;
     } else {
-        this->tv_nsec -= T.tv_nsec;
+        this->tv_nsec -= (uint64_t)T.tv_nsec;
     }
     this->tv_sec -= T.tv_sec;
 
@@ -151,7 +151,7 @@ log_time log_time::operator-= (const timespec &T) {
 }
 
 log_time log_time::operator+= (const timespec &T) {
-    this->tv_nsec += (unsigned long int)T.tv_nsec;
+    this->tv_nsec += (uint64_t)T.tv_nsec;
     if (this->tv_nsec >= NS_PER_SEC) {
         this->tv_nsec -= NS_PER_SEC;
         ++this->tv_sec;

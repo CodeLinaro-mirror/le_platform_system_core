@@ -175,6 +175,8 @@ void InitLogging(char* argv[]) {
         case 's':
           gMinimumLogSeverity = FATAL;
           continue;
+        default:
+          break;
       }
     }
     LOG(FATAL) << "unsupported '" << spec << "' in ANDROID_LOG_TAGS (" << tags

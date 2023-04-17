@@ -17,6 +17,8 @@
 #ifndef _LIBS_CUTILS_EVENTTAGMAP_H
 #define _LIBS_CUTILS_EVENTTAGMAP_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,7 +43,7 @@ void android_closeEventTagMap(EventTagMap* map);
 /*
  * Look up a tag by index.  Returns the tag string, or NULL if not found.
  */
-const char* android_lookupEventTag(const EventTagMap* map, int tag);
+const char* android_lookupEventTag(const EventTagMap* map, uint32_t tag);
 
 #ifdef __cplusplus
 }

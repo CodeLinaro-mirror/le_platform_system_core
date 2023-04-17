@@ -29,7 +29,7 @@ __BEGIN_DECLS
 struct ion_handle;
 typedef int ion_user_handle_t;
 
-int ion_open();
+int ion_open(void);
 int ion_close(int fd);
 int ion_alloc(int fd, size_t len, size_t align, unsigned int heap_mask,
               unsigned int flags, ion_user_handle_t *handle);

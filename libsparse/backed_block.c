@@ -232,8 +232,8 @@ static int merge_bb(struct backed_block_list *bbl,
 			return -EINVAL;
 		}
 		break;
+        default: break;
 	}
-
 	/* Blocks are compatible and adjacent, with a before b.  Merge b into a,
 	 * and free b */
 	a->len += b->len;
@@ -394,7 +394,8 @@ int backed_block_split(struct backed_block_list *bbl, struct backed_block *bb,
 		break;
 	case BACKED_BLOCK_FILL:
 		break;
-	}
+	default: break;
+        }
 
 	return 0;
 }

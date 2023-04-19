@@ -81,11 +81,11 @@ static FilterInfo * filterinfo_new(const char * tag, android_LogPriority pri)
  * Note: also accepts 0-9 priorities
  * returns ANDROID_LOG_UNKNOWN if the character is unrecognized
  */
-static android_LogPriority filterCharToPri (char c)
+static android_LogPriority filterCharToPri (char level)
 {
     android_LogPriority pri;
 
-    c = tolower(c);
+    int c = tolower((int)level);
 
     if (c >= '0' && c <= '9') {
         if (c >= ('0'+ANDROID_LOG_SILENT)) {
@@ -439,7 +439,7 @@ int android_log_processLogBuffer(struct logger_entry *buf,
     entry->priority = msg[0];
     entry->tag = msg + 1;
     entry->message = msg + msgStart;
-    entry->messageLen = msgEnd - msgStart;
+    entry->messageLen = (size_t)(msgEnd - msgStart);
 
     return 0;
 }
@@ -449,7 +449,7 @@ int android_log_processLogBuffer(struct logger_entry *buf,
  */
 static inline uint32_t get4LE(const uint8_t* src)
 {
-    return src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
+    return (uint32_t)(src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24));
 }
 
 /*
@@ -459,8 +459,8 @@ static inline uint64_t get8LE(const uint8_t* src)
 {
     uint32_t low, high;
 
-    low = src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24);
-    high = src[4] | (src[5] << 8) | (src[6] << 16) | (src[7] << 24);
+    low = (uint32_t)(src[0] | (src[1] << 8) | (src[2] << 16) | (src[3] << 24));
+    high = (uint32_t)(src[4] | (src[5] << 8) | (src[6] << 16) | (src[7] << 24));
     return ((uint64_t) high << 32) | (uint64_t) low;
 }
 
@@ -496,7 +496,7 @@ static int android_log_printBinaryEvent(const unsigned char** pEventData,
     case EVENT_TYPE_INT:
         /* 32-bit signed int */
         {
-            int ival;
+            uint32_t ival;
 
             if (eventDataLen < 4)
                 return -1;
@@ -504,7 +504,7 @@ static int android_log_printBinaryEvent(const unsigned char** pEventData,
             eventData += 4;
             eventDataLen -= 4;
 
-            outCount = snprintf(outBuf, outBufLen, "%d", ival);
+            outCount = (size_t)snprintf(outBuf, outBufLen, "%u", ival);
             if (outCount < outBufLen) {
                 outBuf += outCount;
                 outBufLen -= outCount;
@@ -525,7 +525,7 @@ static int android_log_printBinaryEvent(const unsigned char** pEventData,
             eventData += 8;
             eventDataLen -= 8;
 
-            outCount = snprintf(outBuf, outBufLen, "%" PRId64, lval);
+            outCount = (size_t)snprintf(outBuf, outBufLen, "%" PRIu64, lval);
             if (outCount < outBufLen) {
                 outBuf += outCount;
                 outBufLen -= outCount;
@@ -548,7 +548,7 @@ static int android_log_printBinaryEvent(const unsigned char** pEventData,
             eventData += 4;
             eventDataLen -= 4;
 
-            outCount = snprintf(outBuf, outBufLen, "%f", fval);
+            outCount = (size_t)snprintf(outBuf, outBufLen, "%f", fval);
             if (outCount < outBufLen) {
                 outBuf += outCount;
                 outBufLen -= outCount;
@@ -657,7 +657,7 @@ no_room:
  */
 int android_log_processBinaryLogBuffer(struct logger_entry *buf,
     AndroidLogEntry *entry, const EventTagMap* map, char* messageBuf,
-    int messageBufLen)
+    size_t messageBufLen)
 {
     size_t inCount;
     unsigned int tagIndex;
@@ -698,17 +698,17 @@ int android_log_processBinaryLogBuffer(struct logger_entry *buf,
     if (entry->tag == NULL) {
         int tagLen;
 
-        tagLen = snprintf(messageBuf, messageBufLen, "[%d]", tagIndex);
+        tagLen = snprintf(messageBuf, messageBufLen, "[%u]", tagIndex);
         entry->tag = messageBuf;
-        messageBuf += tagLen+1;
-        messageBufLen -= tagLen+1;
+        messageBuf += tagLen + 1;
+        messageBufLen -= (size_t)tagLen + 1;
     }
 
     /*
      * Format the event log data into the buffer.
      */
     char* outBuf = messageBuf;
-    size_t outRemaining = messageBufLen-1;      /* leave one for nul byte */
+    size_t outRemaining = messageBufLen - 1;      /* leave one for nul byte */
     int result;
     result = android_log_printBinaryEvent(&eventData, &inCount, &outBuf,
                 &outRemaining);
@@ -718,7 +718,7 @@ int android_log_processBinaryLogBuffer(struct logger_entry *buf,
     } else if (result == 1) {
         if (outBuf > messageBuf) {
             /* leave an indicator */
-            *(outBuf-1) = '!';
+            *(outBuf - 1) = '!';
         } else {
             /* no room to output anything at all */
             *outBuf++ = '!';
@@ -744,8 +744,8 @@ int android_log_processBinaryLogBuffer(struct logger_entry *buf,
      * entry->messageLen.
      */
     *outBuf = '\0';
-    entry->messageLen = outBuf - messageBuf;
-    assert(entry->messageLen == (messageBufLen-1) - outRemaining);
+    entry->messageLen = (size_t)(outBuf - messageBuf);
+    assert(entry->messageLen == (messageBufLen - 1) - outRemaining);
 
     entry->message = messageBuf;
 
@@ -769,8 +769,8 @@ WEAK ssize_t utf8_character_length(const char *src, size_t len)
     const char *cur = src;
     const char first_char = *cur++;
     static const uint32_t kUnicodeMaxCodepoint = 0x0010FFFF;
-    int32_t mask, to_ignore_mask;
-    size_t num_to_read;
+    uint32_t mask, to_ignore_mask;
+    ssize_t num_to_read;
     uint32_t utf32;
 
     if ((first_char & 0x80) == 0) { /* ASCII */
@@ -788,7 +788,7 @@ WEAK ssize_t utf8_character_length(const char *src, size_t len)
     for (utf32 = 1, num_to_read = 1, mask = 0x40, to_ignore_mask = 0x80;
          num_to_read < 5 && (first_char & mask);
          num_to_read++, to_ignore_mask |= mask, mask >>= 1) {
-        if (num_to_read > len) {
+        if (num_to_read > (ssize_t)len) {
             return -1;
         }
         if ((*cur & 0xC0) != 0x80) { /* can not be 10xxxxxx? */
@@ -816,16 +816,17 @@ static size_t convertPrintable(char *p, const char *message, size_t messageLen)
 {
     char *begin = p;
     bool print = p != NULL;
+    ssize_t ret;
 
     while (messageLen) {
         char buf[6];
-        ssize_t len = sizeof(buf) - 1;
-        if ((size_t)len > messageLen) {
+        size_t len = sizeof(buf) - 1;
+        if (len > messageLen) {
             len = messageLen;
         }
-        len = utf8_character_length(message, len);
+        ret = utf8_character_length(message, len);
 
-        if (len < 0) {
+        if (ret < 0) {
             snprintf(buf, sizeof(buf),
                      ((messageLen > 1) && isdigit(message[1]))
                          ? "\\%03o"
@@ -865,7 +866,7 @@ static size_t convertPrintable(char *p, const char *message, size_t messageLen)
         message += len;
         messageLen -= len;
     }
-    return p - begin;
+    return (size_t)(p - begin);
 }
 
 /**
@@ -887,7 +888,7 @@ char *android_log_formatLogLine (
     struct tm tmBuf;
 #endif
     struct tm* ptm;
-    char timeBuf[32]; /* good margin, 23+nul for msec, 26+nul for usec */
+    char timeBuf[64]; /* good margin, 23+nul for msec, 26+nul for usec */
     char prefixBuf[128], suffixBuf[128];
     char priChar;
     int prefixSuffixIsHeaderFooter = 0;
@@ -916,39 +917,39 @@ char *android_log_formatLogLine (
     len = strlen(timeBuf);
     if (p_format->usec_time_output) {
         snprintf(timeBuf + len, sizeof(timeBuf) - len,
-                 ".%06ld", entry->tv_nsec / 1000);
+                 ".%03ld", entry->tv_nsec / 1000);
     } else {
         snprintf(timeBuf + len, sizeof(timeBuf) - len,
-                 ".%03ld", entry->tv_nsec / 1000000);
+                 ".%06ld", entry->tv_nsec / 1000000);
     }
 
     /*
      * Construct a buffer containing the log header and log message.
      */
     if (p_format->colored_output) {
-        prefixLen = snprintf(prefixBuf, sizeof(prefixBuf), "\x1B[38;5;%dm",
+        prefixLen = (size_t)snprintf(prefixBuf, sizeof(prefixBuf), "\x1B[38;5;%dm",
                              colorFromPri(entry->priority));
         prefixLen = MIN(prefixLen, sizeof(prefixBuf));
-        suffixLen = snprintf(suffixBuf, sizeof(suffixBuf), "\x1B[0m");
+        suffixLen = (size_t)snprintf(suffixBuf, sizeof(suffixBuf), "\x1B[0m");
         suffixLen = MIN(suffixLen, sizeof(suffixBuf));
     }
 
     switch (p_format->format) {
         case FORMAT_TAG:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c/%-8s: ", priChar, entry->tag);
             strcpy(suffixBuf + suffixLen, "\n");
             ++suffixLen;
             break;
         case FORMAT_PROCESS:
-            len = snprintf(suffixBuf + suffixLen, sizeof(suffixBuf) - suffixLen,
+            len = (size_t)snprintf(suffixBuf + suffixLen, sizeof(suffixBuf) - suffixLen,
                 "  (%s)\n", entry->tag);
             suffixLen += MIN(len, sizeof(suffixBuf) - suffixLen);
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c(%5d) ", priChar, entry->pid);
             break;
         case FORMAT_THREAD:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c(%5d:%5d) ", priChar, entry->pid, entry->tid);
             strcpy(suffixBuf + suffixLen, "\n");
             ++suffixLen;
@@ -960,20 +961,20 @@ char *android_log_formatLogLine (
             ++suffixLen;
             break;
         case FORMAT_TIME:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%s %c/%-8s(%5d): ", timeBuf, priChar, entry->tag, entry->pid);
             strcpy(suffixBuf + suffixLen, "\n");
             ++suffixLen;
             break;
         case FORMAT_THREADTIME:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%s %5d %5d %c %-8s: ", timeBuf,
                 entry->pid, entry->tid, priChar, entry->tag);
             strcpy(suffixBuf + suffixLen, "\n");
             ++suffixLen;
             break;
         case FORMAT_LONG:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "[ %s %5d:%5d %c/%-8s ]\n",
                 timeBuf, entry->pid, entry->tid, priChar, entry->tag);
             strcpy(suffixBuf + suffixLen, "\n\n");
@@ -982,7 +983,7 @@ char *android_log_formatLogLine (
             break;
         case FORMAT_BRIEF:
         default:
-            len = snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
+            len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c/%-8s(%5d): ", priChar, entry->tag, entry->pid);
             strcpy(suffixBuf + suffixLen, "\n");
             ++suffixLen;
@@ -1070,7 +1071,7 @@ char *android_log_formatLogLine (
             /* Find the next end-of-line in message */
             while (pm < (entry->message + entry->messageLen)
                     && *pm != '\n') pm++;
-            lineLen = pm - lineStart;
+            lineLen = (size_t)(pm - lineStart);
 
             strcat(p, prefixBuf);
             p += prefixLen;
@@ -1088,7 +1089,7 @@ char *android_log_formatLogLine (
     }
 
     if (p_outLength != NULL) {
-        *p_outLength = p - ret;
+        *p_outLength = (size_t)(p - ret);
     }
 
     return ret;
@@ -1117,7 +1118,7 @@ int android_log_printLogLine(
         return -1;
 
     do {
-        ret = write(fd, outBuffer, totalLen);
+        ret = (int)write(fd, outBuffer, totalLen);
     } while (ret < 0 && errno == EINTR);
 
     if (ret < 0) {

@@ -30,8 +30,8 @@
 // efficient behavior. Also, pass-by-reference breaks C/C++ ABI.
 struct log_time {
 public:
-    uint32_t tv_sec; // good to Feb 5 2106
-    uint32_t tv_nsec;
+    time_t tv_sec; // good to Feb 5 2106
+    uint64_t tv_nsec;
 
     static const uint32_t tv_sec_max = 0xFFFFFFFFUL;
     static const uint32_t tv_nsec_max = 999999999UL;
@@ -39,9 +39,9 @@ public:
     log_time(const timespec &T)
     {
         tv_sec = T.tv_sec;
-        tv_nsec = T.tv_nsec;
+        tv_nsec = (uint64_t)T.tv_nsec;
     }
-    log_time(uint32_t sec, uint32_t nsec)
+    log_time(time_t sec, uint64_t nsec)
     {
         tv_sec = sec;
         tv_nsec = nsec;
@@ -55,13 +55,13 @@ public:
         timespec T;
         clock_gettime(id, &T);
         tv_sec = T.tv_sec;
-        tv_nsec = T.tv_nsec;
+        tv_nsec = (uint64_t)T.tv_nsec;
     }
     log_time(const char *T)
     {
         const uint8_t *c = (const uint8_t *) T;
         tv_sec = c[0] | (c[1] << 8) | (c[2] << 16) | (c[3] << 24);
-        tv_nsec = c[4] | (c[5] << 8) | (c[6] << 16) | (c[7] << 24);
+        tv_nsec = (uint64_t)(c[4] | (c[5] << 8) | (c[6] << 16) | (c[7] << 24));
     }
 
     // timespec

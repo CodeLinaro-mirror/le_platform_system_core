@@ -54,7 +54,7 @@ int ion_is_legacy(int fd) {
     return version == ION_VERSION_LEGACY;
 }
 
-int ion_open() {
+int ion_open(void) {
     int fd = open("/dev/ion", O_RDONLY | O_CLOEXEC);
     if (fd < 0) ALOGE("open /dev/ion failed!\n");
 

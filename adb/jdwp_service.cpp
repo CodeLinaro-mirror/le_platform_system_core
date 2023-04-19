@@ -164,9 +164,9 @@ jdwp_process_list( char*  buffer, int  bufferlen )
 static int
 jdwp_process_list_msg( char*  buffer, int  bufferlen )
 {
-    char  head[5];
+    char  head[12];
     int   len = jdwp_process_list( buffer+4, bufferlen-4 );
-    snprintf(head, sizeof head, "%04x", len);
+    snprintf(head, sizeof head, "%d", len);
     memcpy(buffer, head, 4);
     return len + 4;
 }
@@ -287,7 +287,7 @@ jdwp_process_event( int  socket, unsigned  events, void*  _proc )
             memcpy(temp, proc->in_buff, 4);
             temp[4] = 0;
 
-            if (sscanf( temp, "%04x", &proc->pid ) != 1) {
+            if (sscanf( temp, "%d", &proc->pid ) != 1) {
                 D("could not decode JDWP %p PID number: '%s'\n", proc, temp);
                 goto CloseProcess;
             }

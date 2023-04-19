@@ -23,12 +23,12 @@
 #define MAX_EVENT_PAYLOAD 512
 #define MAX_SUBTAG_LEN 32
 
-static inline void copy4LE(uint8_t *buf, size_t pos, int val)
+static inline void copy4LE(uint8_t *buf, size_t pos, uint32_t val)
 {
-    buf[pos] = val & 0xFF;
-    buf[pos+1] = (val >> 8) & 0xFF;
-    buf[pos+2] = (val >> 16) & 0xFF;
-    buf[pos+3] = (val >> 24) & 0xFF;
+    buf[pos] = (uint8_t)(val & 0xFF);
+    buf[pos+1] = (uint8_t)((val >> 8) & 0xFF);
+    buf[pos+2] = (uint8_t)((val >> 16) & 0xFF);
+    buf[pos+3] = (uint8_t)((val >> 24) & 0xFF);
 }
 
 int __android_log_error_write(int tag, const char *subTag, int32_t uid, const char *data,
@@ -41,7 +41,7 @@ int __android_log_error_write(int tag, const char *subTag, int32_t uid, const ch
 
     if ((subTag == NULL) || ((data == NULL) && (dataLen != 0))) return -EINVAL;
 
-    subTagLen = strlen(subTag);
+    subTagLen = (uint32_t)strlen(subTag);
 
     // Truncate subtags that are too long.
     subTagLen = subTagLen > MAX_SUBTAG_LEN ? MAX_SUBTAG_LEN : subTagLen;
@@ -71,7 +71,7 @@ int __android_log_error_write(int tag, const char *subTag, int32_t uid, const ch
 
     // Write UID.
     buf[pos++] = EVENT_TYPE_INT;
-    copy4LE(buf, pos, uid);
+    copy4LE(buf, pos, (uint32_t)uid);
     pos += 4;
 
     // Write data.

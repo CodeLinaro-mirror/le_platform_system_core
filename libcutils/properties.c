@@ -23,6 +23,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#ifndef __unused
+#define __unused  __attribute__((__unused__))
+#endif
 
 static int atrace_shmid = -1;
 static char* atrace_ptext = MAP_FAILED;
@@ -31,10 +34,10 @@ static char* atrace_ptext = MAP_FAILED;
 int property_get(const char *key, char *value, const char *default_value) {
     int rc = 0;
 #ifdef LE_PROPERTIES
-    if ( strcmp("debug.atrace.tags.enableflags", key) == 0 ) {
-        read_shm_atags_property(key,value);
+    if (strcmp("debug.atrace.tags.enableflags", key) == 0) {
+        read_shm_atags_property(key, value);
         rc = strlen(value);
-    } else if ( get_property_value(key,value) == true) {
+    } else if (get_property_value(key, value) == true) {
         rc = strlen(value);
     }
     if ( rc > 0) {
@@ -65,7 +68,7 @@ int property_set(const char *key, const char *value)
     strlcpy(prop_value, value, sizeof prop_value);
 
     if ( strcmp("debug.atrace.tags.enableflags", key) == 0 ) {
-        update_shm_atags_property(prop_name,prop_value);
+        update_shm_atags_property(prop_name, prop_value);
     } else {
         set_property_value(prop_name, prop_value);
     }
@@ -108,7 +111,7 @@ void dump_properties(void) {
 #endif
 }
 
-void read_shm_atags_property(const char *key, char *value)
+void read_shm_atags_property(const char *key __unused, char *value)
 {
     if (atrace_shmid < 0)
     {
@@ -135,7 +138,7 @@ void read_shm_atags_property(const char *key, char *value)
     LOG("read shm atag fd %d ptext %p value %s",atrace_shmid,atrace_ptext,value);
 }
 
-void update_shm_atags_property(const char* search_name, const char* value)
+void update_shm_atags_property(const char* search_name __unused, const char* value)
 {
     int ret = 0;
     LOG("name: %s value %s",search_name,value);

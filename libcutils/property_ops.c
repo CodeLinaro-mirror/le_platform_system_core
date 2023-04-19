@@ -129,7 +129,7 @@ static int send_getprop_msg(const char *msg, char *resp)
             } else {
                 recv_buf[nbytes] = '\0';
                 LOG("Received %d bytes of data (%s) from Socket",nbytes, recv_buf);
-                int i = 1;
+                size_t i = 1;
                 while(i < strlen(recv_buf)){
                     resp[i-1] = recv_buf[i];
                     i++;

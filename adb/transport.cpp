@@ -114,12 +114,12 @@ static void dump_packet(const char* name, const char* func, apacket* p) {
     }
 
     if (p->msg.arg0 < 256U)
-        snprintf(arg0, sizeof arg0, "%d", p->msg.arg0);
+        snprintf(arg0, sizeof arg0, "%u", p->msg.arg0);
     else
         snprintf(arg0, sizeof arg0, "0x%x", p->msg.arg0);
 
     if (p->msg.arg1 < 256U)
-        snprintf(arg1, sizeof arg1, "%d", p->msg.arg1);
+        snprintf(arg1, sizeof arg1, "%u", p->msg.arg1);
     else
         snprintf(arg1, sizeof arg1, "0x%x", p->msg.arg1);
 
@@ -134,7 +134,7 @@ read_packet(int  fd, const char* name, apacket** ppacket)
     char *p = (char*)ppacket;  /* really read a packet address */
     int   r;
     int   len = sizeof(*ppacket);
-    char  buff[8];
+    char  buff[16];
     if (!name) {
         snprintf(buff, sizeof buff, "fd=%d", fd);
         name = buff;
@@ -162,7 +162,7 @@ write_packet(int  fd, const char* name, apacket** ppacket)
 {
     char *p = (char*) ppacket;  /* we really write the packet address */
     int r, len = sizeof(ppacket);
-    char buff[8];
+    char buff[16];
     if (!name) {
         snprintf(buff, sizeof buff, "fd=%d", fd);
         name = buff;
@@ -248,7 +248,7 @@ static void *output_thread(void *_t)
     atransport *t = reinterpret_cast<atransport*>(_t);
     apacket *p;
 
-    D("%s: starting transport output thread on fd %d, SYNC online (%d)\n",
+    D("%s: starting transport output thread on fd %d, SYNC online (%u)\n",
        t->serial, t->fd, t->sync_token + 1);
     p = get_apacket();
     p->msg.command = A_SYNC;
@@ -323,7 +323,7 @@ static void *input_thread(void *_t)
                     D("%s: transport SYNC online\n", t->serial);
                     active = 1;
                 } else {
-                    D("%s: transport ignoring SYNC %d != %d\n",
+                    D("%s: transport ignoring SYNC %u != %u\n",
                       t->serial, p->msg.arg1, t->sync_token);
                 }
             }
@@ -1067,7 +1067,7 @@ int check_header(apacket *p)
     }
 
     if(p->msg.data_length > MAX_PAYLOAD) {
-        D("check_header(): %d > MAX_PAYLOAD\n", p->msg.data_length);
+        D("check_header(): %u > MAX_PAYLOAD\n", p->msg.data_length);
         return -1;
     }
 

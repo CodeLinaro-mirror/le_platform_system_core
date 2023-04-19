@@ -361,7 +361,7 @@ static void subproc_waiter_service(int fd, void *cookie)
         int status;
         pid_t p = waitpid(pid, &status, 0);
         if (p == pid) {
-            D("fd=%d, post waitpid(pid=%d) status=%04x\n", fd, p, status);
+            D("fd=%d, post waitpid(pid=%d) status=%d\n", fd, p, status);
             if (WIFSIGNALED(status)) {
                 D("*** Killed by signal %d\n", WTERMSIG(status));
                 break;
@@ -489,7 +489,10 @@ int service_to_fd(const char *name)
     } else if(!strncmp(name, "reboot:", 7)) {
         void* arg = strdup(name + 7);
         if (arg == NULL) return -1;
-        ret = create_service_thread(reboot_service, arg);
+        if(!strncmp(arg, "bootloader", 10))
+            ret = create_service_thread(reboot_service, arg);
+        else
+            ret = create_subproc_thread("/sbin/reboot", SUBPROC_RAW);
     } else if(!strncmp(name, "root:", 5)) {
         ret = create_service_thread(restart_root_service, NULL);
     } else if(!strncmp(name, "unroot:", 7)) {

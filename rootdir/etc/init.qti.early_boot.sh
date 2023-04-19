@@ -33,11 +33,7 @@ echo -n "Starting init_early_boot: [$target] "
 case "$target" in
     "sa8155p" | "sa8155" )
         if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
-            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
-            do
-                echo  902400 > $l3lat/min_freq
-                echo 1612800 > $l3lat/max_freq
-            done
+            echo  902400 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
         else
             for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
             do
@@ -48,10 +44,7 @@ case "$target" in
         ;;
     "sa8195p" )
         if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
-            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
-            do
-                echo 940800 > $l3lat/min_freq
-            done
+            echo 940800 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
         else
             for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
             do
@@ -61,10 +54,7 @@ case "$target" in
         ;;
     "sa6155p" | "sa6155" )
         if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
-            for l3lat in /sys/devices/system/cpu/bus_dcvs/L3/*qcom,memlat*
-            do
-                echo 940800 > $l3lat/min_freq
-            done
+            echo 940800 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
         else
             for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
             do

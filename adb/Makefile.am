@@ -2,6 +2,7 @@ adb_sources := adb.cpp
 adb_sources += adb_auth.cpp
 adb_sources += adb_io.cpp
 adb_sources += adb_listeners.cpp
+adb_sources += adb_trace.cpp
 adb_sources += adb_utils.cpp
 adb_sources += sockets.cpp
 adb_sources += transport.cpp
@@ -27,12 +28,12 @@ libadbd_la_SOURCES += jdwp_service.cpp
 libadbd_la_SOURCES += usb_linux_client.cpp
 #libadbd_la_SOURCES += qemu_tracing.cpp
 
-libadbd_la_CPPFLAGS := @LIBCUTILS_CFLAGS@ @FSMGR_CFLAGS@
+libadbd_la_CPPFLAGS := @LIBBASE_CFLAGS@ @LIBCUTILS_CFLAGS@ @FSMGR_CFLAGS@
 libadbd_la_CPPFLAGS += -Wall -Wno-unused-parameter
 libadbd_la_CPPFLAGS += -Wno-deprecated-declarations
 libadbd_la_CPPFLAGS += -std=c++14 -fpermissive
 libadbd_la_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@
-libadbd_la_CPPFLAGS += -DADB_HOST=0
+libadbd_la_CPPFLAGS += -DADB_HOST=0 -D__ANDROID__
 libadbd_la_CPPFLAGS += -DADB_REVISION='"$(adb_version)"'
 libadbd_la_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_ADB
+#define TRACE_TAG ADB
 
 #include "sysdeps.h"
 
@@ -35,6 +35,7 @@
 #include "adb.h"
 #include "adb_auth.h"
 #include "adb_listeners.h"
+#include "adb_utils.h"
 #include "transport.h"
 #ifdef ADB_QEMU
 #include "qemu_tracing.h"
@@ -209,16 +210,6 @@ int adbd_main(int server_port) {
     return 0;
 }
 
-static void close_stdin() {
-    int fd = unix_open("/dev/null", O_RDONLY);
-    if (fd == -1) {
-        perror("failed to open /dev/null, stdin will remain open");
-        return;
-    }
-    dup2(fd, STDIN_FILENO);
-    unix_close(fd);
-}
-
 int main(int argc, char** argv) {
     adb_use_pcie = false;
 
@@ -264,7 +255,7 @@ int main(int argc, char** argv) {
 
     close_stdin();
 
-    adb_trace_init();
+    adb_trace_init(argv);
 
 #ifdef ADB_QEMU
     /* If adbd runs inside the emulator this will enable adb tracing via

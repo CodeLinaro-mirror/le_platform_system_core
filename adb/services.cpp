@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_SERVICES
+#define TRACE_TAG SERVICES
 
 #include "sysdeps.h"
 
@@ -44,6 +44,7 @@
 #include "adb_io.h"
 #include "file_sync_service.h"
 #include "remount_service.h"
+#include "services.h"
 #include "shell_service.h"
 #include "transport.h"
 #include "log/log.h"
@@ -236,7 +237,46 @@ void reverse_service(int fd, void* arg)
     adb_close(fd);
 }
 
-#endif
+// Shell service string can look like:
+//   shell[,arg1,arg2,...]:[command]
+static int ShellService(const std::string& args, const atransport* transport) {
+    size_t delimiter_index = args.find(':');
+    if (delimiter_index == std::string::npos) {
+        LOG(ERROR) << "No ':' found in shell service arguments: " << args;
+        return -1;
+    }
+
+    const std::string service_args = args.substr(0, delimiter_index);
+    const std::string command = args.substr(delimiter_index + 1);
+
+    // Defaults:
+    //   PTY for interactive, raw for non-interactive.
+    //   No protocol.
+    //   $TERM set to "dumb".
+    SubprocessType type(command.empty() ? SubprocessType::kPty
+                                        : SubprocessType::kRaw);
+    SubprocessProtocol protocol = SubprocessProtocol::kNone;
+    std::string terminal_type = "dumb";
+
+    for (const std::string& arg : android::base::Split(service_args, ",")) {
+        if (arg == kShellServiceArgRaw) {
+            type = SubprocessType::kRaw;
+        } else if (arg == kShellServiceArgPty) {
+            type = SubprocessType::kPty;
+        } else if (arg == kShellServiceArgShellProtocol) {
+            protocol = SubprocessProtocol::kShell;
+        } else if (android::base::StartsWith(arg, "TERM=")) {
+            terminal_type = arg.substr(5);
+        } else if (!arg.empty()) {
+            // This is not an error to allow for future expansion.
+            LOG(WARNING) << "Ignoring unknown shell service argument: " << arg;
+        }
+    }
+
+    return StartSubprocess(command.c_str(), terminal_type.c_str(), type, protocol);
+}
+
+#endif  // !ADB_HOST
 
 static int create_service_thread(void (*func)(int, void *), void *cookie)
 {
@@ -305,17 +345,10 @@ int service_to_fd(const char* name, const atransport* transport) {
         ret = create_service_thread(framebuffer_service, 0);
     } else if (!strncmp(name, "jdwp:", 5)) {
         ret = create_jdwp_connection_fd(atoi(name+5));
-    } else if(!strncmp(name, "shell:", 6)) {
-        const char* args = name + 6;
-        // Use raw for non-interactive, PTY for interactive.
-        SubprocessType type = (*args ? SubprocessType::kRaw : SubprocessType::kPty);
-        SubprocessProtocol protocol =
-                (transport->CanUseFeature(kFeatureShell2) ? SubprocessProtocol::kShell
-                                                          : SubprocessProtocol::kNone);
-        ret = StartSubprocess(args, type, protocol);
+    } else if(!strncmp(name, "shell", 5)) {
+        ret = ShellService(name + 5, transport);
     } else if(!strncmp(name, "exec:", 5)) {
-        ret = StartSubprocess(name + 5, SubprocessType::kRaw,
-                              SubprocessProtocol::kNone);
+        ret = StartSubprocess(name + 5, nullptr, SubprocessType::kRaw, SubprocessProtocol::kNone);
     } else if(!strncmp(name, "sync:", 5)) {
         ret = create_service_thread(file_sync_service, NULL);
     } else if(!strncmp(name, "remount:", 8)) {
@@ -331,9 +364,9 @@ int service_to_fd(const char* name, const atransport* transport) {
     } else if(!strncmp(name, "backup:", 7)) {
         ret = StartSubprocess(android::base::StringPrintf("/system/bin/bu backup %s",
                                                           (name + 7)).c_str(),
-                              SubprocessType::kRaw, SubprocessProtocol::kNone);
+                              nullptr, SubprocessType::kRaw, SubprocessProtocol::kNone);
     } else if(!strncmp(name, "restore:", 8)) {
-        ret = StartSubprocess("/system/bin/bu restore", SubprocessType::kRaw,
+        ret = StartSubprocess("/system/bin/bu restore", nullptr, SubprocessType::kRaw,
                               SubprocessProtocol::kNone);
     } else if(!strncmp(name, "tcpip:", 6)) {
         int port;

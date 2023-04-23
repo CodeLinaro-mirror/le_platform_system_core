@@ -14,23 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef _ADB_UTILS_H_
-#define _ADB_UTILS_H_
+#ifndef SERVICES_H_
+#define SERVICES_H_
 
-#include <string>
+constexpr char kShellServiceArgRaw[] = "raw";
+constexpr char kShellServiceArgPty[] = "pty";
+constexpr char kShellServiceArgShellProtocol[] = "v2";
 
-void close_stdin();
-
-bool getcwd(std::string* cwd);
-bool directory_exists(const std::string& path);
-std::string adb_basename(const std::string& path);
-
-bool mkdirs(const std::string& path);
-
-std::string escape_arg(const std::string& s);
-
-std::string dump_hex(const void* ptr, size_t byte_count);
-
-std::string perror_str(const char* msg);
-
-#endif
+#endif  // SERVICES_H_

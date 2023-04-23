@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_ADB
+#define TRACE_TAG ADB
 
 #include "sysdeps.h"
 #include "adb.h"
@@ -32,7 +32,6 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 #include <base/logging.h>
 #include <base/stringprintf.h>
@@ -51,14 +50,15 @@
 #include <sys/mount.h>
 #endif
 
-#if !ADB_HOST
-const char *adb_device_banner = "device";
-#else
-const char* adb_device_banner = "host";
-#endif
+std::string adb_version() {
+    // Don't change the format of this --- it's parsed by ddmlib.
+    return android::base::StringPrintf("Android Debug Bridge version %d.%d.%d\n"
+                                       "Revision %s\n",
+                                       ADB_VERSION_MAJOR, ADB_VERSION_MINOR, ADB_SERVER_VERSION,
+                                       ADB_REVISION);
+}
 
-void fatal(const char *fmt, ...)
-{
+void fatal(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     fprintf(stderr, "error: ");
@@ -68,8 +68,7 @@ void fatal(const char *fmt, ...)
     exit(-1);
 }
 
-void fatal_errno(const char *fmt, ...)
-{
+void fatal_errno(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     fprintf(stderr, "error: %s: ", strerror(errno));
@@ -77,105 +76,6 @@ void fatal_errno(const char *fmt, ...)
     fprintf(stderr, "\n");
     va_end(ap);
     exit(-1);
-}
-
-#if !ADB_HOST
-void start_device_log(void) {
-    struct tm now;
-    time_t t;
-    tzset();
-    time(&t);
-    localtime_r(&t, &now);
-
-    char timestamp[PATH_MAX];
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d-%H-%M-%S", &now);
-
-    std::string path = android::base::StringPrintf("/data/adb/adb-%s-%d", timestamp, getpid());
-    int fd = unix_open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0640);
-    if (fd == -1) {
-        return;
-    }
-
-    // redirect stdout and stderr to the log file
-    dup2(fd, STDOUT_FILENO);
-    dup2(fd, STDERR_FILENO);
-    fprintf(stderr, "--- adb starting (pid %d) ---\n", getpid());
-    unix_close(fd);
-}
-#endif
-
-int adb_trace_mask;
-
-std::string get_trace_setting_from_env() {
-    const char* setting = getenv("ADB_TRACE");
-    if (setting == nullptr) {
-        setting = "";
-    }
-
-    return std::string(setting);
-}
-
-#if !ADB_HOST
-std::string get_trace_setting_from_prop() {
-    char buf[PROPERTY_VALUE_MAX];
-    property_get("persist.adb.trace_mask", buf, "");
-    return std::string(buf);
-}
-#endif
-
-std::string get_trace_setting() {
-#if ADB_HOST
-    return get_trace_setting_from_env();
-#else
-    return get_trace_setting_from_prop();
-#endif
-}
-
-// Split the space separated list of tags from the trace setting and build the
-// trace mask from it. note that '1' and 'all' are special cases to enable all
-// tracing.
-//
-// adb's trace setting comes from the ADB_TRACE environment variable, whereas
-// adbd's comes from the system property persist.adb.trace_mask.
-void adb_trace_init() {
-    const std::string trace_setting = get_trace_setting();
-
-    std::unordered_map<std::string, int> trace_flags = {
-        {"1", 0},
-        {"all", 0},
-        {"adb", TRACE_ADB},
-        {"sockets", TRACE_SOCKETS},
-        {"packets", TRACE_PACKETS},
-        {"rwx", TRACE_RWX},
-        {"usb", TRACE_USB},
-        {"sync", TRACE_SYNC},
-        {"sysdeps", TRACE_SYSDEPS},
-        {"transport", TRACE_TRANSPORT},
-        {"jdwp", TRACE_JDWP},
-        {"services", TRACE_SERVICES},
-        {"auth", TRACE_AUTH},
-        {"shell", TRACE_SHELL}};
-
-    std::vector<std::string> elements = android::base::Split(trace_setting, " ");
-    for (const auto& elem : elements) {
-        const auto& flag = trace_flags.find(elem);
-        if (flag == trace_flags.end()) {
-            D("Unknown trace flag: %s", flag->first.c_str());
-            continue;
-         }
-        if (flag->second == 0) {
-            // 0 is used for the special values "1" and "all" that enable all
-            // tracing.
-            adb_trace_mask = ~0;
-            return;
-        } else {
-            adb_trace_mask |= 1 << flag->second;
-        }
-    }
-
-#if !ADB_HOST
-    start_device_log();
-#endif
 }
 
 apacket* get_apacket(void)
@@ -288,7 +188,7 @@ std::string get_connection_string() {
 #endif
 
     connection_properties.push_back(android::base::StringPrintf(
-        "features=%s", android::base::Join(supported_features(), ',').c_str()));
+        "features=%s", FeatureSetToString(supported_features()).c_str()));
 
     return android::base::StringPrintf(
         "%s::%s", adb_device_banner,
@@ -350,9 +250,7 @@ void parse_banner(const std::string& banner, atransport* t) {
             } else if (key == "ro.product.device") {
                 qual_overwrite(&t->device, value);
             } else if (key == "features") {
-                for (const auto& feature : android::base::Split(value, ",")) {
-                    t->add_feature(feature);
-                }
+                t->SetFeatures(value);
             }
         }
     }
@@ -851,6 +749,17 @@ int handle_host_request(const char* service, TransportType type,
             return 0;
         }
         return 1;
+    }
+
+    if (!strcmp(service, "features")) {
+        std::string error_msg;
+        atransport* t = acquire_one_transport(kCsAny, type, serial, &error_msg);
+        if (t != nullptr) {
+            SendOkay(reply_fd, FeatureSetToString(t->features()));
+        } else {
+            SendFail(reply_fd, error_msg);
+        }
+        return 0;
     }
 
     // remove TCP transport

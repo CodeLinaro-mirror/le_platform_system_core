@@ -33,7 +33,7 @@ if [ -f /etc/default/adbd ]; then
         . /etc/default/adbd
 fi
 echo -n "Launch adb is starting adbd... " > /dev/kmsg
-/sbin/adbd &
+start-stop-daemon -S -b -a /sbin/adbd
 
 # Check first if the /etc/adb_devid already has an id saved from earlier boot up.
 # If yes, retrive and use it for subsequent boot ups to show in 'adb devices' 

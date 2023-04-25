@@ -150,7 +150,7 @@ int WEAK socket_make_sockaddr_un(const char *name, int namespaceId,
     }
 
     p_addr->sun_family = AF_LOCAL;
-    *alen = namelen + offsetof(struct sockaddr_un, sun_path) + 1;
+    *alen = (socklen_t)namelen + offsetof(struct sockaddr_un, sun_path) + 1;
     return 0;
 error:
     return -1;
@@ -365,7 +365,7 @@ static int logger_ioctl(struct logger *logger, int cmd, int mode)
 
     if (((mode & ANDROID_LOG_ACCMODE) == ANDROID_LOG_RDWR)
             || (((mode ^ logger->top->mode) & ANDROID_LOG_ACCMODE) == 0)) {
-        return ioctl(logger->fd, cmd);
+        return ioctl(logger->fd, (size_t)cmd);
     }
 
     /* We go here if android_logger_list_open got mode wrong for this ioctl */
@@ -381,7 +381,7 @@ static int logger_ioctl(struct logger *logger, int cmd, int mode)
         return f;
     }
 
-    ret = ioctl(f, cmd);
+    ret = ioctl(f, (size_t)cmd);
     close (f);
 
     return ret;
@@ -444,7 +444,6 @@ ssize_t android_logger_get_prune_list(struct logger_list *logger_list __unused,
 int android_logger_set_prune_list(struct logger_list *logger_list __unused,
                                   char *buf, size_t len)
 {
-    static const char unsupported_error[] = "Unsupported";
     strncpy(buf, unsupported, len);
     return -ENOTSUP;
 }
@@ -480,7 +479,6 @@ struct logger_list *android_logger_list_alloc_time(int mode,
 struct logger *android_logger_open(struct logger_list *logger_list,
                                    log_id_t id)
 {
-    struct listnode *node;
     struct logger *logger;
     char *n;
 
@@ -519,8 +517,6 @@ struct logger *android_logger_open(struct logger_list *logger_list,
 
 err_name:
     free(n);
-err_logger:
-    free(logger);
 err:
     logger = NULL;
 ok:
@@ -628,17 +624,17 @@ static int android_logger_list_flush(struct logger_list *logger_list,
             }
 
             /* Promote entry to v3 format */
-            memcpy(log_msg->buf, firstentry->entry.buf, ret);
-            diff = sizeof(firstentry->entry.entry_v3) - ret;
+            memcpy(log_msg->buf, firstentry->entry.buf, (size_t)ret);
+            diff = sizeof(firstentry->entry.entry_v3) - (size_t)ret;
             if (diff < 0) {
                 diff = 0;
             } else if (diff > 0) {
-                memset(log_msg->buf + ret, 0, diff);
+                memset(log_msg->buf + ret, 0, (size_t)diff);
             }
             memcpy(log_msg->buf + ret + diff, firstentry->entry.buf + ret,
                    firstentry->entry.entry.len + 1);
             ret += diff;
-            log_msg->entry.hdr_size = ret;
+            log_msg->entry.hdr_size = (uint16_t)ret;
             log_msg->entry.lid = firstlogger->id;
 
             ret += firstentry->entry.entry.len;
@@ -718,7 +714,7 @@ int android_logger_list_read(struct logger_list *logger_list,
     }
 
     while (!ret && !error) {
-        int result;
+        ssize_t result;
 
         /* If we oversleep it's ok, i.e. ignore EINTR. */
         result = TEMP_FAILURE_RETRY(
@@ -764,7 +760,7 @@ int android_logger_list_read(struct logger_list *logger_list,
         }
 
         logger_for_each(logger, logger_list) {
-            unsigned int hdr_size;
+            size_t hdr_size;
             struct log_list *entry;
             int diff;
 
@@ -790,7 +786,7 @@ int android_logger_list_read(struct logger_list *logger_list,
                 continue;
             }
 
-            hdr_size = logger_list->entry.entry.hdr_size;
+            hdr_size = (size_t)logger_list->entry.entry.hdr_size;
             if (!hdr_size) {
                 hdr_size = sizeof(logger_list->entry.entry_v1);
             }
@@ -798,16 +794,16 @@ int android_logger_list_read(struct logger_list *logger_list,
             if ((hdr_size > sizeof(struct log_msg))
                     || (logger_list->entry.entry.len
                         > sizeof(logger_list->entry.buf) - hdr_size)
-                    || (logger_list->entry.entry.len != result - hdr_size)) {
+                    || (logger_list->entry.entry.len != (size_t)result - hdr_size)) {
                 error = EINVAL;
                 continue;
             }
 
             /* Promote entry to v3 format */
-            diff = sizeof(logger_list->entry.entry_v3) - hdr_size;
+            diff = (int)(sizeof(logger_list->entry.entry_v3) - hdr_size);
             if (diff > 0) {
                 if (logger_list->entry.entry.len
-                        > sizeof(logger_list->entry.buf) - hdr_size - diff) {
+                        > sizeof(logger_list->entry.buf) - hdr_size - (size_t)diff) {
                     error = EINVAL;
                     continue;
                 }
@@ -815,8 +811,8 @@ int android_logger_list_read(struct logger_list *logger_list,
                 memmove(logger_list->entry.buf + hdr_size + diff,
                         logger_list->entry.buf + hdr_size,
                         logger_list->entry.entry.len + 1);
-                memset(logger_list->entry.buf + hdr_size, 0, diff);
-                logger_list->entry.entry.hdr_size = hdr_size + diff;
+                memset(logger_list->entry.buf + hdr_size, 0, (size_t)diff);
+                logger_list->entry.entry.hdr_size = (uint16_t)hdr_size + (uint16_t)diff;
             }
             logger_list->entry.entry.lid = logger->id;
 
@@ -824,12 +820,12 @@ int android_logger_list_read(struct logger_list *logger_list,
             if (!logger_list->tail
                     && (list_head(&logger_list->node)
                         == list_tail(&logger_list->node))) {
-                ret = result;
-                memcpy(log_msg->buf, logger_list->entry.buf, result + 1);
+                ret = (int)result;
+                memcpy(log_msg->buf, logger_list->entry.buf, (size_t)result + 1);
                 break;
             }
 
-            entry = malloc(sizeof(*entry) - sizeof(entry->entry) + result + 1);
+            entry = malloc(sizeof(*entry) - sizeof(entry->entry) + (size_t)result + 1);
 
             if (!entry) {
                 logger_list->valid_entry = true;
@@ -839,7 +835,7 @@ int android_logger_list_read(struct logger_list *logger_list,
 
             logger_list->queued_lines++;
 
-            memcpy(entry->entry.buf, logger_list->entry.buf, result);
+            memcpy(entry->entry.buf, logger_list->entry.buf, (size_t)result);
             entry->entry.buf[result] = '\0';
             list_add_tail(&logger->log_list, &entry->node);
         }

@@ -267,6 +267,8 @@ int main(int argc, char* argv[]) {
         case 's':
             test = SHARE_TEST;
             break;
+        default:
+            break;
         }
     }
     printf("test %d, len %zu, align %zu, map_flags %d, prot %d, heap_mask %d,"

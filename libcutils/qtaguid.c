@@ -104,13 +104,13 @@ int qtaguid_tagSocket(int sockfd, int tag, uid_t uid) {
 
     pthread_once(&resTrackInitDone, qtaguid_resTrack);
 
-    snprintf(lineBuf, sizeof(lineBuf), "t %d %" PRIu64 " %d", sockfd, kTag, uid);
+    snprintf(lineBuf, sizeof(lineBuf), "t %d %" PRIu64 " %u", sockfd, kTag, uid);
 
-    ALOGV("Tagging socket %d with tag %" PRIx64 "{%u,0} for uid %d", sockfd, kTag, tag, uid);
+    ALOGV("Tagging socket %d with tag %" PRIx64 "{%d,0} for uid %u", sockfd, kTag, tag, uid);
 
     res = write_ctrl(lineBuf);
     if (res < 0) {
-        ALOGI("Tagging socket %d with tag %" PRIx64 "(%d) for uid %d failed errno=%d",
+        ALOGI("Tagging socket %d with tag %" PRIx64 "(%d) for uid %u failed errno=%d",
              sockfd, kTag, tag, uid, res);
     }
 
@@ -136,9 +136,9 @@ int qtaguid_setCounterSet(int counterSetNum, uid_t uid) {
     char lineBuf[CTRL_MAX_INPUT_LEN];
     int res;
 
-    ALOGV("Setting counters to set %d for uid %d", counterSetNum, uid);
+    ALOGV("Setting counters to set %d for uid %u", counterSetNum, uid);
 
-    snprintf(lineBuf, sizeof(lineBuf), "s %d %d", counterSetNum, uid);
+    snprintf(lineBuf, sizeof(lineBuf), "s %d %u", counterSetNum, uid);
     res = write_ctrl(lineBuf);
     return res;
 }
@@ -148,14 +148,14 @@ int qtaguid_deleteTagData(int tag, uid_t uid) {
     int cnt = 0, res = 0;
     uint64_t kTag = (uint64_t)tag << 32;
 
-    ALOGV("Deleting tag data with tag %" PRIx64 "{%d,0} for uid %d", kTag, tag, uid);
+    ALOGV("Deleting tag data with tag %" PRIx64 "{%d,0} for uid %u", kTag, tag, uid);
 
     pthread_once(&resTrackInitDone, qtaguid_resTrack);
 
-    snprintf(lineBuf, sizeof(lineBuf), "d %" PRIu64 " %d", kTag, uid);
+    snprintf(lineBuf, sizeof(lineBuf), "d %" PRIu64 " %u", kTag, uid);
     res = write_ctrl(lineBuf);
     if (res < 0) {
-        ALOGI("Deleting tag data with tag %" PRIx64 "/%d for uid %d failed with cnt=%d errno=%d",
+        ALOGI("Deleting tag data with tag %" PRIx64 "/%d for uid %u failed with cnt=%d errno=%d",
              kTag, tag, uid, cnt, errno);
     }
 

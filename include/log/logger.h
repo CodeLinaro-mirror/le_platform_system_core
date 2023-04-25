@@ -116,7 +116,7 @@ struct log_msg {
     }
     uint64_t nsec() const
     {
-        return static_cast<uint64_t>(entry.sec) * NS_PER_SEC + entry.nsec;
+        return static_cast<uint64_t>(entry.sec) * (uint64_t)NS_PER_SEC + (uint64_t)entry.nsec;
     }
 
     /* packet methods */
@@ -130,7 +130,7 @@ struct log_msg {
     }
     unsigned int len()
     {
-        return (entry.hdr_size ? entry.hdr_size : sizeof(entry_v1)) + entry.len;
+        return (entry.hdr_size ? entry.hdr_size : (unsigned int)sizeof(entry_v1)) + entry.len;
     }
 #endif
 };

@@ -122,7 +122,7 @@ int android_log_processLogBuffer(struct logger_entry *buf,
  */
 int android_log_processBinaryLogBuffer(struct logger_entry *buf,
     AndroidLogEntry *entry, const EventTagMap* map, char* messageBuf,
-    int messageBufLen);
+    size_t messageBufLen);
 
 
 /**

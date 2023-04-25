@@ -70,11 +70,11 @@ create:
 
 fixup:
     if (TEMP_FAILURE_RETRY(chmod(path, mode)) == -1) {
-        ALOGE("Failed to chmod(%s, %d): %s", path, mode, strerror(errno));
+        ALOGE("Failed to chmod(%s, %u): %s", path, mode, strerror(errno));
         return -1;
     }
     if (TEMP_FAILURE_RETRY(chown(path, uid, gid)) == -1) {
-        ALOGE("Failed to chown(%s, %d, %d): %s", path, uid, gid, strerror(errno));
+        ALOGE("Failed to chown(%s, %u, %u): %s", path, uid, gid, strerror(errno));
         return -1;
     }
 

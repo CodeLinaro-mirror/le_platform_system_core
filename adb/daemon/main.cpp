@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define TRACE_TAG TRACE_ADB
+#define TRACE_TAG ADB
 
 #include "sysdeps.h"
 
@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
 
     close_stdin();
 
-    adb_trace_init();
+    adb_trace_init(argv);
 
 #ifdef ADB_QEMU
     /* If adbd runs inside the emulator this will enable adb tracing via

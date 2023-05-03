@@ -75,7 +75,7 @@
 // to be more complex due to partial reads and non-blocking I/O so this model
 // was chosen instead.
 
-#define TRACE_TAG TRACE_SHELL
+#define TRACE_TAG SHELL
 
 #include "shell_service.h"
 
@@ -83,10 +83,14 @@
 
 #include <errno.h>
 #include <pty.h>
+#include <pwd.h>
 #include <sys/select.h>
 #include <termios.h>
 
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <base/logging.h>
 #include <base/stringprintf.h>
@@ -174,12 +178,11 @@ bool CreateSocketpair(ScopedFd* fd1, ScopedFd* fd2) {
 
 class Subprocess {
   public:
-    Subprocess(const std::string& command, SubprocessType type,
-               SubprocessProtocol protocol);
+    Subprocess(const std::string& command, const char* terminal_type,
+               SubprocessType type, SubprocessProtocol protocol);
     ~Subprocess();
 
     const std::string& command() const { return command_; }
-    bool is_interactive() const { return command_.empty(); }
 
     int local_socket_fd() const { return local_socket_sfd_.fd(); }
 
@@ -206,6 +209,7 @@ class Subprocess {
     ScopedFd* PassOutput(ScopedFd* sfd, ShellProtocol::Id id);
 
     const std::string command_;
+    const std::string terminal_type_;
     SubprocessType type_;
     SubprocessProtocol protocol_;
     pid_t pid_ = -1;
@@ -219,12 +223,16 @@ class Subprocess {
     DISALLOW_COPY_AND_ASSIGN(Subprocess);
 };
 
-Subprocess::Subprocess(const std::string& command, SubprocessType type,
-                       SubprocessProtocol protocol)
-        : command_(command), type_(type), protocol_(protocol) {
+Subprocess::Subprocess(const std::string& command, const char* terminal_type,
+                       SubprocessType type, SubprocessProtocol protocol)
+    : command_(command),
+      terminal_type_(terminal_type ? terminal_type : ""),
+      type_(type),
+      protocol_(protocol) {
 }
 
 Subprocess::~Subprocess() {
+    WaitForExit();
 }
 
 bool Subprocess::ForkAndExec() {
@@ -232,17 +240,61 @@ bool Subprocess::ForkAndExec() {
     ScopedFd parent_error_sfd, child_error_sfd;
     char pts_name[PATH_MAX];
 
-    // Create a socketpair for the fork() child to report any errors back to
-    // the parent. Since we use threads, logging directly from the child could
-    // create a race condition.
+    // Create a socketpair for the fork() child to report any errors back to the parent. Since we
+    // use threads, logging directly from the child might deadlock due to locks held in another
+    // thread during the fork.
     if (!CreateSocketpair(&parent_error_sfd, &child_error_sfd)) {
         LOG(ERROR) << "failed to create pipe for subprocess error reporting";
     }
 
+    // Construct the environment for the child before we fork.
+    passwd* pw = getpwuid(getuid());
+    std::unordered_map<std::string, std::string> env;
+    if (environ) {
+        char** current = environ;
+        while (char* env_cstr = *current++) {
+            std::string env_string = env_cstr;
+            char* delimiter = strchr(env_string.c_str(), '=');
+
+            // Drop any values that don't contain '='.
+            if (delimiter) {
+                *delimiter++ = '\0';
+                env[env_string.c_str()] = delimiter;
+            }
+        }
+    }
+
+    if (pw != nullptr) {
+        // TODO: $HOSTNAME? Normally bash automatically sets that, but mksh doesn't.
+        env["HOME"] = pw->pw_dir;
+        env["LOGNAME"] = pw->pw_name;
+        env["USER"] = pw->pw_name;
+        env["SHELL"] = pw->pw_shell;
+    }
+
+    if (!terminal_type_.empty()) {
+        env["TERM"] = terminal_type_;
+    }
+
+    std::vector<std::string> joined_env;
+    for (auto it : env) {
+        const char* key = it.first.c_str();
+        const char* value = it.second.c_str();
+        joined_env.push_back(android::base::StringPrintf("%s=%s", key, value));
+    }
+
+    std::vector<const char*> cenv;
+    for (const std::string& str : joined_env) {
+        cenv.push_back(str.c_str());
+    }
+    cenv.push_back(nullptr);
+
     if (type_ == SubprocessType::kPty) {
         int fd;
         pid_ = forkpty(&fd, pts_name, nullptr, nullptr);
-        stdinout_sfd_.Reset(fd);
+        if (pid_ > 0) {
+          stdinout_sfd_.Reset(fd);
+        }
     } else {
         if (!CreateSocketpair(&stdinout_sfd_, &child_stdinout_sfd)) {
             return false;
@@ -281,14 +333,14 @@ bool Subprocess::ForkAndExec() {
         parent_error_sfd.Reset();
         close_on_exec(child_error_sfd.fd());
 
-        if (is_interactive()) {
-            execl(_PATH_BSHELL, _PATH_BSHELL, "-", nullptr);
+        if (command_.empty()) {
+            execle(_PATH_BSHELL, _PATH_BSHELL, "-", nullptr, cenv.data());
         } else {
-            execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command_.c_str(), nullptr);
+            execle(_PATH_BSHELL, _PATH_BSHELL, "-c", command_.c_str(), nullptr, cenv.data());
         }
         WriteFdExactly(child_error_sfd.fd(), "exec '" _PATH_BSHELL "' failed");
         child_error_sfd.Reset();
-        exit(-1);
+        _Exit(1);
     }
 
     // Subprocess parent.
@@ -303,6 +355,7 @@ bool Subprocess::ForkAndExec() {
         return false;
     }
 
+    D("subprocess parent: exec completed");
     if (protocol_ == SubprocessProtocol::kNone) {
         // No protocol: all streams pass through the stdinout FD and hook
         // directly into the local socket for raw data transfer.
@@ -341,6 +394,7 @@ bool Subprocess::ForkAndExec() {
         return false;
     }
 
+    D("subprocess parent: completed");
     return true;
 }
 
@@ -357,20 +411,6 @@ int Subprocess::OpenPtyChildFd(const char* pts_name, ScopedFd* error_sfd) {
         exit(-1);
     }
 
-    if (!is_interactive()) {
-        termios tattr;
-        if (tcgetattr(child_fd, &tattr) == -1) {
-            WriteFdExactly(error_sfd->fd(), "tcgetattr failed");
-            exit(-1);
-        }
-
-        cfmakeraw(&tattr);
-        if (tcsetattr(child_fd, TCSADRAIN, &tattr) == -1) {
-            WriteFdExactly(error_sfd->fd(), "tcsetattr failed");
-            exit(-1);
-        }
-    }
-
     return child_fd;
 }
 
@@ -381,7 +421,6 @@ void* Subprocess::ThreadHandler(void* userdata) {
             "shell srvc %d", subprocess->local_socket_fd()));
 
     subprocess->PassDataStreams();
-    subprocess->WaitForExit();
 
     D("deleting Subprocess");
     delete subprocess;
@@ -413,6 +452,20 @@ void Subprocess::PassDataStreams() {
             D("closing FD %d", dead_sfd->fd());
             FD_CLR(dead_sfd->fd(), &master_read_set);
             FD_CLR(dead_sfd->fd(), &master_write_set);
+            if (dead_sfd == &protocol_sfd_) {
+                // Using SIGHUP is a decent general way to indicate that the
+                // controlling process is going away. If specific signals are
+                // needed (e.g. SIGINT), pass those through the shell protocol
+                // and only fall back on this for unexpected closures.
+                D("protocol FD died, sending SIGHUP to pid %d", pid_);
+                kill(pid_, SIGHUP);
+
+                // We also need to close the pipes connected to the child process
+                // so that if it ignores SIGHUP and continues to write data it
+                // won't fill up the pipe and block.
+                stdinout_sfd_.Reset();
+                stderr_sfd_.Reset();
+            }
             dead_sfd->Reset();
         }
     }
@@ -594,13 +647,14 @@ void Subprocess::WaitForExit() {
 
 }  // namespace
 
-int StartSubprocess(const char *name, SubprocessType type,
-                    SubprocessProtocol protocol) {
-    D("starting %s subprocess (protocol=%s): '%s'",
+int StartSubprocess(const char* name, const char* terminal_type,
+                    SubprocessType type, SubprocessProtocol protocol) {
+    D("starting %s subprocess (protocol=%s, TERM=%s): '%s'",
       type == SubprocessType::kRaw ? "raw" : "PTY",
-      protocol == SubprocessProtocol::kNone ? "none" : "shell", name);
+      protocol == SubprocessProtocol::kNone ? "none" : "shell",
+      terminal_type, name);
 
-    Subprocess* subprocess = new Subprocess(name, type, protocol);
+    Subprocess* subprocess = new Subprocess(name, terminal_type, type, protocol);
     if (!subprocess) {
         LOG(ERROR) << "failed to allocate new subprocess";
         return -1;

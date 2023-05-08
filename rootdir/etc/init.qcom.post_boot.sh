@@ -26,6 +26,10 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+boot_core=`grep "OF_FULLNAME" /sys/devices/system/cpu/cpu0/uevent | grep -o [1-9]`
+if [ -z "$boot_core" ]; then
+    boot_core=0
+fi
 
 configure_memory_parameters () {
     # Set Memory paremeters.
@@ -132,48 +136,46 @@ configure_memory_parameters () {
 }
 
 configure_sa8155_sku_parameters () {
-    reg_val=`cat /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
+    if [ -f /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem ]; then
+        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
+    else
+        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom1/nvmem | od -An -t d4`
+    fi
     feature_id=$(((reg_val >> 20) & 0xFF))
 
     echo "Feature ID is " $feature_id
 
+    if [ $boot_core -eq 0 ]; then
+        silver_core=0
+        gold_core=4
+        prime_core=7
+    elif [ $boot_core -eq 7 ]; then
+        silver_core=1
+        gold_core=5
+        prime_core=0
+    fi
+
+    echo "boot_core is " $boot_core
+
+    cpufreq_silver="/sys/devices/system/cpu/cpufreq/policy${silver_core}"
+    cpufreq_gold="/sys/devices/system/cpu/cpufreq/policy${gold_core}"
+    cpufreq_prime="/sys/devices/system/cpu/cpufreq/policy${prime_core}"
+
+    echo 1036800 > $cpufreq_silver/scaling_min_freq
+    echo 1056000 > $cpufreq_gold/scaling_min_freq
+    echo 1171200 > $cpufreq_prime/scaling_min_freq
+
     if [ $feature_id == 0 ]; then
         echo "SKU Configured : SA8155"
-        echo 1036800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq
-        echo 2131200 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
-        echo 2131200 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_max_freq
-        echo 2131200 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_max_freq
-        echo 2419200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_max_freq
+        echo 1785600 > $cpufreq_silver/scaling_max_freq
+        echo 2131200 > $cpufreq_gold/scaling_max_freq
+        echo 2419200 > $cpufreq_prime/scaling_max_freq
         echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
     elif [ $feature_id == 1 ]; then
         echo "SKU Configured : SA8150"
-        echo 1036800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
-        echo 1036800 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
-        echo 1056000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq
-        echo 1785600 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq
-        echo 1920000 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq
-        echo 1920000 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_max_freq
-        echo 1920000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_max_freq
-        echo 2227200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_max_freq
+        echo 1785600 > $cpufreq_silver/scaling_max_freq
+        echo 1920000 > $cpufreq_gold/scaling_max_freq
+        echo 2227200 > $cpufreq_prime/scaling_max_freq
         echo 3 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
     else
         echo "Unknown SKU"
@@ -310,21 +312,33 @@ configure_sa6155_sku_parameters() {
 }
 
 configure_sa8195_sku_parameters() {
-    reg_val=`cat /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
+    if [ -f /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem ]; then
+        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom0/nvmem | od -An -t d4`
+    else
+        reg_val=`head -c 4 /sys/devices/platform/soc/780130.qfprom/qfprom1/nvmem | od -An -t d4`
+    fi
     feature_id=$(((reg_val >> 20) & 0xFF))
 
     echo "Feature ID is " $feature_id
 
+    if [ $boot_core -eq 0 ]; then
+        silver_core=0
+        gold_core=4
+    elif [ $boot_core -eq 7 ]; then
+        silver_core=1
+        gold_core=0
+    fi
+
+    echo "boot_core is " $boot_core
+
+    cpufreq_silver="/sys/devices/system/cpu/cpufreq/policy${silver_core}"
+    cpufreq_gold="/sys/devices/system/cpu/cpufreq/policy${gold_core}"
+
+    echo 1113600 > $cpufreq_silver/scaling_min_freq
+    echo 1171200 > $cpufreq_gold/scaling_min_freq
+
     if [ $feature_id == 1 ]; then
         echo "SKU Configured : SA8195P"
-        echo 1113600 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
         # Setting min gpu freq to 392 MHz
         echo 4 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel
         # Setting max gpu freq to 670 MHz
@@ -332,14 +346,6 @@ configure_sa8195_sku_parameters() {
         echo 2092 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
     elif [ $feature_id == 0 ]; then
         echo "SKU Configured : SA8185P"
-        echo 1113600 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
-        echo 1113600 > /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu5/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
-        echo 1171200 > /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq
         # Setting min gpu freq to 392 MHz
         echo 4 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel
         # Setting max gpu freq to 530 MHz
@@ -372,18 +378,18 @@ esac
 case "$target" in
     "sa8155p" |"sa8155" )
     # Core control parameters for gold
-    echo 2 > /sys/devices/system/cpu/cpu4/core_ctl/min_cpus
-    echo 60 > /sys/devices/system/cpu/cpu4/core_ctl/busy_up_thres
-    echo 30 > /sys/devices/system/cpu/cpu4/core_ctl/busy_down_thres
-    echo 100 > /sys/devices/system/cpu/cpu4/core_ctl/offline_delay_ms
-    echo 3 > /sys/devices/system/cpu/cpu4/core_ctl/task_thres
+    echo 2 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/min_cpus
+    echo 60 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_up_thres
+    echo 30 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_down_thres
+    echo 100 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/offline_delay_ms
+    echo 3 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/task_thres
 
     # Core control parameters for gold+
-    echo 0 > /sys/devices/system/cpu/cpu7/core_ctl/min_cpus
-    echo 60 > /sys/devices/system/cpu/cpu7/core_ctl/busy_up_thres
-    echo 30 > /sys/devices/system/cpu/cpu7/core_ctl/busy_down_thres
-    echo 100 > /sys/devices/system/cpu/cpu7/core_ctl/offline_delay_ms
-    echo 1 > /sys/devices/system/cpu/cpu7/core_ctl/task_thres
+    echo 0 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/min_cpus
+    echo 60 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/busy_up_thres
+    echo 30 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/busy_down_thres
+    echo 100 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/offline_delay_ms
+    echo 1 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/task_thres
     # Controls how many more tasks should be eligible to run on gold CPUs
     # w.r.t number of gold CPUs available to trigger assist (max number of
     # tasks eligible to run on previous cluster minus number of CPUs in
@@ -392,10 +398,10 @@ case "$target" in
     # Setting to 1 by default which means there should be at least
     # 4 tasks eligible to run on gold cluster (tasks running on gold cores
     # plus misfit tasks on silver cores) to trigger assitance from gold+.
-    echo 1 > /sys/devices/system/cpu/cpu7/core_ctl/nr_prev_assist_thresh
+    echo 1 > /sys/devices/system/cpu/cpu${prime_core}/core_ctl/nr_prev_assist_thresh
 
     # Disable Core control on silver
-    echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
+    echo 0 > /sys/devices/system/cpu/cpu${silver_core}/core_ctl/enable
 
     # Setting b.L scheduler parameters
     echo 95 95 > /proc/sys/kernel/sched_upmigrate
@@ -408,26 +414,26 @@ case "$target" in
     echo 0 > /proc/sys/kernel/sched_boost
 
     # configure governor settings for silver cluster
-    echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us
-    echo 1209600 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq
-    echo 576000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
-    echo 1 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl
+    echo "schedutil" > $cpufreq_silver/scaling_governor
+    echo 0 > $cpufreq_silver/schedutil/up_rate_limit_us
+    echo 0 > $cpufreq_silver/schedutil/down_rate_limit_us
+    echo 1209600 > $cpufreq_silver/schedutil/hispeed_freq
+    echo 576000 > $cpufreq_silver/scaling_min_freq
+    echo 1 > $cpufreq_silver/schedutil/pl
 
     # configure governor settings for gold cluster
-    echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us
-    echo 1612800 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq
-    echo 1 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl
+    echo "schedutil" > $cpufreq_gold/scaling_governor
+    echo 0 > $cpufreq_gold/schedutil/up_rate_limit_us
+    echo 0 > $cpufreq_gold/schedutil/down_rate_limit_us
+    echo 1612800 > $cpufreq_gold/schedutil/hispeed_freq
+    echo 1 > $cpufreq_gold/schedutil/pl
 
     # configure governor settings for gold+ cluster
-    echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy7/scaling_governor
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us
-    echo 0 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us
-    echo 1612800 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq
-    echo 1 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/pl
+    echo "schedutil" > $cpufreq_prime/scaling_governor
+    echo 0 > $cpufreq_prime/schedutil/up_rate_limit_us
+    echo 0 > $cpufreq_prime/schedutil/down_rate_limit_us
+    echo 1612800 > $cpufreq_prime/schedutil/hispeed_freq
+    echo 1 > $cpufreq_prime/schedutil/pl
 
     # configure input boost settings
     echo "0:1324800" > /sys/module/cpu_boost/parameters/input_boost_freq
@@ -582,14 +588,14 @@ esac
 case "$target" in
     "sa8195p" )
      # Core control parameters for gold+
-     echo 2 > /sys/devices/system/cpu/cpu4/core_ctl/min_cpus
-     echo 60 > /sys/devices/system/cpu/cpu4/core_ctl/busy_up_thres
-     echo 30 > /sys/devices/system/cpu/cpu4/core_ctl/busy_down_thres
-     echo 100 > /sys/devices/system/cpu/cpu4/core_ctl/offline_delay_ms
-     echo 4 > /sys/devices/system/cpu/cpu4/core_ctl/task_thres
+     echo 2 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/min_cpus
+     echo 60 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_up_thres
+     echo 30 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_down_thres
+     echo 100 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/offline_delay_ms
+     echo 4 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/task_thres
 
      # Disable Core control on silver
-     echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
+     echo 0 > /sys/devices/system/cpu/cpu${silver_core}/core_ctl/enable
 
      # Setting b.L scheduler parameters
      echo 95 95 > /proc/sys/kernel/sched_upmigrate
@@ -602,19 +608,19 @@ case "$target" in
      echo 0 > /proc/sys/kernel/sched_boost
 
      # configure governor settings for silver cluster
-     echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-     echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us
-     echo 0 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us
-     echo 1209600 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq
-     echo 576000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
-     echo 1 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl
+     echo "schedutil" > $cpufreq_silver/scaling_governor
+     echo 0 > $cpufreq_silver/schedutil/up_rate_limit_us
+     echo 0 > $cpufreq_silver/schedutil/down_rate_limit_us
+     echo 1209600 > $cpufreq_silver/schedutil/hispeed_freq
+     echo 576000 > $cpufreq_silver/scaling_min_freq
+     echo 1 > $cpufreq_silver/schedutil/pl
 
      # configure governor settings for gold+ cluster
-     echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
-     echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us
-     echo 0 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us
-     echo 1612800 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq
-     echo 1 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl
+     echo "schedutil" > $cpufreq_gold/scaling_governor
+     echo 0 > $cpufreq_gold/schedutil/up_rate_limit_us
+     echo 0 > $cpufreq_gold/schedutil/down_rate_limit_us
+     echo 1612800 > $cpufreq_gold/schedutil/hispeed_freq
+     echo 1 > $cpufreq_gold/schedutil/pl
 
      # configure input boost settings
      echo "0:1324800" > /sys/module/cpu_boost/parameters/input_boost_freq

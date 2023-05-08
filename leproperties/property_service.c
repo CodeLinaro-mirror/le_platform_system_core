@@ -41,7 +41,7 @@
 
 static int persist_storage_ready = 0;
 
-int main(int argc, char* argv[]) {
+int main() {
 
     int listen_fd = 0;
     int conn_fd = 0;
@@ -200,7 +200,7 @@ property_db* process_setprop_msg(char* buff)
     char line[MAX_ALLOWED_LINE_LEN];
     memset(line, 0, sizeof(line));
 
-    int i = 1;
+    size_t i = 1;
     while(i < strlen(buff)){
         line[i-1] = buff[i];
         i++;
@@ -244,7 +244,7 @@ property_db* process_getprop_msg(char* buff)
     char line[MAX_ALLOWED_LINE_LEN];
     memset(line, 0, sizeof(line));
 
-    int i = 1;
+    size_t i = 1;
     while(i < strlen(buff)){
         line[i-1] = buff[i];
     i++;

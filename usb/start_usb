@@ -390,7 +390,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		/sbin/usb/compositions/$pid y
@@ -409,7 +409,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		# check if more than 1 argument is passed

@@ -1,0 +1,1 @@
+SUBSYSTEM=="extcon", ATTR{state}=="USB=1", ATTR{name}=="2-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh'"

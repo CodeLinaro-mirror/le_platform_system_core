@@ -6,7 +6,7 @@ License: Apache-2.0
 URL: https://www.codelinaro.org/
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: autoconf automake libtool gcc-g++ systemd-rpm-macros libbase-dev fs-mgr-dev glib2-devel systemd
+BuildRequires: autoconf automake libtool gcc-g++ systemd-rpm-macros libbase-dev libfs-mgr-dev glib2-devel systemd
 Requires: glib2
 
 %description

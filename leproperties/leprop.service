@@ -9,6 +9,7 @@ DefaultDependencies=no
 User=leprop
 Group=leprop
 Restart=always
+NoNewPrivileges=true
 ExecStartPre=+/bin/mkdir -p -m 777 /dev/socket
 ExecStart=/sbin/leprop-service
 

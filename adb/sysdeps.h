@@ -41,6 +41,10 @@
     _rc; })
 #endif
 
+// Clang-only nullability specifiers
+#define _Nonnull
+#define _Nullable
+
 #ifdef _WIN32
 
 #include <ctype.h>
@@ -362,6 +366,10 @@ static __inline__ int  adb_open( const char*  pathname, int  options )
 static __inline__ int  adb_shutdown(int fd)
 {
     return shutdown(fd, SHUT_RDWR);
+}
+static __inline__ int  adb_shutdown(int fd, int direction)
+{
+    return shutdown(fd, direction);
 }
 #undef   shutdown
 #define  shutdown   ____xxx_shutdown

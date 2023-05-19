@@ -33,4 +33,6 @@ std::string dump_hex(const void* ptr, size_t byte_count);
 
 std::string perror_str(const char* msg);
 
+bool set_file_block_mode(int fd, bool block);
+
 #endif

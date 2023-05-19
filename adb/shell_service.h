@@ -50,11 +50,19 @@ class ShellProtocol {
   public:
     // This is an unscoped enum to make it easier to compare against raw bytes.
     enum Id : uint8_t {
-        kIdStdin  = 0,
+        kIdStdin = 0,
         kIdStdout = 1,
         kIdStderr = 2,
-        kIdExit   = 3,
-        kIdInvalid  = 255,  // Indicates an invalid or unknown packet.
+        kIdExit = 3,
+
+        // Close subprocess stdin if possible.
+        kIdCloseStdin = 4,
+
+        // Window size change (an ASCII version of struct winsize).
+        kIdWindowSizeChange = 5,
+
+        // Indicates an invalid or unknown packet.
+        kIdInvalid = 255,
     };
 
     // ShellPackets will probably be too large to allocate on the stack so they

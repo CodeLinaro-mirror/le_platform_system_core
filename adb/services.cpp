@@ -489,7 +489,7 @@ int service_to_fd(const char *name)
     } else if(!strncmp(name, "reboot:", 7)) {
         void* arg = strdup(name + 7);
         if (arg == NULL) return -1;
-        if(!strncmp(arg, "bootloader", 10))
+        if(!strncmp(arg, "bootloader", 10) || !strncmp(arg, "edl", 3))
             ret = create_service_thread(reboot_service, arg);
         else
             ret = create_subproc_thread("/sbin/reboot", SUBPROC_RAW);

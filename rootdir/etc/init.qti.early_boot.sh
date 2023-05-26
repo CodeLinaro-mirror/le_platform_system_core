@@ -33,10 +33,10 @@ echo -n "Starting init_early_boot: [$target] "
 case "$target" in
     "sa8155p" | "sa8155" )
         if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
-            echo  902400 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
-            echo 902400  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:gold/min_freq
-            echo 902400  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:silver/min_freq
-            echo 902400  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:prime/min_freq
+            echo 902400 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
+            echo 902400 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:gold/min_freq
+            echo 902400 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:silver/min_freq
+            echo 902400 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:prime/min_freq
         else
             for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
             do
@@ -48,8 +48,8 @@ case "$target" in
     "sa8195p" )
         if [ -d "/sys/devices/system/cpu/bus_dcvs/L3" ]; then
             echo 940800 > /sys/devices/system/cpu/bus_dcvs/L3/boost_freq
-            echo 940800  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:gold/min_freq
-            echo 940800  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:silver/min_freq
+            echo 940800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:gold/min_freq
+            echo 940800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3:silver/min_freq
         else
             for l3lat in /sys/class/devfreq/*qcom,cpu*-cpu-l3-lat
             do

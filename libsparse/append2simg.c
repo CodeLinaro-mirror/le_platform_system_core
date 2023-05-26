@@ -41,7 +41,7 @@
 #define off64_t off_t
 #endif
 
-void usage()
+void usage(void)
 {
     fprintf(stderr, "Usage: append2simg <output> <input>\n");
 }

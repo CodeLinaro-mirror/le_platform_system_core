@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #define TRACE_TAG TRACE_ADB
 
 #include "sysdeps.h"
@@ -44,6 +51,19 @@
 #include "qemu_tracing.h"
 #endif
 #endif //!ADB_HOST
+
+#ifndef USING_SYSTEM_PROPERTIES
+/* When not using system properties, the logic for determining if adb can be run as root
+ * is held in global variables.
+ * no_properties_adb_root:
+ *      default to 0
+ *      set to 1 after "adb root" is called
+ *      set to 0 after "adb unroot" is called
+ * no_properties_debuggable:
+ *      const of 1 to allow adb root
+ */
+const bool no_sysprop_ro_debuggable = true;
+#endif // USING_SYSTEM_PROPERTIES
 
 static void adb_cleanup(void)
 {
@@ -92,7 +112,11 @@ static void drop_capabilities_bounding_set_if_needed() {
 #ifdef ALLOW_ADBD_ROOT
     char value[PROPERTY_VALUE_MAX];
     property_get("ro.debuggable", value, "");
-    if (strcmp(value, "1") == 0) {
+    bool ro_debuggable = (strcmp(value, "1") == 0);
+#ifdef USING_SYSTEMPROPERTIES
+    ro_debuggable = no_sysprop_ro_debuggable;
+#endif
+    if (!ro_debuggable) {
         return;
     }
 #endif
@@ -140,12 +164,21 @@ static bool should_drop_privileges() {
     property_get("ro.debuggable", value, "");
     bool ro_debuggable = (strcmp(value, "1") == 0);
 
+#ifndef USING_SYSTEM_PROPERTIES
+    ro_debuggable = no_sysprop_ro_debuggable;
+#endif // USING_SYSTEM_PROPERTIES
+
     // Drop privileges if ro.secure is set...
     bool drop = ro_secure;
 
     property_get("service.adb.root", value, "");
     bool adb_root = (strcmp(value, "1") == 0);
     bool adb_unroot = (strcmp(value, "0") == 0);
+
+#ifndef USING_SYSTEM_PROPERTIES
+    adb_root = no_sysprop_get_adb_run_as_root_conf();
+    adb_unroot = !adb_root;
+#endif // USING_SYSTEM_PROPERTIES
 
     // ...except "adb root" lets you keep privileges in a debuggable build.
     if (ro_debuggable && adb_root) {

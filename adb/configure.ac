@@ -1,5 +1,5 @@
 AC_PREREQ(2.61)
-AC_INIT([system-core],1.0.0)
+AC_INIT([adbd],1.0.0)
 AM_INIT_AUTOMAKE([-Wall gnu foreign])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -18,16 +18,25 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
-# Checks for libraries.
+# Check for required libraries.
+PKG_CHECK_MODULES([LIBLOG], [liblog])
 PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
-AC_SUBST([LIBSELINUX_CFLAGS])
-AC_SUBST([LIBSELINUX_LIBS])
-
 PKG_CHECK_MODULES([LIBBASE], [libbase])
 PKG_CHECK_MODULES([LIBCUTILS], [libcutils])
-PKG_CHECK_MODULES([LIBLOG], [liblog])
-PKG_CHECK_MODULES([LOGWRAPPER], [logwrapper])
-PKG_CHECK_MODULES([FSMGR], [fs_mgr])
+PKG_CHECK_MODULES([LIBMINCRYPT], [libmincrypt])
+PKG_CHECK_MODULES([LIBFS_MGR], [fs_mgr])
+PKG_CHECK_MODULES([LIBEXT4_UTILS], [ext4_utils])
+
+AC_ARG_WITH([mkbootimg_includes],
+    AC_HELP_STRING([--with-mkbootimg-includes=@<:@dir@:>@],
+       [Specify the location of the mkbootimg headers]),
+    [mkbootimg_incdir=$withval],
+    with_mkbootimg_includes=no)
+
+if test "x$with_mkbootimg_includes" != "xno"; then
+   CPPFLAGS="${CPPFLAGS} -I${mkbootimg_incdir}"
+   AC_SUBST(mkbootimg_incdir,${mkbootimg_incdir})
+fi
 
 AS_CASE([$host],
         [arm*], [ARM=yes],
@@ -63,11 +72,6 @@ fi
 
 AM_CONDITIONAL([HOST_OS_LINUX], [test "x$HOST_OS" = "xlinux"])
 
-AC_ARG_WITH(sanitized-headers,
-      AS_HELP_STRING([--with-sanitized-headers=DIR],
-         [Specify the location of the sanitized Linux headers]),
-      [CPPFLAGS="$CPPFLAGS -idirafter $withval"])
-
 AC_ARG_WITH([glib],
       AC_HELP_STRING([--with-glib],
          [enable glib, building HLOS systems which use glib]))
@@ -86,53 +90,29 @@ if (test "x${with_glib}" = "xyes"); then
 fi
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
-AC_ARG_WITH([logd-logging],
-      AC_HELP_STRING([--with-logd-logging],
-         [enable logd based logging]))
-
-AM_CONDITIONAL(USE_LOGD, [test "x${with_logd_logging}" = "xyes"])
-
-AC_ARG_ENABLE(libsync,
-      AC_HELP_STRING([--disable-libsync], [Disable libsync for target]),
-         [libsync="no"], [libsync="yes"])
-
-AM_CONDITIONAL(NO_LIBSYNC, [test "x${libsync}" = "xno"])
-
 AC_ARG_ENABLE(adb-root,
-      AC_HELP_STRING([--disable-adb-root], [Disable root privileges for adbd]),
+      AC_HELP_STRING([--disable-adb-root], [Disable root privileges for adbd (default: enable)]),
          [adb_root=${enableval}], [adb_root="yes"])
 
 AM_CONDITIONAL(ADB_ROOT, [test "x${adb_root}" = "xyes"])
 
 AC_ARG_ENABLE(adb-verity,
       AC_HELP_STRING([--enable-adb-verity], [ADB enable verity for avb.]),
-         [adb_verity=${enableval}], [adb_verity="no"])
+      [adb_verity=${enableval}], [adb_verity="no"])
 
 AM_CONDITIONAL(ADB_VERITY, [test "x${adb_verity}" = "xyes"])
 
 AC_ARG_ENABLE(adb-avb20,
       AC_HELP_STRING([--enable-adb-avb20], [ADB disable/enable verity with AVB2.0]),
-         [adb_avb20=${enableval}], [adb_avb20="yes"])
+      [adb_avb20=${enableval}], [adb_avb20="yes"])
 
 AM_CONDITIONAL(ADB_AVB20, [test "x${adb_avb20}" = "xyes"])
 
-AC_ARG_ENABLE(debuggerd,
-      AC_HELP_STRING([--disable-debuggerd], [Disable debuggerd for target]),
-         [debuggerd="no"], [debuggerd="yes"])
+AC_ARG_ENABLE(system-properties,
+      AC_HELP_STRING([--disable-system-properties], [System Properties are enabled by default.]),
+         [system_properties=${enableval}], [system_properties="yes"])
 
-AM_CONDITIONAL(NO_DEBUGGERD, [test "x${debuggerd}" = "xno"])
-
-AC_ARG_ENABLE(logd-privs,
-      AC_HELP_STRING([--enable-logd-privs], [Drop logd privileges]),
-         [logd_privs="yes"], [logd_privs="no"])
-
-AM_CONDITIONAL(LOGDPRIVS, [test "x${logd_privs}" = "xyes"])
-
-AC_ARG_ENABLE(prop-trig,
-      AC_HELP_STRING([--enable-property-triggers], [Enable property trigger scripts]),
-         [prop_trig="yes"], [prop_trig="no"])
-
-AM_CONDITIONAL(PROPTRIGGER, [test "x${prop_trig}" = "xyes"])
+AM_CONDITIONAL(USING_SYSTEM_PROPERTIES, [test "x${system_properties}" = "xyes"])
 
 AC_ARG_WITH([system-size],
         [AS_HELP_STRING([--with-system-size=SYSTEM_SIZE],[Size of system partition.])],
@@ -152,20 +132,30 @@ AC_SUBST(FEC_SIZE)
 
 AC_MSG_NOTICE([fec image size $FEC_SIZE detected.])
 
+AC_ARG_WITH(systemd,
+        AS_HELP_STRING([--with-systemd], [enable systemd adbd]),
+        [SYSTEMD="yes"],
+        [SYSTEMD="no"])
+
+AM_CONDITIONAL([USE_SYSTEMD], [test "x${SYSTEMD}" != "xno"])
+
+# systemd is enabled if explicitly added as a configure argument or
+# if pkg_config finds systemd installed on the target.
+AC_ARG_WITH([systemd_system_unitdir],
+     [AS_HELP_STRING([--with-systemd-system-unitdir=DIR], [systemd])],,
+     [with_systemd_system_unitdir=auto])
+AS_IF([test "x$with_systemd_system_unitdir" = "xyes" -o "x$with_systemd_system_unitdir" = "xauto"], [
+     def_systemd_system_unitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+
+     AS_IF([test "x$def_systemd_system_unitdir" = "x"],
+   [AS_IF([test "x$with_systemd_system_unitdir" = "xyes"],
+    [AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
+    with_systemd_system_unitdir=no],
+   [with_systemd_system_unitdir="$def_systemd_system_unitdir"])])
+AS_IF([test "x$with_systemd_system_unitdir" != "xno"],
+      [AC_SUBST([systemd_system_unitdir], [$with_systemd_system_unitdir])])
+
 AC_CONFIG_FILES([ \
     Makefile \
-    libsync/Makefile \
-    libsync/libsync.pc \
-    libsysutils/Makefile \
-    logcat/Makefile \
-    logd/Makefile \
-    fastboot/Makefile \
-    leproperties/Makefile \
-    toolbox/Makefile \
-    usb/Makefile \
-    include/Makefile \
-    libbacktrace/Makefile \
-    libbacktrace/libbacktrace.pc \
-    debuggerd/Makefile
 ])
 AC_OUTPUT

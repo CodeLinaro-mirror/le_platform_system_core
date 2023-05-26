@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #define TRACE_TAG TRACE_ADB
 
 #include "sysdeps.h"
@@ -44,9 +51,46 @@
 
 #if !ADB_HOST
 #include <cutils/properties.h>
-#include <sys/capability.h>
+// cutils/sys/capability.h differtiates the file from the commonly-installed
+// libcap's sys/capability.h
+#include <cutils/sys/capability.h>
 #include <sys/mount.h>
 #endif
+
+#ifndef USING_SYSTEM_PROPERTIES
+void no_sysprop_set_adb_run_as_root() {
+    int fd = adb_open(NO_SYSPROP_ADB_RUN_AS_ROOT_PATH, O_WRONLY | O_CLOEXEC);
+    int saved_errno = errno;
+    if (fd == -1) {
+        fprintf(stderr, "adbd could not create file %s\n", NO_SYSPROP_ADB_RUN_AS_ROOT_PATH);
+        fprintf(stderr, "saved errno = %d\n", saved_errno);
+    }
+    else {
+        adb_write(fd, "1", 1);
+        adb_close(fd);
+    }
+}
+
+void no_sysprop_set_adb_run_as_nonroot() {
+    int fd = adb_open(NO_SYSPROP_ADB_RUN_AS_ROOT_PATH, O_WRONLY | O_CLOEXEC);
+    int saved_errno = errno;
+    if (fd == -1) {
+        fprintf(stderr, "adbd could not open file %s\n", NO_SYSPROP_ADB_RUN_AS_ROOT_PATH);
+        fprintf(stderr, "saved errno = %d\n", saved_errno);
+    }
+    else {
+        adb_write(fd, "0", 1);
+        adb_close(fd);
+    }
+}
+
+bool no_sysprop_get_adb_run_as_root_conf() {
+    int fd = adb_open(NO_SYSPROP_ADB_RUN_AS_ROOT_PATH, O_RDONLY | O_CLOEXEC);
+    char buf[1];
+    adb_read(fd, buf, 1);
+    return buf[0] == '1';
+}
+#endif // USING_SYSTEM_PROPERTIES
 
 ADB_MUTEX_DEFINE( D_lock );
 
@@ -481,7 +525,7 @@ void handle_packet(apacket *p, atransport *t)
                     /* Other READY messages must use the same local-id */
                     s->ready(s);
                 } else {
-                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s\n",
+                    D("Invalid A_OKAY(%u,%u), expected A_OKAY(%u,%u) on transport %s\n",
                       p->msg.arg0, p->msg.arg1, s->peer->id, p->msg.arg1, t->serial);
                 }
             }
@@ -789,6 +833,7 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
             message = android::base::StringPrintf("cannot rebind existing socket: %s", strerror(errno));
             break;
           case INSTALL_STATUS_LISTENER_NOT_FOUND: message = "listener not found"; break;
+          default: break;
         }
         SendFail(reply_fd, message);
         return 1;

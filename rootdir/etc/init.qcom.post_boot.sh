@@ -377,6 +377,9 @@ esac
 
 case "$target" in
     "sa8155p" |"sa8155" )
+    #configure_memory_parameters
+    configure_sa8155_sku_parameters
+
     # Core control parameters for gold
     echo 2 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/min_cpus
     echo 60 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_up_thres
@@ -537,8 +540,6 @@ case "$target" in
     done
 
     echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
-    #configure_memory_parameters
-    configure_sa8155_sku_parameters
     ;;
 esac
 
@@ -587,6 +588,8 @@ esac
 
 case "$target" in
     "sa8195p" )
+     configure_sa8195_sku_parameters
+
      # Core control parameters for gold+
      echo 2 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/min_cpus
      echo 60 > /sys/devices/system/cpu/cpu${gold_core}/core_ctl/busy_up_thres
@@ -639,7 +642,6 @@ case "$target" in
      else
          echo 1 > /proc/sys/vm/reap_mem_on_sigkill
      fi
-    configure_sa8195_sku_parameters
 esac
 
 case "$target" in

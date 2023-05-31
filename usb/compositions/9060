@@ -135,10 +135,12 @@ case $target in
 		run_9x35 &
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
-							| *sxrneo* | *cinder* | *sm8450p* )
-		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || [ $target == "cinder" ] || [ $target == "sm8450p" ]
-		then
+		| *sxrneo* | *cinder* | *sm8450p* | *kalama*)
+		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || \
+		   [ $target == "cinder" ] || [ $target == "sm8450p" ]; then
 			qdss_func="qdss.qdss_mdm"
+		elif [ $target == "kalama" ]; then
+			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"
 		fi

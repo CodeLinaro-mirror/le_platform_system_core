@@ -175,8 +175,9 @@ TEST_F(ShellServiceTest, RawNoProtocolSubprocess) {
             "echo foo; echo bar >&2; [ -t 0 ]; echo $?",
             SubprocessType::kRaw, SubprocessProtocol::kNone));
 
-    // [ -t 0 ] == 1 means no terminal (raw).
-    ExpectLinesEqual(ReadRaw(subprocess_fd_), {"foo", "bar", "1"});
+    // [ -t 0 ] == 0 means we have a terminal (PTY). Even when requesting a raw subprocess, without
+    // the shell protocol we should always force a PTY to ensure proper cleanup.
+    ExpectLinesEqual(ReadRaw(subprocess_fd_), {"foo", "bar", "0"});
 }
 
 // Tests a PTY subprocess with no protocol.
@@ -243,6 +244,25 @@ TEST_F(ShellServiceTest, InteractivePtySubprocess) {
         EXPECT_FALSE(stdout.find(command) == std::string::npos);
     }
     EXPECT_FALSE(stdout.find("--abc123--") == std::string::npos);
+}
+
+// Tests closing raw subprocess stdin.
+TEST_F(ShellServiceTest, CloseClientStdin) {
+    ASSERT_NO_FATAL_FAILURE(StartTestSubprocess(
+            "cat; echo TEST_DONE",
+            SubprocessType::kRaw, SubprocessProtocol::kShell));
+
+    std::string input = "foo\nbar";
+    ShellProtocol* protocol = new ShellProtocol(subprocess_fd_);
+    memcpy(protocol->data(), input.data(), input.length());
+    ASSERT_TRUE(protocol->Write(ShellProtocol::kIdStdin, input.length()));
+    ASSERT_TRUE(protocol->Write(ShellProtocol::kIdCloseStdin, 0));
+    delete protocol;
+
+    std::string stdout, stderr;
+    EXPECT_EQ(0, ReadShellProtocol(subprocess_fd_, &stdout, &stderr));
+    ExpectLinesEqual(stdout, {"foo", "barTEST_DONE"});
+    ExpectLinesEqual(stderr, {});
 }
 
 // Tests that nothing breaks when the stdin/stdout pipe closes.

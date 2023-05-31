@@ -7,4 +7,4 @@ Name: libion
 Description: libion library
 Version: @VERSION@
 Libs: -L${libdir} -lion
-Cflags: -I${includedir}/ion_headers @CFLAGS@
+Cflags: -I${includedir}/ion_headers -DTARGET_ION_ABI_VERSION=2

@@ -34,6 +34,30 @@ export KERNEL=`uname -r`
 export SOFTAP_W_DUN="N"
 export ANDROID_LOG_TAGS="*:d"
 export LS_COLORS="none"
+export USB_ROLE_SWITCH="N"
+
+usb_bind() {
+	timeout=0
+	while :
+	do
+		UDC=`ls -1 /sys/class/udc | head -n 1`
+		if [ ! -z $UDC ]; then
+			echo $UDC > /sys/kernel/config/usb_gadget/g1/UDC
+			break
+		fi
+		if [ "$timeout" -ge 25 ]; then
+			echo "No role switch notification. Enabling USB in debug mode" > /dev/kmsg
+			udcname=`ls -1 /sys/bus/platform/devices/ | grep ssusb | head -n 1`
+			echo peripheral > /sys/bus/platform/devices/${udcname}/mode
+			sleep 2
+			UDC=`ls -1 /sys/class/udc | head -n 1`
+			echo $UDC > /sys/kernel/config/usb_gadget/g1/UDC
+			break
+		fi
+		timeout=`expr $timeout + 1`
+		sleep 1
+	done
+}
 
 case "$1" in
   init)
@@ -251,6 +275,12 @@ case "$1" in
 				esac
 			fi
 		        ;;
+		*sdxpinn* )
+			adbd_params="0 y"
+			if [ -d /sys/class/usb_role/a600000.ssusb-role-switch ]; then
+				USB_ROLE_SWITCH="Y"
+			fi
+			;;
 	esac
 
 	#
@@ -433,6 +463,14 @@ case "$1" in
 			fi
 		else
 			/sbin/usb/compositions/$pid n $adbd_params
+		fi
+
+		# targets with cable detection support on Modem might need
+		# more time for UDC to come up. So schedule a bind operation
+		# accordingly
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		if [ -z $udcname ] && [ "$USB_ROLE_SWITCH" == "Y" ]; then
+			usb_bind &
 		fi
 	fi
 	;;

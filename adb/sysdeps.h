@@ -41,6 +41,10 @@
     _rc; })
 #endif
 
+// Clang-only nullability specifiers
+#define _Nonnull
+#define _Nullable
+
 #ifdef _WIN32
 
 #include <ctype.h>
@@ -363,14 +367,17 @@ static __inline__ int  adb_shutdown(int fd)
 {
     return shutdown(fd, SHUT_RDWR);
 }
+static __inline__ int  adb_shutdown(int fd, int direction)
+{
+    return shutdown(fd, direction);
+}
 #undef   shutdown
 #define  shutdown   ____xxx_shutdown
 
 // Closes a file descriptor that came from adb_open() or adb_open_mode(), but
 // not designed to take a file descriptor from unix_open(). See the comments
 // for adb_open() for more info.
-static __inline__ int  adb_close(int fd)
-{
+__inline__ int adb_close(int fd) {
     return close(fd);
 }
 #undef   close

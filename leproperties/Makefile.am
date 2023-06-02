@@ -10,6 +10,8 @@ setprop_SOURCES  = setprop.c
 setprop_CFLAGS   = -I$(top_srcdir) @LIBCUTILS_CFLAGS@
 setprop_LDFLAGS  = -lselinux @LIBCUTILS_LIBS@
 
+setprop_CFLAGS += -fstack-protector-all
+
 bin_PROGRAMS    += getprop
 getprop_SOURCES  = getprop.c
 getprop_CFLAGS   = -I$(top_srcdir) @LIBCUTILS_CFLAGS@

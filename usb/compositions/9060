@@ -136,10 +136,11 @@ case $target in
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
 		| *sxrneo* | *cinder* | *sm8450p* | *kalama*)
-		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || [ $target == "cinder" ] || [ $target == "sm8450p" ] \
-			|| [ $target == "kalama" ]
-		then
+		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || \
+		   [ $target == "cinder" ] || [ $target == "sm8450p" ]; then
 			qdss_func="qdss.qdss_mdm"
+		elif [ $target == "kalama" ]; then
+			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"
 		fi

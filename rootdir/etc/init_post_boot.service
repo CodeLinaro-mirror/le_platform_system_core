@@ -33,12 +33,8 @@ ConditionVirtualization=!container
 After=multi-user.target
 
 [Service]
-User=post-boot
-Group=post-boot
 Type=oneshot
 RemainAfterExit=yes
-CapabilityBoundingSet=CAP_DAC_OVERRIDE
-AmbientCapabilities=CAP_DAC_OVERRIDE
 ExecStart= /bin/sh -c '/etc/initscripts/init_post_boot start'
 
 [Install]

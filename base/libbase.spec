@@ -29,6 +29,8 @@ items necessary for software development.
 %prep
 %autosetup -n base
 
+cp -rf ../NOTICE .
+
 %build
 autoreconf -if
 %configure --with-core-sourcedir=%{_builddir}/include/base
@@ -39,12 +41,14 @@ autoreconf -if
 %make_install
 
 %files
+%license NOTICE
 %{_libdir}/libbase.a
 %{_libdir}/libbase.la
 %{_libdir}/libbase.so.0
 %{_libdir}/libbase.so.0.0.0
 
 %files -n libbase-dev
+%license NOTICE
 %{_libdir}/libbase.so
 %{_libdir}/pkgconfig/libbase.pc
 %dir %{_includedir}/base

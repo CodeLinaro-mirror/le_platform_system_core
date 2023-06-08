@@ -31,6 +31,8 @@ for software development.
 %prep
 %autosetup -n fs_mgr
 
+cp -rf ../NOTICE .
+
 %build
 autoreconf -if
 %configure --with-glib
@@ -41,6 +43,7 @@ autoreconf -if
 %make_install
 
 %files
+%license NOTICE
 %{_bindir}/fs_mgr
 %{_libdir}/libfs_mgr.a
 %{_libdir}/libfs_mgr.la
@@ -48,6 +51,7 @@ autoreconf -if
 %{_libdir}/libfs_mgr.so.0.0.0
 
 %files dev
+%license NOTICE
 %dir %{_includedir}/fs_mgr
 %{_includedir}/fs_mgr/fs_mgr.h
 %{_libdir}/pkgconfig/fs_mgr.pc

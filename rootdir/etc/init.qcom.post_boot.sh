@@ -418,7 +418,6 @@ case "$target" in
     echo 0 > $cpufreq_silver/schedutil/up_rate_limit_us
     echo 0 > $cpufreq_silver/schedutil/down_rate_limit_us
     echo 1209600 > $cpufreq_silver/schedutil/hispeed_freq
-    echo 576000 > $cpufreq_silver/scaling_min_freq
     echo 1 > $cpufreq_silver/schedutil/pl
 
     # configure governor settings for gold cluster
@@ -612,7 +611,6 @@ case "$target" in
      echo 0 > $cpufreq_silver/schedutil/up_rate_limit_us
      echo 0 > $cpufreq_silver/schedutil/down_rate_limit_us
      echo 1209600 > $cpufreq_silver/schedutil/hispeed_freq
-     echo 576000 > $cpufreq_silver/scaling_min_freq
      echo 1 > $cpufreq_silver/schedutil/pl
 
      # configure governor settings for gold+ cluster

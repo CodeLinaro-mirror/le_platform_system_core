@@ -46,6 +46,48 @@ else
     target=`getprop ro.board.platform`
 fi
 
+function configure_read_ahead_kb_values() {
+    MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+    MemTotal=${MemTotalStr:16:8}
+
+    # Set 128 for <= 3GB &
+    # set 512 for >= 4GB targets.
+    if [ $MemTotal -le 3145728 ]; then
+        echo 128 > /sys/block/sda/queue/read_ahead_kb
+    else
+        echo 512 > /sys/block/sda/queue/read_ahead_kb
+    fi
+}
+
+function configure_memory_parameters() {
+    # Set Memory parameters.
+    #
+    # Set per_process_reclaim tuning parameters
+    # All targets will use vmpressure range 50-70,
+    # All targets will use 512 pages swap size.
+    #
+    # Set Low memory killer minfree parameters
+    # 32 bit Non-Go, all memory configurations will use 15K series
+    # 32 bit Go, all memory configurations will use uLMK + Memcg
+    # 64 bit will use Google default LMK series.
+    #
+    # Set ALMK parameters (usually above the highest minfree values)
+    # vmpressure_file_min threshold is always set slightly higher
+    # than LMK minfree's last bin value for all targets. It is calculated as
+    # vmpressure_file_min = (last bin - second last bin ) + last bin
+    #
+    # Set allocstall_threshold to 0 for all targets.
+    #
+
+    configure_read_ahead_kb_values
+    echo 0 > /proc/sys/vm/page-cluster
+    echo 100 > /proc/sys/vm/swappiness
+    # Disable periodic kcompactd wakeups. We do not use THP, so having many
+    # huge pages is not as necessary.
+    #disable proactive compaction
+    echo 0 > /proc/sys/vm/compaction_proactiveness
+}
+
 case "$target" in
     "qcs405" | "qcs404" | "qcs407")
         if [ -f /sys/devices/soc0/soc_id ]; then
@@ -145,6 +187,7 @@ case "$target" in
                 echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
                 #echo mem > /sys/power/autosleep
 
+                configure_memory_parameters
                 echo "++++ $0 -> Debug QCS40X - START" > /dev/kmsg
                 enable_qcs40x_debug
                 echo "++++ $0 -> Debug QCS40X - END" > /dev/kmsg

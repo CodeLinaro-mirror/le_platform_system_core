@@ -38,8 +38,12 @@ libadbd_la_CPPFLAGS += -DADB_REVISION='"$(adb_version)"'
 libadbd_la_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 libadbd_la_CPPFLAGS +=  @LIBFS_MGR_CFLAGS@
 
-libadbd_la_LDFLAGS  := -lselinux -lcutils -lext4_utils -lmincrypt -lresolv -lbase
-libadbd_la_LDFLAGS  += @LIBFS_MGR_LIBS@ @LIBEXT4_UTILS_LIBS@ @LIBMINCRYPT_LIBS@ @LIBBASE_LIBS@ @LIBSELINUX_LIBS@ @LIBLOG_LIBS@ @LIBCUTILS_LIBS@
+libadbd_la_LDFLAGS  := -lresolv
+libadbd_la_LDFLAGS  += @LIBFS_MGR_LIBS@ @LIBEXT4_UTILS_LIBS@ @LIBMINCRYPT_LIBS@ @LIBBASE_LIBS@ @LIBLOG_LIBS@ @LIBCUTILS_LIBS@
+if SELINUX_ENABLE
+libadbd_la_LDFLAGS  += @LIBSELINUX_LIBS@
+libadbd_la_CPPFLAGS += -DSELINUX_IS_ENABLE
+endif
 
 # Build adb daemon
 # Prefer adbd to be located in /sbin for historical reasons
@@ -54,7 +58,7 @@ adbd_SOURCES  += remount_service.cpp
 adbd_SOURCES  += set_verity_enable_state_service.cpp
 
 adbd_CPPFLAGS := -I$(top_srcdir)
-adbd_CPPFLAGS += @LIBFS_MGR_CFLAGS@ @LIBBASE_CFLAGS@ @LIBEXT4_UTILS_CFLAGS@ @LIBSELINUX_CFLAGS@
+adbd_CPPFLAGS += @LIBFS_MGR_CFLAGS@ @LIBBASE_CFLAGS@ @LIBEXT4_UTILS_CFLAGS@
 adbd_CPPFLAGS += -I@mkbootimg_incdir@
 if USE_GLIB
 adbd_CPPFLAGS += $(GLIB_CFLAGS) -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy -include glib.h
@@ -88,7 +92,13 @@ if ADB_AVB20
 adbd_CPPFLAGS += -DADB_AVB20=1
 endif
 adbd_LDADD   := libadbd.la
-adbd_LDFLAGS := -lcutils -lresolv -lmincrypt -lselinux -lbase
+adbd_LDFLAGS := -lcutils -lresolv -lmincrypt -lbase
+
+if SELINUX_ENABLE
+adbd_LDFLAGS  += -lselinux
+adbd_CPPFLAGS += -DSELINUX_IS_ENABLE
+adbd_CPPFLAGS += @LIBSELINUX_CFLAGS@
+endif
 
 if USE_GLIB
 adbd_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@

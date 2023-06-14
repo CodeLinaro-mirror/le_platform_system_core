@@ -33,6 +33,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <base/logging.h>
 #include <base/stringprintf.h>
@@ -60,6 +61,9 @@ static int uninstall_app(TransportType t, const char* serial, int argc, const ch
 
 static std::string gProductOutPath;
 extern int gListenAll;
+
+static constexpr char BUGZ_OK_PREFIX[] = "OK:";
+static constexpr char BUGZ_FAIL_PREFIX[] = "FAIL:";
 
 static std::string product_file(const char *extra) {
     if (gProductOutPath.empty()) {
@@ -101,16 +105,13 @@ static void help() {
         "                                 will disconnect from all connected TCP/IP devices.\n"
         "\n"
         "device commands:\n"
-        "  adb push [-p] <local> <remote>\n"
-        "                               - copy file/dir to device\n"
-        "                                 ('-p' to display the transfer progress)\n"
-        "  adb pull [-p] [-a] <remote> [<local>]\n"
-        "                               - copy file/dir from device\n"
-        "                                 ('-p' to display the transfer progress)\n"
-        "                                 ('-a' means copy timestamp and mode)\n"
+        "  adb push <local>... <remote>\n"
+        "                               - copy files/dirs to device\n"
+        "  adb pull [-a] <remote>... <local>\n"
+        "                               - copy files/dirs from device\n"
+        "                                 (-a preserves file timestamp and mode)\n"
         "  adb sync [ <directory> ]     - copy host->device only if changed\n"
         "                                 (-l means list but don't copy)\n"
-        "                                 (see 'adb help all')\n"
         "  adb shell [-e escape] [-n] [-Tt] [-x] [command]\n"
         "                               - run remote shell command (interactive shell if no command given)\n"
         "                                 (-e: choose escape character, or \"none\"; default '~')\n"
@@ -169,7 +170,7 @@ static void help() {
         "                                 (-g: grant all runtime permissions)\n"
         "  adb uninstall [-k] <package> - remove this app package from the device\n"
         "                                 ('-k' means keep the data and cache directories)\n"
-        "  adb bugreport                - return all information from the device\n"
+        "  adb bugreport [<zip_file>]   - return all information from the device\n"
         "                                 that should be included in a bug report.\n"
         "\n"
         "  adb backup [-f <file>] [-apk|-noapk] [-obb|-noobb] [-shared|-noshared] [-all] [-system|-nosystem] [<packages...>]\n"
@@ -215,11 +216,12 @@ static void help() {
         "  adb reboot sideload          - reboots the device into the sideload mode in recovery program (adb root required).\n"
         "  adb reboot sideload-auto-reboot\n"
         "                               - reboots into the sideload mode, then reboots automatically after the sideload regardless of the result.\n"
-        "  adb reboot-bootloader        - reboots the device into the bootloader\n"
+        "  adb sideload <file>          - sideloads the given package\n"
         "  adb root                     - restarts the adbd daemon with root permissions\n"
         "  adb unroot                   - restarts the adbd daemon without root permissions\n"
         "  adb usb                      - restarts the adbd daemon listening on USB\n"
         "  adb tcpip <port>             - restarts the adbd daemon listening on TCP on the specified port\n"
+        "\n"
         "networking:\n"
         "  adb ppp <tty> [parameters]   - Run PPP over USB.\n"
         " Note: you should not automatically start a PPP connection.\n"
@@ -234,7 +236,7 @@ static void help() {
         "  - If it is \"system\", \"vendor\", \"oem\" or \"data\", only the corresponding partition\n"
         "    is updated.\n"
         "\n"
-        "environmental variables:\n"
+        "environment variables:\n"
         "  ADB_TRACE                    - Print debug information. A comma separated list of the following values\n"
         "                                 1 or all, adb, sockets, packets, rwx, usb, sync, sysdeps, transport, jdwp\n"
         "  ANDROID_SERIAL               - The serial number to connect to. -s takes priority over this if given.\n"
@@ -280,11 +282,17 @@ static void stdin_raw_restore() {
 // this expects that incoming data will use the shell protocol, in which case
 // stdout/stderr are routed independently and the remote exit code will be
 // returned.
-static int read_and_dump(int fd, bool use_shell_protocol=false) {
+// if |output| is non-null, stdout will be appended to it instead.
+// if |err| is non-null, stderr will be appended to it instead.
+static int read_and_dump(int fd, bool use_shell_protocol=false, std::string* output=nullptr,
+                         std::string* err=nullptr) {
     int exit_code = 0;
+    if (fd < 0) return exit_code;
+
     std::unique_ptr<ShellProtocol> protocol;
     int length = 0;
     FILE* outfile = stdout;
+    std::string* outstring = output;
 
     char raw_buffer[BUFSIZ];
     char* buffer_ptr = raw_buffer;
@@ -297,7 +305,7 @@ static int read_and_dump(int fd, bool use_shell_protocol=false) {
         buffer_ptr = protocol->data();
     }
 
-    while (fd >= 0) {
+    while (true) {
         if (use_shell_protocol) {
             if (!protocol->Read()) {
                 break;
@@ -305,9 +313,11 @@ static int read_and_dump(int fd, bool use_shell_protocol=false) {
             switch (protocol->id()) {
                 case ShellProtocol::kIdStdout:
                     outfile = stdout;
+                    outstring = output;
                     break;
                 case ShellProtocol::kIdStderr:
                     outfile = stderr;
+                    outstring = err;
                     break;
                 case ShellProtocol::kIdExit:
                     exit_code = protocol->data()[0];
@@ -325,8 +335,12 @@ static int read_and_dump(int fd, bool use_shell_protocol=false) {
             }
         }
 
-        fwrite(buffer_ptr, 1, length, outfile);
-        fflush(outfile);
+        if (outstring == nullptr) {
+            fwrite(buffer_ptr, 1, length, outfile);
+            fflush(outfile);
+        } else {
+            outstring->append(buffer_ptr, length);
+        }
     }
 
     return exit_code;
@@ -953,21 +967,16 @@ static bool wait_for_device(const char* service, TransportType t, const char* se
     }
 
     std::string cmd = format_host_command(service, t, serial);
-    std::string error;
-    if (adb_command(cmd, &error)) {
-        D("failure: %s *", error.c_str());
-        fprintf(stderr,"error: %s", error.c_str());
-        return false;
-    }
-
-    return true;
+    return adb_command(cmd);
 }
 
 // Connects to the device "shell" service with |command| and prints the
 // resulting output.
 static int send_shell_command(TransportType transport_type, const char* serial,
                               const std::string& command,
-                              bool disable_shell_protocol) {
+                              bool disable_shell_protocol,
+                              std::string* output=nullptr,
+                              std::string* err=nullptr) {
     // Only use shell protocol if it's supported and the caller doesn't want
     // to explicitly disable it.
     bool use_shell_protocol = false;
@@ -990,13 +999,46 @@ static int send_shell_command(TransportType transport_type, const char* serial,
         wait_for_device("wait-for-device", transport_type, serial);
     }
 
-    int exit_code = read_and_dump(fd, use_shell_protocol);
+    int exit_code = read_and_dump(fd, use_shell_protocol, output, err);
 
     if (adb_close(fd) < 0) {
         PLOG(ERROR) << "failure closing FD " << fd;
     }
 
     return exit_code;
+}
+
+static int bugreport(TransportType transport_type, const char* serial, int argc,
+                     const char** argv) {
+    if (argc == 1) return send_shell_command(transport_type, serial, "bugreport", false);
+    if (argc != 2) return usage();
+
+    // Zipped bugreport option - will call 'bugreportz', which prints the location of the generated
+    // file, then pull it to the destination file provided by the user.
+    const char* dest_file = argv[1];
+    std::string output;
+
+    int status = send_shell_command(transport_type, serial, "bugreportz", false, &output, nullptr);
+    if (status != 0 || output.empty()) return status;
+    output = android::base::Trim(output);
+
+    if (android::base::StartsWith(output, BUGZ_OK_PREFIX)) {
+        const char* zip_file = &output[strlen(BUGZ_OK_PREFIX)];
+        std::vector<const char*> srcs{zip_file};
+        status = do_sync_pull(srcs, dest_file, true, dest_file) ? 0 : 1;
+        if (status != 0) {
+            fprintf(stderr, "Could not copy file '%s' to '%s'\n", zip_file, dest_file);
+        }
+        return status;
+    }
+    if (android::base::StartsWith(output, BUGZ_FAIL_PREFIX)) {
+        const char* error_message = &output[strlen(BUGZ_FAIL_PREFIX)];
+        fprintf(stderr, "Device failed to take a zipped bugreport: %s\n", error_message);
+        return -1;
+    }
+    fprintf(stderr, "Unexpected string (%s) returned by bugreportz, "
+            "device probably does not support -z option\n", output.c_str());
+    return -1;
 }
 
 static int logcat(TransportType transport, const char* serial, int argc, const char** argv) {
@@ -1158,32 +1200,35 @@ static std::string find_product_out_path(const std::string& hint) {
     return path;
 }
 
-static void parse_push_pull_args(const char **arg, int narg, char const **path1,
-                                 char const **path2, bool* show_progress,
-                                 int *copy_attrs) {
-    *show_progress = false;
-    *copy_attrs = 0;
+static void parse_push_pull_args(const char** arg, int narg,
+                                 std::vector<const char*>* srcs,
+                                 const char** dst, bool* copy_attrs) {
+    *copy_attrs = false;
 
+    srcs->clear();
+    bool ignore_flags = false;
     while (narg > 0) {
-        if (!strcmp(*arg, "-p")) {
-            *show_progress = true;
-        } else if (!strcmp(*arg, "-a")) {
-            *copy_attrs = 1;
+        if (ignore_flags || *arg[0] != '-') {
+            srcs->push_back(*arg);
         } else {
-            break;
+            if (!strcmp(*arg, "-p")) {
+                // Silently ignore for backwards compatibility.
+            } else if (!strcmp(*arg, "-a")) {
+                *copy_attrs = true;
+            } else if (!strcmp(*arg, "--")) {
+                ignore_flags = true;
+            } else {
+                fprintf(stderr, "adb: unrecognized option '%s'\n", *arg);
+                exit(1);
+            }
         }
         ++arg;
         --narg;
     }
 
-    if (narg > 0) {
-        *path1 = *arg;
-        ++arg;
-        --narg;
-    }
-
-    if (narg > 0) {
-        *path2 = *arg;
+    if (srcs->size() > 1) {
+        *dst = srcs->back();
+        srcs->pop_back();
     }
 }
 
@@ -1214,7 +1259,6 @@ int adb_commandline(int argc, const char **argv) {
     int no_daemon = 0;
     int is_daemon = 0;
     int is_server = 0;
-    int persist = 0;
     int r;
     TransportType transport_type = kTransportAny;
 
@@ -1253,8 +1297,6 @@ int adb_commandline(int argc, const char **argv) {
         } else if (!strcmp(argv[0], "fork-server")) {
             /* this is a special flag used only when the ADB client launches the ADB Server */
             is_daemon = 1;
-        } else if (!strcmp(argv[0],"persist")) {
-            persist = 1;
         } else if (!strncmp(argv[0], "-p", 2)) {
             const char *product = NULL;
             if (argv[0][2] == '\0') {
@@ -1450,10 +1492,12 @@ int adb_commandline(int argc, const char **argv) {
             return 0;
         }
     }
+    else if (!strcmp(argv[0], "tcpip") && argc > 1) {
+        return adb_connect_command(android::base::StringPrintf("tcpip:%s", argv[1]));
+    }
     else if (!strcmp(argv[0], "remount") ||
              !strcmp(argv[0], "reboot") ||
              !strcmp(argv[0], "reboot-bootloader") ||
-             !strcmp(argv[0], "tcpip") ||
              !strcmp(argv[0], "usb") ||
              !strcmp(argv[0], "root") ||
              !strcmp(argv[0], "unroot") ||
@@ -1470,95 +1514,51 @@ int adb_commandline(int argc, const char **argv) {
         return adb_connect_command(command);
     }
     else if (!strcmp(argv[0], "bugreport")) {
-        if (argc != 1) return usage();
-        // No need for shell protocol with bugreport, always disable for
-        // simplicity.
-        return send_shell_command(transport_type, serial, "bugreport", true);
-    }
-    /* adb_command() wrapper commands */
-    else if (!strcmp(argv[0], "forward") || !strcmp(argv[0], "reverse")) {
-        std::string cmd;
-        char host_prefix[64];
-        char reverse = (char) !strcmp(argv[0], "reverse");
-        char remove = 0;
-        char remove_all = 0;
-        char list = 0;
-        char no_rebind = 0;
-
-        // Parse options here.
-        while (argc > 1 && argv[1][0] == '-') {
-            if (!strcmp(argv[1], "--list"))
-                list = 1;
-            else if (!strcmp(argv[1], "--remove"))
-                remove = 1;
-            else if (!strcmp(argv[1], "--remove-all"))
-                remove_all = 1;
-            else if (!strcmp(argv[1], "--no-rebind"))
-                no_rebind = 1;
-            else {
-                return usage();
-            }
-            argc--;
-            argv++;
-        }
-
-        // Ensure we can only use one option at a time.
-        if (list + remove + remove_all + no_rebind > 1) {
-            return usage();
-        }
+        return bugreport(transport_type, serial, argc, argv);
+    } else if (!strcmp(argv[0], "forward") || !strcmp(argv[0], "reverse")) {
+        bool reverse = !strcmp(argv[0], "reverse");
+        ++argv;
+        --argc;
+        if (argc < 1) return usage();
 
         // Determine the <host-prefix> for this command.
+        std::string host_prefix;
         if (reverse) {
-            snprintf(host_prefix, sizeof host_prefix, "reverse");
+            host_prefix = "reverse";
         } else {
             if (serial) {
-                snprintf(host_prefix, sizeof host_prefix, "host-serial:%s",
-                        serial);
+                host_prefix = android::base::StringPrintf("host-serial:%s", serial);
             } else if (transport_type == kTransportUsb) {
-                snprintf(host_prefix, sizeof host_prefix, "host-usb");
+                host_prefix = "host-usb";
             } else if (transport_type == kTransportLocal) {
-                snprintf(host_prefix, sizeof host_prefix, "host-local");
+                host_prefix = "host-local";
             } else {
-                snprintf(host_prefix, sizeof host_prefix, "host");
+                host_prefix = "host";
             }
         }
 
-        // Implement forward --list
-        if (list) {
-            if (argc != 1) {
-                return usage();
-            }
-
-            std::string query = android::base::StringPrintf("%s:list-forward", host_prefix);
-            return adb_query_command(query);
-        }
-
-        // Implement forward --remove-all
-        else if (remove_all) {
+        std::string cmd;
+        if (strcmp(argv[0], "--list") == 0) {
             if (argc != 1) return usage();
-            cmd = android::base::StringPrintf("%s:killforward-all", host_prefix);
-        }
-
-        // Implement forward --remove <local>
-        else if (remove) {
+            return adb_query_command(host_prefix + ":list-forward");
+        } else if (strcmp(argv[0], "--remove-all") == 0) {
+            if (argc != 1) return usage();
+            cmd = host_prefix + ":killforward-all";
+        } else if (strcmp(argv[0], "--remove") == 0) {
+            // forward --remove <local>
             if (argc != 2) return usage();
-            cmd = android::base::StringPrintf("%s:killforward:%s", host_prefix, argv[1]);
-        }
-        // Or implement one of:
-        //    forward <local> <remote>
-        //    forward --no-rebind <local> <remote>
-        else {
+            cmd = host_prefix + ":killforward:" + argv[1];
+        } else if (strcmp(argv[0], "--no-rebind") == 0) {
+            // forward --no-rebind <local> <remote>
             if (argc != 3) return usage();
-            const char* command = no_rebind ? "forward:norebind" : "forward";
-            cmd = android::base::StringPrintf("%s:%s:%s;%s", host_prefix, command, argv[1], argv[2]);
+            cmd = host_prefix + ":forward:norebind:" + argv[1] + ";" + argv[2];
+        } else {
+            // forward <local> <remote>
+            if (argc != 2) return usage();
+            cmd = host_prefix + ":forward:" + argv[0] + ";" + argv[1];
         }
 
-        std::string error;
-        if (adb_command(cmd, &error)) {
-            fprintf(stderr, "error: %s\n", error.c_str());
-            return 1;
-        }
-        return 0;
+        return adb_command(cmd) ? 0 : 1;
     }
     /* do_sync_*() commands */
     else if (!strcmp(argv[0], "ls")) {
@@ -1566,22 +1566,22 @@ int adb_commandline(int argc, const char **argv) {
         return do_sync_ls(argv[1]) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "push")) {
-        bool show_progress = false;
-        int copy_attrs = 0;
-        const char* lpath = NULL, *rpath = NULL;
+        bool copy_attrs = false;
+        std::vector<const char*> srcs;
+        const char* dst = nullptr;
 
-        parse_push_pull_args(&argv[1], argc - 1, &lpath, &rpath, &show_progress, &copy_attrs);
-        if (!lpath || !rpath || copy_attrs != 0) return usage();
-        return do_sync_push(lpath, rpath, show_progress) ? 0 : 1;
+        parse_push_pull_args(&argv[1], argc - 1, &srcs, &dst, &copy_attrs);
+        if (srcs.empty() || !dst) return usage();
+        return do_sync_push(srcs, dst) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "pull")) {
-        bool show_progress = false;
-        int copy_attrs = 0;
-        const char* rpath = NULL, *lpath = ".";
+        bool copy_attrs = false;
+        std::vector<const char*> srcs;
+        const char* dst = ".";
 
-        parse_push_pull_args(&argv[1], argc - 1, &rpath, &lpath, &show_progress, &copy_attrs);
-        if (!rpath) return usage();
-        return do_sync_pull(rpath, lpath, show_progress, copy_attrs) ? 0 : 1;
+        parse_push_pull_args(&argv[1], argc - 1, &srcs, &dst, &copy_attrs);
+        if (srcs.empty()) return usage();
+        return do_sync_pull(srcs, dst, copy_attrs) ? 0 : 1;
     }
     else if (!strcmp(argv[0], "install")) {
         if (argc < 2) return usage();
@@ -1767,9 +1767,10 @@ static int install_app(TransportType transport, const char* serial, int argc, co
     }
 
     int result = -1;
-    const char* apk_file = argv[last_apk];
-    std::string apk_dest = android::base::StringPrintf(where, adb_basename(apk_file).c_str());
-    if (!do_sync_push(apk_file, apk_dest.c_str(), false)) goto cleanup_apk;
+    std::vector<const char*> apk_file = {argv[last_apk]};
+    std::string apk_dest = android::base::StringPrintf(
+        where, adb_basename(argv[last_apk]).c_str());
+    if (!do_sync_push(apk_file, apk_dest.c_str())) goto cleanup_apk;
     argv[last_apk] = apk_dest.c_str(); /* destination name, not source location */
     result = pm_command(transport, serial, argc, argv);
 

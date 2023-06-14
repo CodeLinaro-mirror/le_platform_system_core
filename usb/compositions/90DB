@@ -79,9 +79,10 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* )
-		if [ `source /sbin/usb/target` == "sdxlemur" ]
+target=`source /sbin/usb/target`
+case $target in
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *sdxpinn* )
+		if [ $target == "sdxlemur" ] || [ $target == "sdxpinn" ]
 		then
 			qdss_func="qdss.qdss_mdm"
 		else

@@ -631,7 +631,7 @@ static void register_device(const char* dev_name, const char* dev_path,
     register_usb_transport(usb, serial.c_str(), dev_path, usb->writeable);
 }
 
-static void* device_poll_thread(void* unused) {
+static void device_poll_thread(void*) {
     adb_thread_setname("device poll");
     D("Created device thread");
     while (true) {
@@ -640,7 +640,6 @@ static void* device_poll_thread(void* unused) {
         kick_disconnected_devices();
         sleep(1);
     }
-    return nullptr;
 }
 
 static void sigalrm_handler(int signo) {

@@ -379,9 +379,7 @@ err_get_num_ep:
     return NULL;
 }
 
-
-void* RunLoopThread(void* unused)
-{
+static void RunLoopThread(void* unused) {
     adb_thread_setname("RunLoop");
     InitUSB();
 
@@ -399,7 +397,6 @@ void* RunLoopThread(void* unused)
     IONotificationPortDestroy(notificationPort);
 
     DBG("RunLoopThread done\n");
-    return NULL;
 }
 
 static void usb_cleanup() {

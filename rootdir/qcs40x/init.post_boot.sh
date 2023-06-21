@@ -60,8 +60,8 @@ case "$target" in
             hw_platform=`cat /sys/devices/system/soc/soc0/hw_platform`
         fi
 
-        if [ -f /etc/init_qti_debug.sh ]; then
-            source /etc/init_qti_debug.sh
+        if [ -f /etc/init.qti.debug.sh ]; then
+            source /etc/init.qti.debug.sh
         fi
 
         case "$soc_id" in

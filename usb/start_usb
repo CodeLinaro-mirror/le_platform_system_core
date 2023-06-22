@@ -238,6 +238,16 @@ case "$1" in
 		*kalama* )
 			echo device > /sys/class/usb_role/a600000.ssusb-role-switch/role
 		        ;;
+		*sm8450p* )
+			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
+				case "$default_mode" in
+				    "none")
+					echo peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
+		        ;;
 	esac
 
 	#
@@ -390,7 +400,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		/sbin/usb/compositions/$pid y
@@ -409,7 +419,7 @@ case "$1" in
 		# make 901D as default composition
                 if [ -z "$pid" ]
 		then
-                    pid = "901D"
+                    pid="901D"
 		fi
 
 		# check if more than 1 argument is passed

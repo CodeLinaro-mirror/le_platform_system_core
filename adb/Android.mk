@@ -182,12 +182,13 @@ endif
 LOCAL_CLANG := $(adb_host_clang)
 
 LOCAL_SRC_FILES := \
+    adb_client.cpp \
     client/main.cpp \
     console.cpp \
     commandline.cpp \
-    adb_client.cpp \
-    services.cpp \
     file_sync_client.cpp \
+    line_printer.cpp \
+    services.cpp \
     shell_service_protocol.cpp \
 
 LOCAL_CFLAGS += \

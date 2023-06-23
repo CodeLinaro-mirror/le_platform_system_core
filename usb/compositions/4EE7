@@ -119,7 +119,7 @@ run_configfs() {
 	echo "ADB" > configs/c.1/strings/0x409/configuration
 	ln -s functions/ffs.adb configs/c.1/f1
 	rm -f /data/usb_bind_in_progress
-	echo 0x80 > configs/c.1/bmAttributes
+	echo $bmAttributes > configs/c.1/bmAttributes
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
 	cd /
@@ -128,6 +128,12 @@ run_configfs() {
 target=`source /sbin/usb/target`
 case $target in
 	* )
+		if [ $target == "sm8450p" ] ; then
+			bmAttributes="0xc0"
+		else
+			bmAttributes="0x80"
+		fi
+
 		if [ $configfs_supported = "y" ]; then
 
 			i=1

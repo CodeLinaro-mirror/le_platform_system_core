@@ -117,6 +117,9 @@ case $TARGET in
 	*kalama* )
 		res="kalama"
 		;;
+	*sdxpinn* )
+		res="sdxpinn"
+		;;
 	* )
 		res="none"
 		;;

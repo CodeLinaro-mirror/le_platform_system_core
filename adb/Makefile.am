@@ -32,7 +32,7 @@ libadbd_la_CPPFLAGS := @LIBBASE_CFLAGS@ @LIBCUTILS_CFLAGS@ @FSMGR_CFLAGS@
 libadbd_la_CPPFLAGS += -Wall -Wno-unused-parameter
 libadbd_la_CPPFLAGS += -Wno-deprecated-declarations
 libadbd_la_CPPFLAGS += -std=c++14 -fpermissive
-libadbd_la_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@
+libadbd_la_CPPFLAGS += -DUSE_GLIB -include glib.h -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy @GLIB_CFLAGS@
 libadbd_la_CPPFLAGS += -DADB_HOST=0 -D__ANDROID__
 libadbd_la_CPPFLAGS += -DADB_REVISION='"$(adb_version)"'
 libadbd_la_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
@@ -74,7 +74,7 @@ adbd_CPPFLAGS += -DALLOW_ADBD_ROOT=1
 endif
 adbd_CPPFLAGS += -DADB_REBOOT_ENABLED=1
 adbd_CPPFLAGS += -DALLOW_ADBD_DISABLE_VERITY=1
-adbd_CPPFLAGS += -DUSE_GLIB -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy @GLIB_CFLAGS@
+adbd_CPPFLAGS += -DUSE_GLIB -include glib.h -Dstrlcat=g_strlcat -Dstrlcpy=g_strlcpy @GLIB_CFLAGS@
 adbd_CPPFLAGS += @EXT4UTILS_CFLAGS@
 
 adbd_LDADD   := libadbd.la

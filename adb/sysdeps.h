@@ -533,8 +533,7 @@ static __inline__ int adb_thread_setname(const std::string& name) {
     const int max_task_comm_len = 16; // including the null terminator
     if (name.length() > (max_task_comm_len - 1)) {
         char buf[max_task_comm_len];
-        strncpy(buf, name.c_str(), sizeof(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
+        strlcpy(buf, name.c_str(), sizeof(buf));
         s = buf;
     }
 

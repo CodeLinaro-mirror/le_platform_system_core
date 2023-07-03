@@ -37,16 +37,12 @@ AC_ARG_WITH(systemd,
         [SYSTEMD="no"])
 AM_CONDITIONAL([USE_SYSTEMD], [test "x${SYSTEMD}" != "xno"])
 
-#basemachine
-AC_MSG_CHECKING([which base machine to use])
-AC_ARG_WITH([basemachine],
-            [AS_HELP_STRING([--with-basemachine],
-            [Specify the base machine])],
-            [machine_selected="$withval"],
-            [machine_selected=none])
-
-AC_MSG_RESULT([$machine_selected])
-AC_SUBST([MACHINE_ENABLED],[$machine_selected])
+AC_ARG_WITH([extcon],
+            [AS_HELP_STRING([--with-extcon],
+            [Support for usb external connection])],
+            [EXTCON="yes"],
+            [EXTCON="no"])
+AM_CONDITIONAL([HAS_EXTCON], [test "x${EXTCON}" != "xno"])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

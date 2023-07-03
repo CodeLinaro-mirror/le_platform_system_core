@@ -52,9 +52,8 @@ usb_systemd_DATA  = usb.service
 usb_systemd_DATA += usbd.service
 endif
 
-usb_extcon_udev_rules = $(shell find  $(srcdir)/usb-extcon/$(MACHINE_ENABLED)/ -type f -name usb-extcon.rules)
-usb_extcon_script =  $(shell find  $(srcdir)/usb-extcon/$(MACHINE_ENABLED)/ -type f -name usb_post_extcon.sh)
-
+if HAS_EXTCON
 udevdir = $(root_libdir)/udev/rules.d
-udev_DATA  = $(usb_extcon_udev_rules)
-root_etc_SCRIPTS = $(usb_extcon_script)
+udev_DATA  = usb-extcon.rules
+root_etc_SCRIPTS = usb_post_extcon.sh
+endif

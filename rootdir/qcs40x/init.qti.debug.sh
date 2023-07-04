@@ -26,6 +26,16 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+enable_memory_debug()
+{
+	# bail out if its perf config
+	if [ ! -d /sys/module/msm_rtb ]
+	then
+		return
+	fi
+
+	echo 2 >  /proc/sys/vm/panic_on_oom
+}
 
 enable_qcs40x_debug()
 {
@@ -39,6 +49,7 @@ enable_qcs40x_debug()
 		return
 	fi
 
+	enable_memory_debug
 	echo 0 > $DCC_PATH/enable
 	echo 2 > $DCC_PATH/curr_list
 	echo cap > $DCC_PATH/func_type

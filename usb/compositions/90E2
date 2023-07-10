@@ -109,7 +109,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*9650* )
 		run_9650 &
 		;;

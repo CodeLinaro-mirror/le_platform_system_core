@@ -68,7 +68,7 @@ legal_fileNames(){
 			exit
 			fi
 		fi
-		let i+=1
+		i=$((i+1))
 	done
 	echo "1"
 }
@@ -81,7 +81,7 @@ get_fileList(){
 		if [ $i -gt $1 ]; then
 			list="$list$j   "
 		fi
-		let i+=1
+		i=$((i+1))
 	done
 	echo $list
 }
@@ -91,7 +91,8 @@ read_fid() {
 	local flag="1"
 	local tmp_fid="0"
 	local files=""
-	read  -p "fid number : " tmp_fid
+	echo "fid number : "
+	read tmp_fid
 	while [ true ];
 	do
 		for num in $tmp_fid
@@ -106,7 +107,8 @@ read_fid() {
 		if [ $flag = "0" ]; then
 			flag="1"
 			files=""
-			read -p "Illegal Fid number, try again : " tmp_fid
+			echo "Illegal Fid number, try again : "
+			read tmp_fid
 		else
 			echo "$files"
 			exit
@@ -116,24 +118,28 @@ read_fid() {
 
 read_persistent() {
 	local tmp_persistent='0'
-	read -p "Would you like it to be the default file\s for debug ? (y/n) " tmp_persistent
+	echo "Would you like it to be the default file\s for debug ? (y/n) "
+	read tmp_persistent
 	while [ true ]; do
 		if [ $tmp_persistent = "y" ] || [ $tmp_persistent = "n" ]; then
 			echo "$tmp_persistent"
 			exit
 		fi
-		read -p "Only 'y' or 'n' are allowed, try again : " tmp_persistent
+		echo "Only 'y' or 'n' are allowed, try again : "
+		read tmp_persistent
 	done
 }
 read_operation() {
 	local tmp_op='0'
-	read -p "Would you like to enable or disable the debug messages ? (on/off) " tmp_op
+	echo "Would you like to enable or disable the debug messages ? (on/off) "
+	read tmp_op
 	while [ true ]; do
 		if [ $tmp_op = "on" ] || [ $tmp_op = "off" ]; then
 			echo "$tmp_op"
 			exit
 		fi
-		read -p "Only 'on' or 'off' are allowed, try again : " tmp_op
+		echo "Only 'on' or 'off' are allowed, try again : "
+		read tmp_op
 	done
 }
 
@@ -170,14 +176,14 @@ if [ "$#" -eq 0 ]; then
 	operation=`read_operation`
 	persistent=`read_persistent`
 elif [ "$#" -eq 1 ]; then
-	if [ $1 == "status" ]; then
+	if [ $1 = "status" ]; then
 		if [ -f $statusFile ]; then
 			cat $statusFile
 			exit 1
 		fi
 		echo ""
 		exit 1
-	elif [ $1 == "-h" ] || [ $1 == "help" ]; then
+	elif [ $1 = "-h" ] || [ $1 = "help" ]; then
 		cat $HELP
 		exit 1
 	else

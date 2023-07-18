@@ -41,6 +41,9 @@
 #define VBMETA_A_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_a"
 #define VBMETA_B_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_b"
 #define VBMETA_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta"
+/* For GVM DPK vbmeta */
+#define DPK_VBMETA_A_DEVICE_PATH "/dev/block/platform/vbmeta_a"
+#define DPK_VBMETA_B_DEVICE_PATH "/dev/block/platform/vbmeta_b"
 #define KERNEL_CMDLINE "/proc/cmdline"
 #define CMDLINE_SIZE 2048
 
@@ -240,47 +243,38 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
     char propbuf[PROPERTY_VALUE_MAX];
     bool any_changed = false;
     char *cmdline = NULL;
+    char *slot = NULL;
+    char *match = NULL;
+    char *save_ptr = NULL;
+
+    device = adb_open(KERNEL_CMDLINE, O_RDONLY | O_CLOEXEC);
+    if (device < 0) {
+        WriteFdFmt(fd, "Couldn't open kernel cmdline!\n");
+        goto errout;
+    }
+    cmdline = (char *)malloc(CMDLINE_SIZE + 1);
+    if (!cmdline) {
+        WriteFdFmt(fd, "Failed to allocate memory!\n");
+        goto errout;
+    }
+    memset(cmdline, '\0', CMDLINE_SIZE + 1);
+    device = adb_read(device, cmdline, CMDLINE_SIZE);
+    if (device < 0) {
+         WriteFdFmt(fd, "Couldn't read kernel cmdline!\n");
+         goto errout;
+    }
 
     if (kAllowDisableVerity) {
-#ifndef ADB_VERITY
-        property_get("vbmeta.device", propbuf, "");
-        if (!strcmp(propbuf, "")) {
-            WriteFdFmt(fd, "vbmeta.device property not available.\n");
-            goto errout;
-        }
-
-        device = adb_open(propbuf, O_RDWR | O_CLOEXEC);
-        if (device == -1) {
-            WriteFdFmt(fd, "Could not open block device %s (%s).\n", propbuf, strerror(errno));
-            goto errout;
-        }
-#else
-        char *slot = NULL;
-        char *match = NULL;
-        char *save_ptr = NULL;
-        device = adb_open(KERNEL_CMDLINE, O_RDONLY | O_CLOEXEC);
-        if (device < 0) {
-            WriteFdFmt(fd, "Couldn't open kernel cmdline!\n");
-            goto errout;
-        }
-        cmdline = (char *)malloc(CMDLINE_SIZE + 1);
-        if (!cmdline) {
-            WriteFdFmt(fd, "Failed to allocate memory!\n");
-            goto errout;
-        }
-        memset(cmdline, '\0', CMDLINE_SIZE + 1);
-        device = adb_read(device, cmdline, CMDLINE_SIZE);
-        if (device < 0) {
-             WriteFdFmt(fd, "Couldn't read kernel cmdline!\n");
-             goto errout;
-        }
+#ifdef ADB_VERITY
+        /* For LV enable/disable verity. */
         match = (char *)strstr(cmdline, "androidboot.slot_suffix=");
         if (!match) {
-             WriteFdFmt(fd, "Couldn't find slot_suffix!\n");
-             goto errout;
+            WriteFdFmt(fd, "Couldn't find slot_suffix!\n");
+            goto errout;
         }
         match = match + strlen("androidboot.slot_suffix=");
         slot = strtok_r(match, " \t\n\r", &save_ptr);
+
         if (strcmp(slot, "_a") == 0) {
             device = adb_open(VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
             if (device < 0) {
@@ -303,6 +297,45 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
                 WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
                 WriteFdFmt(fd, "Maybe run adb root?\n");
                 goto errout;
+            }
+        }
+#else
+        /* For GVM enable/disable verity, vdf is used for slot _a/_b vbmeta device by default,
+         * vdn is used by slot _b for DPK GVM.
+         */
+        match = (char *)strstr(cmdline, "androidboot.slot_suffix=");
+        if (!match) {
+            WriteFdFmt(fd, "slot_suffix is not present in GVM kernel cmdline!\n");
+            property_get("vbmeta.device", propbuf, "");
+            if (!strcmp(propbuf, "")) {
+                WriteFdFmt(fd, "vbmeta.device property not available.\n");
+                goto errout;
+            }
+
+            device = adb_open(propbuf, O_RDWR | O_CLOEXEC);
+            if (device == -1) {
+                WriteFdFmt(fd, "Could not open block device %s (%s).\n", propbuf, strerror(errno));
+                goto errout;
+            }
+        }
+        else {
+            match = match + strlen("androidboot.slot_suffix=");
+            slot = strtok_r(match, " \t\n\r", &save_ptr);
+            if (strcmp(slot, "_a") == 0) {
+                device = adb_open(DPK_VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
+                if (device < 0) {
+                    WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                    WriteFdFmt(fd, "Maybe run adb root?\n");
+                    goto errout;
+                }
+            }
+            if (strcmp(slot, "_b") == 0) {
+                device = adb_open(DPK_VBMETA_B_DEVICE_PATH, O_RDWR | O_CLOEXEC);
+                if (device < 0) {
+                    WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                    WriteFdFmt(fd, "Maybe run adb root?\n");
+                    goto errout;
+                }
             }
         }
 #endif

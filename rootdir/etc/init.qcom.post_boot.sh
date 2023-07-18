@@ -1632,6 +1632,14 @@ case "$target" in
 
         # Turn on sleep modes.
         echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
+        # Initialize QDSS sink source settings
+        mkdir /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy
+        mkdir /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy/default
+        echo 0x10 > /sys/bus/coresight/devices/coresight-stm/traceid
+        echo 4096 > /sys/bus/coresight/devices/coresight-tmc-etr/block_size
+        echo 1 > /sys/bus/coresight/devices/coresight-tmc-etr/enable_sink
+        echo coresight-stm > /sys/class/stm_source/ftrace/stm_source_link
+        echo 1 > /sys/bus/coresight/reset_source_sink
 ;;
 esac
 

@@ -1,4 +1,4 @@
-Name: fs-mgr
+Name: libfs-mgr
 Version: 1.0
 Release: r0
 Summary: filesystem manager
@@ -6,10 +6,9 @@ Summary: filesystem manager
 License: Apache-2.0
 
 URL: https://www.codelinaro.org/
-#Source0: fs-mgr-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
 
-BuildRequires: autoconf automake libtool gcc-g++ glib2-devel liblog-dev libcutils-dev ext4-utils-dev libmincrypt-dev logwrapper-dev
+BuildRequires: autoconf automake libtool gcc-g++ glib2-devel liblog-dev libcutils-dev libext4-utils-dev libmincrypt-dev liblogwrapper-dev
 Requires: glib2
 
 %description

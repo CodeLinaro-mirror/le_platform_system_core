@@ -1,4 +1,4 @@
-Name: logwrapper
+Name: liblogwrapper
 Version: 1.0
 Release: r0
 Summary: Android wrapper library for logging
@@ -6,9 +6,7 @@ Summary: Android wrapper library for logging
 License: Apache-2.0
 
 URL: https://www.codelinaro.org/
-#Source0: logwrapper-1.0.tar.gz
 Source0: %{name}-%{version}.tar.gz
-# The source tarball only needs the system/core/logwrapper included.
 
 BuildRequires: autoconf automake libtool gcc-g++ libcutils-dev liblog-dev
 

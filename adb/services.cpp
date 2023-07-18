@@ -361,7 +361,7 @@ static void subproc_waiter_service(int fd, void *cookie)
         int status;
         pid_t p = waitpid(pid, &status, 0);
         if (p == pid) {
-            D("fd=%d, post waitpid(pid=%d) status=%04x\n", fd, p, status);
+            D("fd=%d, post waitpid(pid=%d) status=%d\n", fd, p, status);
             if (WIFSIGNALED(status)) {
                 D("*** Killed by signal %d\n", WTERMSIG(status));
                 break;

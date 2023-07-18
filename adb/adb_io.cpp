@@ -32,7 +32,7 @@ bool SendProtocolString(int fd, const std::string& s) {
         length = 0xffff;
     }
 
-    return WriteFdFmt(fd, "%04x", length) && WriteFdExactly(fd, s);
+    return WriteFdFmt(fd, "%04d", length) && WriteFdExactly(fd, s);
 }
 
 bool SendOkay(int fd) {

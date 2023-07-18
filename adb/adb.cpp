@@ -481,7 +481,7 @@ void handle_packet(apacket *p, atransport *t)
                     /* Other READY messages must use the same local-id */
                     s->ready(s);
                 } else {
-                    D("Invalid A_OKAY(%d,%d), expected A_OKAY(%d,%d) on transport %s\n",
+                    D("Invalid A_OKAY(%u,%u), expected A_OKAY(%u,%u) on transport %s\n",
                       p->msg.arg0, p->msg.arg1, s->peer->id, p->msg.arg1, t->serial);
                 }
             }
@@ -789,6 +789,7 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
             message = android::base::StringPrintf("cannot rebind existing socket: %s", strerror(errno));
             break;
           case INSTALL_STATUS_LISTENER_NOT_FOUND: message = "listener not found"; break;
+          default: break;
         }
         SendFail(reply_fd, message);
         return 1;

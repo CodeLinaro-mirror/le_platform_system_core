@@ -135,10 +135,12 @@ bool __retrive_prop_value(const char* search_name, const char* value)
 bool __list_add(property_db* list)
 {
     property_db *node;
+    bool retval;
     if (__list_is_empty())
     {
         LOG("Adding first Node\n");
         glisthead = list;//assumed list comes with NULL terminated next
+        retval = true;
     } else {
         LOG("First Node Present, add subsequent one\n");
         //check if already the property exists
@@ -149,6 +151,7 @@ bool __list_add(property_db* list)
             property_db *ln;
             for (ln = glisthead; ln->next != NULL; ln = ln->next);
             ln->next = list;//assumed ln comes with NULL terminated next
+            retval = true;
         } else {
             //property exists update the value
             LOG("Node Present, updating value");
@@ -157,8 +160,10 @@ bool __list_add(property_db* list)
             strlcpy(node->unit.property_value, list->unit.property_value,
                     sizeof(list->unit.property_value));
             free(list);
+            retval = false;
         }
     }
+    return retval;
 }
 
 bool __remove_node_from_list(unsigned char* property_name)

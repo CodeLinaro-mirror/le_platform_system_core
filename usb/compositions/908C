@@ -24,9 +24,14 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# DESCRIPTION: DIAG + DUN + RMNET + DPL + QDSS(Trace) + ADB
+#Changes from Qualcomm Innovation Center are provided under the following license:
 
-echo "Switching to composition number 0x90DB" > /dev/kmsg
+#Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+#SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# DESCRIPTION: NCM + ADB
+
+echo "Switching to composition number 0x908C"  > /dev/kmsg
 
 if [ "$#" -ge 3 ]; then
 	from_adb=$3
@@ -48,34 +53,11 @@ run_configfs() {
 	rmdir configs/c.2/strings/* configs/c.3/strings/* 2> /dev/null
 	rmdir configs/c.2 configs/c.3 2> /dev/null
 	echo 0x05c6 > idVendor
-	echo 0x90DB > idProduct
-	if [ -e functions/diag.diag/pid ]; then
-		echo 0x90DB > functions/diag.diag/pid
-	fi
-	echo "DIAG_SER_RMNET_DPL_QDSS_ADB" > configs/c.1/strings/0x409/configuration
-	if [ -e functions/ffs.diag ]; then
-		ln -s functions/ffs.diag configs/c.1/f1
-	else
-		ln -s functions/diag.diag configs/c.1/f1
-	fi
-	if [ -f /etc/data/usb/softap_w_dun ]
-	then
-		SOFTAP_W_DUN=`cat /etc/data/usb/softap_w_dun`
-	fi
-	if [ "$SOFTAP_W_DUN" == "Y" ]
-	then
-		ln -s functions/gser.0 configs/c.1/f2
-	else
-		ln -s functions/cser.dun.0 configs/c.1/f2
-	fi
-	ln -s functions/gsi.rmnet configs/c.1/f3
-	ln -s functions/gsi.dpl configs/c.1/f4
-	ln -s functions/$qdss_func configs/c.1/f5
-	ln -s functions/ffs.adb configs/c.1/f6
-	echo 1 > os_desc/use
-	echo 0x01 > os_desc/b_vendor_code
-	echo MSFT100 > os_desc/qw_sign
-	ln -s configs/c.1 os_desc
+	echo 0x908C > idProduct
+
+	ln -s functions/ncm.0 configs/c.1/f1
+	ln -s functions/ffs.adb configs/c.1/f2
+
 	echo 0x80 > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
@@ -84,15 +66,7 @@ run_configfs() {
 }
 
 case `source /sbin/usb/target` in
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *sa525m* )
-		if [ `source /sbin/usb/target` == "sdxlemur" ] ||
-			[ `source /sbin/usb/target` == "sa410m" ] ||
-				[ `source /sbin/usb/target` == "sa525m" ]
-		then
-			qdss_func="qdss.qdss_mdm"
-		else
-			qdss_func="qdss.qdss"
-		fi
+	*cinder* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &
 		;;

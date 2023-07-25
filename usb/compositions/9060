@@ -106,7 +106,7 @@ run_configfs() {
 	ln -s functions/$qdss_func configs/c.1/f2
 	ln -s functions/ffs.adb configs/c.1/f3
 	echo 1 > functions/$qdss_func/enable_debug_inface
-	echo 0x80 > configs/c.1/bmAttributes
+	echo $bmAttributes > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
@@ -143,6 +143,12 @@ case $target in
 			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"
+		fi
+
+		if [ $target == "sm8450p" ] ; then
+			bmAttributes="0xc0"
+		else
+			bmAttributes="0x80"
 		fi
 
 		i=1

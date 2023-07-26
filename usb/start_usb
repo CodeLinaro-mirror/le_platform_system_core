@@ -91,6 +91,7 @@ case "$1" in
 		mkdir functions/gsi.gps
 		mkdir functions/ncm.0
 		mkdir functions/qdss.qdss
+		mkdir functions/qdss.qdss_sw
 		mkdir functions/qdss.qdss_mdm
 		mkdir functions/uac1.uac1
 		mkdir functions/uac2.0
@@ -139,15 +140,30 @@ case "$1" in
 
 	# mount functionfs
 	mkdir -p /dev/usb-ffs/adb
-	mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
-
+	if [ -d /sys/fs/smackfs ]; then
+		# change smack label of /dev/usb-ffs/adb/ep0 to System
+		mount -o smackfsdef=System,uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+		chsmack -a 'System' -t -r /dev/usb-ffs/adb
+	else
+		mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+	fi
 	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.diag ]; then
 		mkdir -p /dev/ffs-diag
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
 		mkdir -p /dev/ffs-diag-1
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
 		mkdir -p /dev/ffs-diag-2
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+		if [ -d /sys/fs/smackfs ]; then
+			# change smack label of /dev/ffs-diag()/ep0 to System
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
+			chsmack -a 'System' -t -r /dev/ffs-diag
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
+			chsmack -a 'System' -t -r /dev/ffs-diag-1
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+			chsmack -a 'System' -t -r /dev/ffs-diag-2
+		else
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+		fi
 	fi
 
 	mount -o remount,gid=5,mode=620 /dev/pts

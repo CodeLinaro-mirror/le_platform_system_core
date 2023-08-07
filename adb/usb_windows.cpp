@@ -88,7 +88,7 @@ void find_devices();
 
 /// Entry point for thread that polls (every second) for new usb interfaces.
 /// This routine calls find_devices in infinite loop.
-void* device_poll_thread(void* unused);
+static void device_poll_thread(void*);
 
 /// Initializes this module
 void usb_init();
@@ -166,7 +166,7 @@ int register_new_device(usb_handle* handle) {
   return 1;
 }
 
-void* device_poll_thread(void* unused) {
+void device_poll_thread(void*) {
   adb_thread_setname("Device Poll");
   D("Created device thread");
 
@@ -174,8 +174,6 @@ void* device_poll_thread(void* unused) {
     find_devices();
     adb_sleep_ms(1000);
   }
-
-  return NULL;
 }
 
 void usb_init() {

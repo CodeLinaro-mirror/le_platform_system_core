@@ -34,18 +34,6 @@ if test "x$with_core_includes" != "xno"; then
    AC_SUBST(core_incdir,${core_incdir})
 fi
 
-AC_ARG_ENABLE([legacyion],
-              AS_HELP_STRING([--enable-legacyion],
-              [enable legacy ion usage for building HLOS systems]),
-              [has_legacyion=$enableval],
-              [has_legacyion=no])
-
-if (test "x${has_legacyion}" = "xno"); then
-    CFLAGS="${CFLAGS} -DTARGET_ION_ABI_VERSION=2"
-fi
-
-AM_CONDITIONAL(USE_LEGACYION, test "x${has_legacyion}" = "xyes")
-
 AC_ARG_WITH(sanitized-headers,
         AS_HELP_STRING([--with-sanitized-headers=DIR],
                 [Specify the location of the sanitized Linux headers]),

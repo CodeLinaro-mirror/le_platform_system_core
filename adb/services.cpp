@@ -55,13 +55,11 @@ struct stinfo {
     void *cookie;
 };
 
-void *service_bootstrap_func(void *x)
-{
+static void service_bootstrap_func(void* x) {
     stinfo* sti = reinterpret_cast<stinfo*>(x);
     adb_thread_setname(android::base::StringPrintf("service %d", sti->fd));
     sti->func(sti->fd, sti->cookie);
     free(sti);
-    return 0;
 }
 
 #if !ADB_HOST
@@ -371,7 +369,7 @@ int service_to_fd(const char* name, const atransport* transport) {
     } else if(!strncmp(name, "tcpip:", 6)) {
         int port;
         if (sscanf(name + 6, "%d", &port) != 1) {
-            port = 0;
+            return -1;
         }
         ret = create_service_thread(restart_tcp_service, (void *) (uintptr_t) port);
     } else if(!strncmp(name, "usb:", 4)) {

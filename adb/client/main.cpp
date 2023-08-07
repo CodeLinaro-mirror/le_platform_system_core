@@ -34,6 +34,7 @@
 #include "adb.h"
 #include "adb_auth.h"
 #include "adb_listeners.h"
+#include "adb_utils.h"
 #include "transport.h"
 
 #if defined(WORKAROUND_BUG6558362) && defined(__linux__)
@@ -72,8 +73,6 @@ static void adb_set_affinity(void) {
 #endif
 
 #if defined(_WIN32)
-static const char kNullFileName[] = "NUL";
-
 static BOOL WINAPI ctrlc_handler(DWORD type) {
     exit(STATUS_CONTROL_C_EXIT);
     return TRUE;
@@ -98,19 +97,10 @@ static std::string GetLogFilePath() {
     return std::string(temp_path) + log_name;
 }
 #else
-static const char kNullFileName[] = "/dev/null";
-
 static std::string GetLogFilePath() {
     return std::string("/tmp/adb.log");
 }
 #endif
-
-static void close_stdin() {
-    int fd = unix_open(kNullFileName, O_RDONLY);
-    CHECK_NE(fd, -1);
-    dup2(fd, STDIN_FILENO);
-    adb_close(fd);
-}
 
 static void setup_daemon_logging(void) {
     int fd = unix_open(GetLogFilePath().c_str(), O_WRONLY | O_CREAT | O_APPEND,

@@ -19,6 +19,11 @@
 
 #include <string>
 
+#include <base/macros.h>
+#include <base/unique_fd.h>
+
+void close_stdin();
+
 bool getcwd(std::string* cwd);
 bool directory_exists(const std::string& path);
 std::string adb_basename(const std::string& path);
@@ -30,5 +35,56 @@ std::string escape_arg(const std::string& s);
 std::string dump_hex(const void* ptr, size_t byte_count);
 
 std::string perror_str(const char* msg);
+
+bool set_file_block_mode(int fd, bool block);
+
+extern int adb_close(int fd);
+
+// Helper to automatically close an FD when it goes out of scope.
+struct AdbCloser {
+    static void Close(int fd) {
+        adb_close(fd);
+    }
+};
+
+using unique_fd = android::base::unique_fd_impl<AdbCloser>;
+
+class ScopedFd {
+  public:
+    ScopedFd() {
+    }
+
+    ~ScopedFd() {
+        Reset();
+    }
+
+    void Reset(int fd = -1) {
+        if (fd != fd_) {
+            if (valid()) {
+                adb_close(fd_);
+            }
+            fd_ = fd;
+        }
+    }
+
+    int Release() {
+        int temp = fd_;
+        fd_ = -1;
+        return temp;
+    }
+
+    bool valid() const {
+        return fd_ >= 0;
+    }
+
+    int fd() const {
+        return fd_;
+    }
+
+  private:
+    int fd_ = -1;
+
+    DISALLOW_COPY_AND_ASSIGN(ScopedFd);
+};
 
 #endif

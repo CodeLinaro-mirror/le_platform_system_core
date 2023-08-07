@@ -1604,6 +1604,28 @@ config_dcc_wpss()
     echo 0x8a00304 > $DCC_PATH/config
 }
 
+config_dcc_qup()
+{
+    echo 0x13316c > $DCC_PATH/config
+    echo 0x13317c > $DCC_PATH/config
+    echo 0x128004 > $DCC_PATH/config
+    echo 0x128008 > $DCC_PATH/config
+    echo 0x12e008 > $DCC_PATH/config
+    echo 0x12e00c > $DCC_PATH/config
+    echo 0x12e144 > $DCC_PATH/config
+    echo 0x12e27c > $DCC_PATH/config
+    echo 0x12e3b4 > $DCC_PATH/config
+    echo 0x12e4ec > $DCC_PATH/config
+    echo 0x12e624 > $DCC_PATH/config
+}
+
+config_dcc_cpucp()
+{
+    echo 0x1282802c > $DCC_PATH/config
+    echo 0x17a30d38 > $DCC_PATH/config
+    echo 0x17a30d3c > $DCC_PATH/config
+    echo 0xb630010 > $DCC_PATH/config
+}
 
 enable_cpuss_register()
 {
@@ -6832,7 +6854,9 @@ enable_dcc()
     config_dcc_dc_ch01
     #config_dcc_cdsp
     config_dcc_adsp
-    config_dcc_wpss
+    #config_dcc_wpss
+    config_dcc_qup
+    config_dcc_cpucp
 
     echo  1 > $DCC_PATH/enable
 }

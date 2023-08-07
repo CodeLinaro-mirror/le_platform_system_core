@@ -35,6 +35,7 @@
 #include "adb.h"
 #include "adb_auth.h"
 #include "adb_listeners.h"
+#include "adb_utils.h"
 #include "transport.h"
 #ifdef ADB_QEMU
 #include "qemu_tracing.h"
@@ -140,7 +141,7 @@ int adbd_main(int server_port) {
                       AID_INET,     AID_NET_BT,    AID_NET_BT_ADMIN,
                       AID_SDCARD_R, AID_SDCARD_RW, AID_NET_BW_STATS};
     if (setgroups(sizeof(groups) / sizeof(groups[0]), groups) != 0) {
-        PLOG(FATAL) << "Could not set supplental groups";
+        PLOG(FATAL) << "Could not set supplemental groups";
     }
 
     /* don't listen on a port (default 5037) if running in secure mode */
@@ -160,7 +161,7 @@ int adbd_main(int server_port) {
     } else {
         if ((root_seclabel != nullptr) && (is_selinux_enabled() > 0)) {
             if (setcon(root_seclabel) < 0) {
-                LOG(FATAL) << "Could not set selinux context";
+                LOG(FATAL) << "Could not set SELinux context";
             }
         }
         std::string local_name =
@@ -207,16 +208,6 @@ int adbd_main(int server_port) {
     fdevent_loop();
 
     return 0;
-}
-
-static void close_stdin() {
-    int fd = unix_open("/dev/null", O_RDONLY);
-    if (fd == -1) {
-        perror("failed to open /dev/null, stdin will remain open");
-        return;
-    }
-    dup2(fd, STDIN_FILENO);
-    unix_close(fd);
 }
 
 int main(int argc, char** argv) {

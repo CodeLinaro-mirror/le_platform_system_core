@@ -297,8 +297,6 @@ case "$target" in
 	    echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
     fi
 
-    echo s2idle > /sys/power/mem_sleep
-
     # enable autosleep
     echo mem > /sys/power/autosleep
 

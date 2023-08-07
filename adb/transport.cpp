@@ -236,8 +236,7 @@ void send_packet(apacket *p, atransport *t)
 ** on its way out to disconnect the underlying device.
 */
 
-static void *output_thread(void *_t)
-{
+static void read_transport_thread(void* _t) {
     atransport *t = reinterpret_cast<atransport*>(_t);
     apacket *p;
 
@@ -289,11 +288,9 @@ oops:
     D("%s: transport output thread is exiting", t->serial);
     kick_transport(t);
     transport_unref(t);
-    return 0;
 }
 
-static void *input_thread(void *_t)
-{
+static void write_transport_thread(void* _t) {
     atransport *t = reinterpret_cast<atransport*>(_t);
     apacket *p;
     int active = 0;
@@ -341,7 +338,6 @@ static void *input_thread(void *_t)
     D("%s: transport input thread is exiting, fd %d", t->serial, t->fd);
     kick_transport(t);
     transport_unref(t);
-    return 0;
 }
 
 
@@ -591,12 +587,12 @@ static void transport_registration_func(int _fd, unsigned ev, void *data)
 
         fdevent_set(&(t->transport_fde), FDE_READ);
 
-        if (!adb_thread_create(input_thread, t)) {
-            fatal_errno("cannot create input thread");
+        if (!adb_thread_create(write_transport_thread, t)) {
+            fatal_errno("cannot create write_transport thread");
         }
 
-        if (!adb_thread_create(output_thread, t)) {
-            fatal_errno("cannot create output thread");
+        if (!adb_thread_create(read_transport_thread, t)) {
+            fatal_errno("cannot create read_transport thread");
         }
     }
 

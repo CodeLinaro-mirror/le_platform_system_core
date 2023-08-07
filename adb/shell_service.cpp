@@ -77,9 +77,9 @@
 
 #define TRACE_TAG SHELL
 
-#include "shell_service.h"
+#include "sysdeps.h"
 
-#if !ADB_HOST
+#include "shell_service.h"
 
 #include <errno.h>
 #include <pty.h>
@@ -99,7 +99,7 @@
 #include "adb.h"
 #include "adb_io.h"
 #include "adb_trace.h"
-#include "sysdeps.h"
+#include "adb_utils.h"
 
 namespace {
 
@@ -133,37 +133,6 @@ std::string ReadAll(int fd) {
     return received;
 }
 
-// Helper to automatically close an FD when it goes out of scope.
-class ScopedFd {
-  public:
-    ScopedFd() {}
-    ~ScopedFd() { Reset(); }
-
-    void Reset(int fd=-1) {
-        if (fd != fd_) {
-            if (valid()) {
-                adb_close(fd_);
-            }
-            fd_ = fd;
-        }
-    }
-
-    int Release() {
-        int temp = fd_;
-        fd_ = -1;
-        return temp;
-    }
-
-    bool valid() const { return fd_ >= 0; }
-
-    int fd() const { return fd_; }
-
-  private:
-    int fd_ = -1;
-
-    DISALLOW_COPY_AND_ASSIGN(ScopedFd);
-};
-
 // Creates a socketpair and saves the endpoints to |fd1| and |fd2|.
 bool CreateSocketpair(ScopedFd* fd1, ScopedFd* fd2) {
     int sockets[2];
@@ -184,19 +153,24 @@ class Subprocess {
 
     const std::string& command() const { return command_; }
 
-    int local_socket_fd() const { return local_socket_sfd_.fd(); }
+    int ReleaseLocalSocket() { return local_socket_sfd_.Release(); }
 
     pid_t pid() const { return pid_; }
 
     // Sets up FDs, forks a subprocess, starts the subprocess manager thread,
-    // and exec's the child. Returns false on failure.
-    bool ForkAndExec();
+    // and exec's the child. Returns false and sets error on failure.
+    bool ForkAndExec(std::string* _Nonnull error);
+
+    // Start the subprocess manager thread. Consumes the subprocess, regardless of success.
+    // Returns false and sets error on failure.
+    static bool StartThread(std::unique_ptr<Subprocess> subprocess,
+                            std::string* _Nonnull error);
 
   private:
     // Opens the file at |pts_name|.
     int OpenPtyChildFd(const char* pts_name, ScopedFd* error_sfd);
 
-    static void* ThreadHandler(void* userdata);
+    static void ThreadHandler(void* userdata);
     void PassDataStreams();
     void WaitForExit();
 
@@ -210,6 +184,7 @@ class Subprocess {
 
     const std::string command_;
     const std::string terminal_type_;
+    bool make_pty_raw_ = false;
     SubprocessType type_;
     SubprocessProtocol protocol_;
     pid_t pid_ = -1;
@@ -229,13 +204,25 @@ Subprocess::Subprocess(const std::string& command, const char* terminal_type,
       terminal_type_(terminal_type ? terminal_type : ""),
       type_(type),
       protocol_(protocol) {
+    // If we aren't using the shell protocol we must allocate a PTY to properly close the
+    // subprocess. PTYs automatically send SIGHUP to the slave-side process when the master side
+    // of the PTY closes, which we rely on. If we use a raw pipe, processes that don't read/write,
+    // e.g. screenrecord, will never notice the broken pipe and terminate.
+    // The shell protocol doesn't require a PTY because it's always monitoring the local socket FD
+    // with select() and will send SIGHUP manually to the child process.
+    if (protocol_ == SubprocessProtocol::kNone && type_ == SubprocessType::kRaw) {
+        // Disable PTY input/output processing since the client is expecting raw data.
+        D("Can't create raw subprocess without shell protocol, using PTY in raw mode instead");
+        type_ = SubprocessType::kPty;
+        make_pty_raw_ = true;
+    }
 }
 
 Subprocess::~Subprocess() {
     WaitForExit();
 }
 
-bool Subprocess::ForkAndExec() {
+bool Subprocess::ForkAndExec(std::string* error) {
     ScopedFd child_stdinout_sfd, child_stderr_sfd;
     ScopedFd parent_error_sfd, child_error_sfd;
     char pts_name[PATH_MAX];
@@ -244,7 +231,9 @@ bool Subprocess::ForkAndExec() {
     // use threads, logging directly from the child might deadlock due to locks held in another
     // thread during the fork.
     if (!CreateSocketpair(&parent_error_sfd, &child_error_sfd)) {
-        LOG(ERROR) << "failed to create pipe for subprocess error reporting";
+        *error = android::base::StringPrintf(
+            "failed to create pipe for subprocess error reporting: %s", strerror(errno));
+        return false;
     }
 
     // Construct the environment for the child before we fork.
@@ -297,18 +286,22 @@ bool Subprocess::ForkAndExec() {
         }
     } else {
         if (!CreateSocketpair(&stdinout_sfd_, &child_stdinout_sfd)) {
+            *error = android::base::StringPrintf("failed to create socketpair for stdin/out: %s",
+                                                 strerror(errno));
             return false;
         }
         // Raw subprocess + shell protocol allows for splitting stderr.
         if (protocol_ == SubprocessProtocol::kShell &&
                 !CreateSocketpair(&stderr_sfd_, &child_stderr_sfd)) {
+            *error = android::base::StringPrintf("failed to create socketpair for stderr: %s",
+                                                 strerror(errno));
             return false;
         }
         pid_ = fork();
     }
 
     if (pid_ == -1) {
-        PLOG(ERROR) << "fork failed";
+        *error = android::base::StringPrintf("fork failed: %s", strerror(errno));
         return false;
     }
 
@@ -338,7 +331,8 @@ bool Subprocess::ForkAndExec() {
         } else {
             execle(_PATH_BSHELL, _PATH_BSHELL, "-c", command_.c_str(), nullptr, cenv.data());
         }
-        WriteFdExactly(child_error_sfd.fd(), "exec '" _PATH_BSHELL "' failed");
+        WriteFdExactly(child_error_sfd.fd(), "exec '" _PATH_BSHELL "' failed: ");
+        WriteFdExactly(child_error_sfd.fd(), strerror(errno));
         child_error_sfd.Reset();
         _Exit(1);
     }
@@ -351,7 +345,7 @@ bool Subprocess::ForkAndExec() {
     child_error_sfd.Reset();
     std::string error_message = ReadAll(parent_error_sfd.fd());
     if (!error_message.empty()) {
-        LOG(ERROR) << error_message;
+        *error = error_message;
         return false;
     }
 
@@ -363,6 +357,9 @@ bool Subprocess::ForkAndExec() {
     } else {
         // Shell protocol: create another socketpair to intercept data.
         if (!CreateSocketpair(&protocol_sfd_, &local_socket_sfd_)) {
+            *error = android::base::StringPrintf(
+                "failed to create socketpair to intercept data: %s", strerror(errno));
+            kill(pid_, SIGKILL);
             return false;
         }
         D("protocol FD = %d", protocol_sfd_.fd());
@@ -370,7 +367,8 @@ bool Subprocess::ForkAndExec() {
         input_.reset(new ShellProtocol(protocol_sfd_.fd()));
         output_.reset(new ShellProtocol(protocol_sfd_.fd()));
         if (!input_ || !output_) {
-            LOG(ERROR) << "failed to allocate shell protocol objects";
+            *error = "failed to allocate shell protocol objects";
+            kill(pid_, SIGKILL);
             return false;
         }
 
@@ -380,21 +378,29 @@ bool Subprocess::ForkAndExec() {
         // the pipe fills up.
         for (int fd : {stdinout_sfd_.fd(), stderr_sfd_.fd()}) {
             if (fd >= 0) {
-                int flags = fcntl(fd, F_GETFL, 0);
-                if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-                    PLOG(ERROR) << "error making FD " << fd << " non-blocking";
+                if (!set_file_block_mode(fd, false)) {
+                    *error = android::base::StringPrintf(
+                        "failed to set non-blocking mode for fd %d", fd);
+                    kill(pid_, SIGKILL);
                     return false;
                 }
             }
         }
     }
 
-    if (!adb_thread_create(ThreadHandler, this)) {
-        PLOG(ERROR) << "failed to create subprocess thread";
+    D("subprocess parent: completed");
+    return true;
+}
+
+bool Subprocess::StartThread(std::unique_ptr<Subprocess> subprocess, std::string* error) {
+    Subprocess* raw = subprocess.release();
+    if (!adb_thread_create(ThreadHandler, raw)) {
+        *error =
+            android::base::StringPrintf("failed to create subprocess thread: %s", strerror(errno));
+        kill(raw->pid_, SIGKILL);
         return false;
     }
 
-    D("subprocess parent: completed");
     return true;
 }
 
@@ -411,21 +417,38 @@ int Subprocess::OpenPtyChildFd(const char* pts_name, ScopedFd* error_sfd) {
         exit(-1);
     }
 
+    if (make_pty_raw_) {
+        termios tattr;
+        if (tcgetattr(child_fd, &tattr) == -1) {
+            int saved_errno = errno;
+            WriteFdExactly(error_sfd->fd(), "tcgetattr failed: ");
+            WriteFdExactly(error_sfd->fd(), strerror(saved_errno));
+            exit(-1);
+        }
+
+        cfmakeraw(&tattr);
+        if (tcsetattr(child_fd, TCSADRAIN, &tattr) == -1) {
+            int saved_errno = errno;
+            WriteFdExactly(error_sfd->fd(), "tcsetattr failed: ");
+            WriteFdExactly(error_sfd->fd(), strerror(saved_errno));
+            exit(-1);
+        }
+    }
+
     return child_fd;
 }
 
-void* Subprocess::ThreadHandler(void* userdata) {
+void Subprocess::ThreadHandler(void* userdata) {
     Subprocess* subprocess = reinterpret_cast<Subprocess*>(userdata);
 
     adb_thread_setname(android::base::StringPrintf(
-            "shell srvc %d", subprocess->local_socket_fd()));
+            "shell srvc %d", subprocess->pid()));
 
+    D("passing data streams for PID %d", subprocess->pid());
     subprocess->PassDataStreams();
 
-    D("deleting Subprocess");
+    D("deleting Subprocess for PID %d", subprocess->pid());
     delete subprocess;
-
-    return nullptr;
 }
 
 void Subprocess::PassDataStreams() {
@@ -547,11 +570,42 @@ ScopedFd* Subprocess::PassInput() {
             return &protocol_sfd_;
         }
 
-        // We only care about stdin packets.
-        if (stdinout_sfd_.valid() && input_->id() == ShellProtocol::kIdStdin) {
-            input_bytes_left_ = input_->data_length();
-        } else {
-            input_bytes_left_ = 0;
+        if (stdinout_sfd_.valid()) {
+            switch (input_->id()) {
+                case ShellProtocol::kIdWindowSizeChange:
+                    int rows, cols, x_pixels, y_pixels;
+                    if (sscanf(input_->data(), "%dx%d,%dx%d",
+                               &rows, &cols, &x_pixels, &y_pixels) == 4) {
+                        winsize ws;
+                        ws.ws_row = rows;
+                        ws.ws_col = cols;
+                        ws.ws_xpixel = x_pixels;
+                        ws.ws_ypixel = y_pixels;
+                        ioctl(stdinout_sfd_.fd(), TIOCSWINSZ, &ws);
+                    }
+                    break;
+                case ShellProtocol::kIdStdin:
+                    input_bytes_left_ = input_->data_length();
+                    break;
+                case ShellProtocol::kIdCloseStdin:
+                    if (type_ == SubprocessType::kRaw) {
+                        if (adb_shutdown(stdinout_sfd_.fd(), SHUT_WR) == 0) {
+                            return nullptr;
+                        }
+                        PLOG(ERROR) << "failed to shutdown writes to FD "
+                                    << stdinout_sfd_.fd();
+                        return &stdinout_sfd_;
+                    } else {
+                        // PTYs can't close just input, so rather than close the
+                        // FD and risk losing subprocess output, leave it open.
+                        // This only happens if the client starts a PTY shell
+                        // non-interactively which is rare and unsupported.
+                        // If necessary, the client can manually close the shell
+                        // with `exit` or by killing the adb client process.
+                        D("can't close input for PTY FD %d", stdinout_sfd_.fd());
+                    }
+                    break;
+            }
         }
     }
 
@@ -578,7 +632,9 @@ ScopedFd* Subprocess::PassInput() {
 ScopedFd* Subprocess::PassOutput(ScopedFd* sfd, ShellProtocol::Id id) {
     int bytes = adb_read(sfd->fd(), output_->data(), output_->data_capacity());
     if (bytes == 0 || (bytes < 0 && errno != EAGAIN)) {
-        if (bytes < 0) {
+        // read() returns EIO if a PTY closes; don't report this as an error,
+        // it just means the subprocess completed.
+        if (bytes < 0 && !(type_ == SubprocessType::kPty && errno == EIO)) {
             PLOG(ERROR) << "error reading output FD " << sfd->fd();
         }
         return sfd;
@@ -647,6 +703,37 @@ void Subprocess::WaitForExit() {
 
 }  // namespace
 
+// Create a pipe containing the error.
+static int ReportError(SubprocessProtocol protocol, const std::string& message) {
+    int pipefd[2];
+    if (pipe(pipefd) != 0) {
+        LOG(ERROR) << "failed to create pipe to report error";
+        return -1;
+    }
+
+    std::string buf = android::base::StringPrintf("error: %s\n", message.c_str());
+    if (protocol == SubprocessProtocol::kShell) {
+        ShellProtocol::Id id = ShellProtocol::kIdStderr;
+        uint32_t length = buf.length();
+        WriteFdExactly(pipefd[1], &id, sizeof(id));
+        WriteFdExactly(pipefd[1], &length, sizeof(length));
+    }
+
+    WriteFdExactly(pipefd[1], buf.data(), buf.length());
+
+    if (protocol == SubprocessProtocol::kShell) {
+        ShellProtocol::Id id = ShellProtocol::kIdExit;
+        uint32_t length = 1;
+        char exit_code = 126;
+        WriteFdExactly(pipefd[1], &id, sizeof(id));
+        WriteFdExactly(pipefd[1], &length, sizeof(length));
+        WriteFdExactly(pipefd[1], &exit_code, sizeof(exit_code));
+    }
+
+    adb_close(pipefd[1]);
+    return pipefd[0];
+}
+
 int StartSubprocess(const char* name, const char* terminal_type,
                     SubprocessType type, SubprocessProtocol protocol) {
     D("starting %s subprocess (protocol=%s, TERM=%s): '%s'",
@@ -654,21 +741,25 @@ int StartSubprocess(const char* name, const char* terminal_type,
       protocol == SubprocessProtocol::kNone ? "none" : "shell",
       terminal_type, name);
 
-    Subprocess* subprocess = new Subprocess(name, terminal_type, type, protocol);
+    auto subprocess = std::make_unique<Subprocess>(name, terminal_type, type, protocol);
     if (!subprocess) {
         LOG(ERROR) << "failed to allocate new subprocess";
-        return -1;
+        return ReportError(protocol, "failed to allocate new subprocess");
     }
 
-    if (!subprocess->ForkAndExec()) {
-        LOG(ERROR) << "failed to start subprocess";
-        delete subprocess;
-        return -1;
+    std::string error;
+    if (!subprocess->ForkAndExec(&error)) {
+        LOG(ERROR) << "failed to start subprocess: " << error;
+        return ReportError(protocol, error);
     }
 
-    D("subprocess creation successful: local_socket_fd=%d, pid=%d",
-      subprocess->local_socket_fd(), subprocess->pid());
-    return subprocess->local_socket_fd();
+    int local_socket = subprocess->ReleaseLocalSocket();
+    D("subprocess creation successful: local_socket_fd=%d, pid=%d", local_socket, subprocess->pid());
+
+    if (!Subprocess::StartThread(std::move(subprocess), &error)) {
+        LOG(ERROR) << "failed to start subprocess management thread: " << error;
+        return ReportError(protocol, error);
+    }
+
+    return local_socket;
 }
-
-#endif  // !ADB_HOST

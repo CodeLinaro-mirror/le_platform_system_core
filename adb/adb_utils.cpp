@@ -28,8 +28,27 @@
 #include <base/stringprintf.h>
 #include <base/strings.h>
 
+#include "adb.h"
 #include "adb_trace.h"
 #include "sysdeps.h"
+
+#if defined(_WIN32)
+constexpr char kNullFileName[] = "NUL";
+#else
+constexpr char kNullFileName[] = "/dev/null";
+#endif
+
+void close_stdin() {
+    int fd = unix_open(kNullFileName, O_RDONLY);
+    if (fd == -1) {
+        fatal_errno("failed to open %s", kNullFileName);
+    }
+
+    if (TEMP_FAILURE_RETRY(dup2(fd, STDIN_FILENO)) == -1) {
+        fatal_errno("failed to redirect stdin to %s", kNullFileName);
+    }
+    unix_close(fd);
+}
 
 bool getcwd(std::string* s) {
   char* cwd = getcwd(nullptr, 0);
@@ -121,3 +140,19 @@ std::string dump_hex(const void* data, size_t byte_count) {
 std::string perror_str(const char* msg) {
     return android::base::StringPrintf("%s: %s", msg, strerror(errno));
 }
+
+#if !defined(_WIN32)
+bool set_file_block_mode(int fd, bool block) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) {
+        PLOG(ERROR) << "failed to fcntl(F_GETFL) for fd " << fd;
+        return false;
+    }
+    flags = block ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+    if (fcntl(fd, F_SETFL, flags) != 0) {
+        PLOG(ERROR) << "failed to fcntl(F_SETFL) for fd " << fd << ", flags " << flags;
+        return false;
+    }
+    return true;
+}
+#endif

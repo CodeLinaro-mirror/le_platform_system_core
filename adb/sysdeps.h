@@ -26,6 +26,10 @@
 
 #include <string>
 #include <vector>
+
+// Include this before open/close/unlink are defined as macros below.
+#include <base/unique_fd.h>
+
 /*
  * TEMP_FAILURE_RETRY is defined by some, but not all, versions of
  * <unistd.h>. (Alas, it is not as standard as we'd hoped!) So, if it's
@@ -40,6 +44,10 @@
     } while (_rc == -1 && errno == EINTR); \
     _rc; })
 #endif
+
+// Clang-only nullability specifiers
+#define _Nonnull
+#define _Nullable
 
 #ifdef _WIN32
 
@@ -63,6 +71,10 @@
 #define OS_PATH_SEPARATOR_STR "\\"
 #define ENV_PATH_SEPARATOR_STR ";"
 
+static __inline__ bool adb_is_separator(char c) {
+    return c == '\\' || c == '/';
+}
+
 typedef CRITICAL_SECTION          adb_mutex_t;
 
 #define  ADB_MUTEX_DEFINE(x)     adb_mutex_t   x
@@ -84,13 +96,25 @@ static __inline__ void  adb_mutex_unlock( adb_mutex_t*  lock )
     LeaveCriticalSection( lock );
 }
 
-typedef  void*  (*adb_thread_func_t)(void*  arg);
+typedef void (*adb_thread_func_t)(void* arg);
 
 typedef  void (*win_thread_func_t)(void*  arg);
+
+static unsigned __stdcall adb_winthread_wrapper(void* heap_args) {
+    // Move the arguments from the heap onto the thread's stack.
+    adb_winthread_args thread_args = *static_cast<adb_winthread_args*>(heap_args);
+    delete static_cast<adb_winthread_args*>(heap_args);
+    thread_args.func(thread_args.arg);
+    return 0;
+}
 
 static __inline__ bool adb_thread_create(adb_thread_func_t func, void* arg) {
     unsigned tid = _beginthread( (win_thread_func_t)func, 0, arg );
     return (tid != (unsigned)-1L);
+}
+
+static __inline__ void __attribute__((noreturn)) adb_thread_exit() {
+    ExitThread(0);
 }
 
 static __inline__ int adb_thread_setname(const std::string& name) {
@@ -192,6 +216,17 @@ static __inline__ int  unix_open(const char*  path, int options,...)
 }
 #define  open    ___xxx_unix_open
 
+// Checks if |fd| corresponds to a console.
+// Standard Windows isatty() returns 1 for both console FDs and character
+// devices like NUL. unix_isatty() performs some extra checking to only match
+// console FDs.
+// |fd| must be a real file descriptor, meaning STDxx_FILENO or unix_open() FDs
+// will work but adb_open() FDs will not. Additionally the OS handle associated
+// with |fd| must have GENERIC_READ access (which console FDs have by default).
+// Returns 1 if |fd| is a console FD, 0 otherwise. The value of errno after
+// calling this function is unreliable and should not be used.
+int unix_isatty(int fd);
+#define  isatty  ___xxx_isatty
 
 /* normally provided by <cutils/misc.h> */
 extern void*  load_file(const char*  pathname, unsigned*  psize);
@@ -281,6 +316,10 @@ static __inline__ int adb_is_absolute_host_path(const char* path) {
 #define OS_PATH_SEPARATOR_STR "/"
 #define ENV_PATH_SEPARATOR_STR ":"
 
+static __inline__ bool adb_is_separator(char c) {
+    return c == '/';
+}
+
 typedef  pthread_mutex_t          adb_mutex_t;
 
 #define  ADB_MUTEX_INITIALIZER    PTHREAD_MUTEX_INITIALIZER
@@ -363,14 +402,17 @@ static __inline__ int  adb_shutdown(int fd)
 {
     return shutdown(fd, SHUT_RDWR);
 }
+static __inline__ int  adb_shutdown(int fd, int direction)
+{
+    return shutdown(fd, direction);
+}
 #undef   shutdown
 #define  shutdown   ____xxx_shutdown
 
 // Closes a file descriptor that came from adb_open() or adb_open_mode(), but
 // not designed to take a file descriptor from unix_open(). See the comments
 // for adb_open() for more info.
-static __inline__ int  adb_close(int fd)
-{
+__inline__ int adb_close(int fd) {
     return close(fd);
 }
 #undef   close
@@ -419,6 +461,11 @@ static __inline__  int  adb_creat(const char*  path, int  mode)
 #undef   creat
 #define  creat  ___xxx_creat
 
+static __inline__ int unix_isatty(int fd) {
+    return isatty(fd);
+}
+#define  isatty  ___xxx_isatty
+
 static __inline__ int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, socklen_t  *addrlen)
 {
     int fd;
@@ -445,16 +492,35 @@ static __inline__ int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, 
 #define  unix_write  adb_write
 #define  unix_close  adb_close
 
-typedef void*  (*adb_thread_func_t)( void*  arg );
+// Win32 is limited to DWORDs for thread return values; limit the POSIX systems to this as well to
+// ensure compatibility.
+typedef void (*adb_thread_func_t)(void* arg);
  
+struct adb_pthread_args {
+    adb_thread_func_t func;
+    void* arg;
+};
+
+static void* adb_pthread_wrapper(void* heap_args) {
+    // Move the arguments from the heap onto the thread's stack.
+    adb_pthread_args thread_args = *reinterpret_cast<adb_pthread_args*>(heap_args);
+    delete static_cast<adb_pthread_args*>(heap_args);
+    thread_args.func(thread_args.arg);
+    return nullptr;
+}
+
 static __inline__ bool adb_thread_create(adb_thread_func_t start, void* arg) {
+    pthread_t temp;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
- 
-    pthread_t thread;
-    errno = pthread_create(&thread, &attr, start, arg);
+    auto* pthread_args = new adb_pthread_args{.func = start, .arg = arg};
+    errno = pthread_create(&temp, &attr, adb_pthread_wrapper, pthread_args);
     return (errno == 0);
+}
+
+static __inline__ void __attribute__((noreturn)) adb_thread_exit() {
+    pthread_exit(nullptr);
 }
 
 static __inline__ int adb_thread_setname(const std::string& name) {
@@ -467,8 +533,7 @@ static __inline__ int adb_thread_setname(const std::string& name) {
     const int max_task_comm_len = 16; // including the null terminator
     if (name.length() > (max_task_comm_len - 1)) {
         char buf[max_task_comm_len];
-        strncpy(buf, name.c_str(), sizeof(buf) - 1);
-        buf[sizeof(buf) - 1] = '\0';
+        strlcpy(buf, name.c_str(), sizeof(buf));
         s = buf;
     }
 

@@ -24,6 +24,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
+#include <unistd.h>
 #include <utime.h>
 
 #include "sysdeps.h"
@@ -33,7 +34,9 @@
 #include "adb_io.h"
 #include "adb_utils.h"
 #include "file_sync_service.h"
+#include "line_printer.h"
 
+#include <base/file.h>
 #include <base/strings.h>
 #include <base/stringprintf.h>
 
@@ -41,59 +44,17 @@ struct syncsendbuf {
     unsigned id;
     unsigned size;
     char data[SYNC_DATA_MAX];
-
-static syncsendbuf send_buffer;
-
-static long long NOW() {
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return ((long long) tv.tv_usec) + 1000000LL * ((long long) tv.tv_sec);
-}
-
-static const char* transfer_progress_format = "\rTransferring: %llu/%llu (%d%%)";
-
-static void print_transfer_progress(unsigned long long bytes_current,
-                                    unsigned long long bytes_total) {
-    if (bytes_total == 0) return;
-
-    fprintf(stderr, transfer_progress_format, bytes_current, bytes_total,
-            (int) (bytes_current * 100 / bytes_total));
-
-    if (bytes_current == bytes_total) {
-        fputc('\n', stderr);
-    }
-
-    fflush(stderr);
-}
-
-static bool SendRequest(int fd, int id, const char* path) {
-    size_t path_length = strlen(path);
-    if (path_length > 1024) {
-        fprintf(stderr, "SendRequest failed: path too long: %zu", path_length);
-        return false;
-    }
-
-    // Sending header and payload in a single write makes a noticeable
-    // difference to "adb sync" performance.
-    char buf[sizeof(SyncRequest) + path_length] __attribute__((aligned(8)));
-    SyncRequest* req = reinterpret_cast<SyncRequest*>(buf);
-    req->id = id;
-    req->path_length = htoll(path_length);
-    char* data = reinterpret_cast<char*>(req + 1);
-    memcpy(data, path, path_length);
-
-    return WriteFdExactly(fd, buf, sizeof(buf));
-}
+};
 
 class SyncConnection {
   public:
-    SyncConnection() : total_bytes(0), start_time_(NOW()) {
+    SyncConnection() : total_bytes(0), start_time_ms_(CurrentTimeMs()) {
         max = SYNC_DATA_MAX; // TODO: decide at runtime.
 
         std::string error;
         fd = adb_connect("sync:", &error);
         if (fd < 0) {
-            fprintf(stderr, "error: %s\n", error.c_str());
+            Error("connect failed: %s", error.c_str());
         }
     }
 
@@ -101,11 +62,128 @@ class SyncConnection {
         if (!IsValid()) return;
 
         SendQuit();
-        ShowTransferRate();
         adb_close(fd);
     }
 
     bool IsValid() { return fd >= 0; }
+
+    bool SendRequest(int id, const char* path_and_mode) {
+        size_t path_length = strlen(path_and_mode);
+        if (path_length > 1024) {
+            Error("SendRequest failed: path too long: %zu", path_length);
+            errno = ENAMETOOLONG;
+            return false;
+        }
+
+        // Sending header and payload in a single write makes a noticeable
+        // difference to "adb sync" performance.
+        char buf[sizeof(SyncRequest) + path_length];
+        SyncRequest* req = reinterpret_cast<SyncRequest*>(buf);
+        req->id = id;
+        req->path_length = path_length;
+        char* data = reinterpret_cast<char*>(req + 1);
+        memcpy(data, path_and_mode, path_length);
+
+        return WriteFdExactly(fd, buf, sizeof(buf));
+    }
+
+    // Sending header, payload, and footer in a single write makes a huge
+    // difference to "adb sync" performance.
+    bool SendSmallFile(const char* path_and_mode,
+                       const char* rpath,
+                       const char* data, size_t data_length,
+                       unsigned mtime) {
+        Print(rpath);
+
+        size_t path_length = strlen(path_and_mode);
+        if (path_length > 1024) {
+            Error("SendSmallFile failed: path too long: %zu", path_length);
+            errno = ENAMETOOLONG;
+            return false;
+        }
+
+        char buf[sizeof(SyncRequest) + path_length +
+                 sizeof(SyncRequest) + data_length +
+                 sizeof(SyncRequest)];
+        char* p = buf;
+
+        SyncRequest* req_send = reinterpret_cast<SyncRequest*>(p);
+        req_send->id = ID_SEND;
+        req_send->path_length = path_length;
+        p += sizeof(SyncRequest);
+        memcpy(p, path_and_mode, path_length);
+        p += path_length;
+
+        SyncRequest* req_data = reinterpret_cast<SyncRequest*>(p);
+        req_data->id = ID_DATA;
+        req_data->path_length = data_length;
+        p += sizeof(SyncRequest);
+        memcpy(p, data, data_length);
+        p += data_length;
+
+        SyncRequest* req_done = reinterpret_cast<SyncRequest*>(p);
+        req_done->id = ID_DONE;
+        req_done->path_length = mtime;
+        p += sizeof(SyncRequest);
+
+        if (!WriteFdExactly(fd, buf, (p-buf))) return false;
+
+        total_bytes += data_length;
+        return true;
+    }
+
+    bool CopyDone(const char* from, const char* to) {
+        syncmsg msg;
+        if (!ReadFdExactly(fd, &msg.status, sizeof(msg.status))) {
+            Error("failed to copy '%s' to '%s': no ID_DONE: %s", from, to, strerror(errno));
+            return false;
+        }
+        if (msg.status.id == ID_OKAY) {
+            return true;
+        }
+        if (msg.status.id != ID_FAIL) {
+            Error("failed to copy '%s' to '%s': unknown reason %d", from, to, msg.status.id);
+            return false;
+        }
+        return ReportCopyFailure(from, to, msg);
+    }
+
+    bool ReportCopyFailure(const char* from, const char* to, const syncmsg& msg) {
+        char buffer[msg.status.msglen + 1];
+        if (!ReadFdExactly(fd, buffer, msg.status.msglen)) {
+            Error("failed to copy '%s' to '%s'; failed to read reason (!): %s",
+                  from, to, strerror(errno));
+            return false;
+        }
+        buffer[msg.status.msglen] = 0;
+        Error("failed to copy '%s' to '%s': %s", from, to, &buf[0]);
+        return false;
+    }
+
+    std::string TransferRate() {
+        uint64_t ms = CurrentTimeMs() - start_time_ms_;
+        if (total_bytes == 0 || ms == 0) return "";
+
+        double s = static_cast<double>(ms) / 1000LL;
+        double rate = (static_cast<double>(total_bytes) / s) / (1024*1024);
+        return android::base::StringPrintf(" %.1f MB/s (%" PRId64 " bytes in %.3fs)",
+                                           rate, total_bytes, s);
+    }
+
+    void Print(const std::string& s) {
+        line_printer_.Print(s, LinePrinter::INFO);
+    }
+
+    void Error(const char* fmt, ...) __attribute__((__format__(ADB_FORMAT_ARCHETYPE, 2, 3))) {
+        std::string s = "adb: error: ";
+
+        va_list ap;
+        va_start(ap, fmt);
+        android::base::StringAppendV(&s, fmt, ap);
+        va_end(ap);
+
+        line_printer_.Print(s, LinePrinter::WARNING);
+    }
 
     uint64_t total_bytes;
 
@@ -114,47 +192,42 @@ class SyncConnection {
     size_t max;
 
   private:
-    uint64_t start_time_;
+    uint64_t start_time_ms_;
+
+    LinePrinter line_printer_;
 
     void SendQuit() {
-        SendRequest(fd, ID_QUIT, ""); // TODO: add a SendResponse?
+        SendRequest(ID_QUIT, ""); // TODO: add a SendResponse?
     }
 
-    void ShowTransferRate() {
-        uint64_t t = NOW() - start_time_;
-        if (total_bytes == 0 || t == 0) return;
-
-        fprintf(stderr, "%lld KB/s (%" PRId64 " bytes in %lld.%03llds)\n",
-                ((total_bytes * 1000000LL) / t) / 1024LL,
-                total_bytes, (t / 1000000LL), (t % 1000000LL) / 1000LL);
+    static uint64_t CurrentTimeMs() {
+        struct timeval tv;
+        gettimeofday(&tv, 0); // (Not clock_gettime because of Mac/Windows.)
+        return static_cast<uint64_t>(tv.tv_sec) * 1000 + tv.tv_usec / 1000;
     }
 };
 
 typedef void (*sync_ls_cb)(unsigned mode, unsigned size, unsigned time, const char* name, void* cookie);
 
-static bool sync_ls(int fd, const char* path, sync_ls_cb func, void* cookie) {
-    if (!SendRequest(fd, ID_LIST, path)) return false;
+static bool sync_ls(SyncConnection& sc, const char* path, sync_ls_cb func, void* cookie) {
+    if (!sc.SendRequest(ID_LIST, path)) return false;
 
     while (true) {
         syncmsg msg;
-        if (!ReadFdExactly(fd, &msg.dent, sizeof(msg.dent))) return false;
+        if (!ReadFdExactly(sc.fd, &msg.dent, sizeof(msg.dent))) return false;
 
         if (msg.dent.id == ID_DONE) return true;
         if (msg.dent.id != ID_DENT) return false;
 
-        size_t len = ltohl(msg.dent.namelen);
+        size_t len = msg.dent.namelen;
         if (len > 256) return false; // TODO: resize buffer? continue?
 
         char buf[257];
-        if (!ReadFdExactly(fd, buf, len)) return false;
+        if (!ReadFdExactly(sc.fd, buf, len)) return false;
         buf[len] = 0;
 
-        func(ltohl(msg.dent.mode), ltohl(msg.dent.size), ltohl(msg.dent.time), buf, cookie);
+        func(msg.dent.mode, msg.dent.size, msg.dent.time, buf, cookie);
     }
-}
-
-static bool sync_start_stat(SyncConnection& sc, const char* path) {
-    return SendRequest(sc.fd, ID_STAT, path);
 }
 
 static bool sync_finish_stat(SyncConnection& sc, unsigned int* timestamp,
@@ -164,221 +237,192 @@ static bool sync_finish_stat(SyncConnection& sc, unsigned int* timestamp,
         return false;
     }
 
-    if (timestamp) *timestamp = ltohl(msg.stat.time);
-    if (mode) *mode = ltohl(msg.stat.mode);
-    if (size) *size = ltohl(msg.stat.size);
+    if (timestamp) *timestamp = msg.stat.time;
+    if (mode) *mode = msg.stat.mode;
+    if (size) *size = msg.stat.size;
 
     return true;
 }
 
 static bool sync_stat(SyncConnection& sc, const char* path,
                       unsigned int* timestamp, unsigned int* mode, unsigned int* size) {
-    return sync_start_stat(sc, path) && sync_finish_stat(sc, timestamp, mode, size);
+    return sc.SendRequest(ID_STAT, path) && sync_finish_stat(sc, timestamp, mode, size);
 }
 
-static int write_data_file(SyncConnection& sc, const char* path, syncsendbuf* sbuf, bool show_progress) {
-    int err = 0;
-    unsigned long long size = 0;
+static bool SendLargeFile(SyncConnection& sc, const char* path_and_mode,
+                          const char* lpath, const char* rpath,
+                          unsigned mtime) {
+    if (!sc.SendRequest(ID_SEND, path_and_mode)) {
+        sc.Error("failed to send ID_SEND message '%s': %s", path_and_mode, strerror(errno));
+        return false;
+    }
 
-    int lfd = adb_open(path, O_RDONLY);
+    struct stat st;
+    if (stat(lpath, &st) == -1) {
+        sc.Error("cannot stat '%s': %s", lpath, strerror(errno));
+        return false;
+    }
+
+    uint64_t total_size = st.st_size;
+    uint64_t bytes_copied = 0;
+
+    int lfd = adb_open(lpath, O_RDONLY);
     if (lfd < 0) {
-        fprintf(stderr, "cannot open '%s': %s\n", path, strerror(errno));
-        return -1;
+        sc.Error("cannot open '%s': %s", lpath, strerror(errno));
+        return false;
     }
 
-    if (show_progress) {
-        // Determine local file size.
-        struct stat st;
-        if (stat(path, &st)) {
-            fprintf(stderr, "cannot stat '%s': %s\n", path, strerror(errno));
-            return -1;
-        }
-
-        size = st.st_size;
-    }
-
-    sbuf->id = ID_DATA;
+    syncsendbuf sbuf;
+    sbuf.id = ID_DATA;
     while (true) {
-        int ret = adb_read(lfd, sbuf->data, sc.max);
-        if (!ret)
-            break;
-
-        if (ret < 0) {
-            if(errno == EINTR)
-                continue;
-            fprintf(stderr, "cannot read '%s': %s\n", path, strerror(errno));
+        int ret = adb_read(lfd, sbuf.data, sc.max);
+        if (ret <= 0) {
+            if (ret < 0) {
+                sc.Error("cannot read '%s': %s", lpath, strerror(errno));
+                adb_close(lfd);
+                return false;
+            }
             break;
         }
 
-        sbuf->size = htoll(ret);
-        if (!WriteFdExactly(sc.fd, sbuf, sizeof(unsigned) * 2 + ret)) {
-            err = -1;
-            break;
+        sbuf.size = ret;
+        if (!WriteFdExactly(sc.fd, &sbuf, sizeof(unsigned) * 2 + ret)) {
+            adb_close(lfd);
+            return false;
         }
         sc.total_bytes += ret;
 
-        if (show_progress) {
-            print_transfer_progress(sc.total_bytes, size);
-        }
+        bytes_copied += ret;
+
+        int percentage = static_cast<int>(bytes_copied * 100 / total_size);
+        sc.Print(android::base::StringPrintf("%s: %d%%", rpath, percentage));
     }
 
     adb_close(lfd);
-    return err;
-}
-
-#if defined(_WIN32)
-extern int write_data_link(SyncConnection& sc, const char* path, syncsendbuf* sbuf) __attribute__((error("no symlinks on Windows")));
-#else
-static int write_data_link(SyncConnection& sc, const char* path, syncsendbuf* sbuf) {
-    ssize_t len = readlink(path, sbuf->data, sc.max - 1);
-    if (len < 0) {
-        fprintf(stderr, "error reading link '%s': %s\n", path, strerror(errno));
-        return -1;
-    }
-    sbuf->data[len] = '\0';
-
-    sbuf->size = htoll(len + 1);
-    sbuf->id = ID_DATA;
-
-    if (!WriteFdExactly(sc.fd, sbuf, sizeof(unsigned) * 2 + len + 1)) {
-        return -1;
-    }
-
-    sc.total_bytes += len + 1;
-
-    return 0;
-}
-#endif
-
-static bool sync_send(SyncConnection& sc, const char *lpath, const char *rpath,
-                      unsigned mtime, mode_t mode, bool show_progress)
-{
-    syncsendbuf* sbuf = &send_buffer;
-
-    std::string path_and_mode = android::base::StringPrintf("%s,%d", rpath, mode);
-    if (!SendRequest(sc.fd, ID_SEND, path_and_mode.c_str())) goto fail;
-
-    if (S_ISREG(mode)) {
-        write_data_file(sc, lpath, sbuf, show_progress);
-    } else if (S_ISLNK(mode)) {
-        write_data_link(sc, lpath, sbuf);
-    } else {
-        goto fail;
-    }
 
     syncmsg msg;
     msg.data.id = ID_DONE;
-    msg.data.size = htoll(mtime);
-    if (!WriteFdExactly(sc.fd, &msg.data, sizeof(msg.data))) goto fail;
-
-    if (!ReadFdExactly(sc.fd, &msg.status, sizeof(msg.status))) goto fail;
-
-    if (msg.status.id != ID_OKAY) {
-        if (msg.status.id == ID_FAIL) {
-            size_t len = ltohl(msg.status.msglen);
-            if (len > 256) len = 256;
-            if (!ReadFdExactly(sc.fd, sbuf->data, len)) goto fail;
-            sbuf->data[len] = 0;
-        } else {
-            strcpy(sbuf->data, "unknown reason");
-        }
-        fprintf(stderr, "failed to copy '%s' to '%s': %s\n", lpath, rpath, sbuf->data);
+    msg.data.size = mtime;
+    if (!WriteFdExactly(sc.fd, &msg.data, sizeof(msg.data))) {
+        sc.Error("failed to send ID_DONE message for '%s': %s", rpath, strerror(errno));
         return false;
     }
 
     return true;
-
-fail:
-    fprintf(stderr, "protocol failure\n");
-    return false;
 }
 
-static int sync_recv(SyncConnection& sc, const char* rpath, const char* lpath, bool show_progress) {
-    syncmsg msg;
-    int lfd = -1;
-    char *buffer = send_buffer.data;
-    unsigned id;
+static bool sync_send(SyncConnection& sc, const char* lpath, const char* rpath,
+                      unsigned mtime, mode_t mode)
+{
+    std::string path_and_mode = android::base::StringPrintf("%s,%d", rpath, mode);
 
-    size_t len = strlen(rpath);
-    if (len > 1024) return -1;
+    if (S_ISLNK(mode)) {
+#if !defined(_WIN32)
+        char buf[PATH_MAX];
+        ssize_t data_length = readlink(lpath, buf, PATH_MAX - 1);
+        if (data_length == -1) {
+            sc.Error("readlink '%s' failed: %s", lpath, strerror(errno));
+            return false;
+        }
+        buf[data_length++] = '\0';
+
+        if (!sc.SendSmallFile(path_and_mode.c_str(), rpath, buf, data_length, mtime)) return false;
+        return sc.CopyDone(lpath, rpath);
+#endif
+    }
+
+    if (!S_ISREG(mode)) {
+        sc.Error("local file '%s' has unsupported mode: 0o%o", lpath, mode);
+        return false;
+    }
+
+    struct stat st;
+    if (stat(lpath, &st) == -1) {
+        sc.Error("failed to stat local file '%s': %s", lpath, strerror(errno));
+        return false;
+    }
+    if (st.st_size < SYNC_DATA_MAX) {
+        std::string data;
+        if (!android::base::ReadFileToString(lpath, &data)) {
+            sc.Error("failed to read all of '%s': %s", lpath, strerror(errno));
+            return false;
+        }
+        if (!sc.SendSmallFile(path_and_mode.c_str(), rpath, data.data(), data.size(), mtime)) {
+            return false;
+        }
+    } else {
+        if (!SendLargeFile(sc, path_and_mode.c_str(), lpath, rpath, mtime)) {
+            return false;
+        }
+    }
+    return sc.CopyDone(lpath, rpath);
+}
+
+static bool sync_recv(SyncConnection& sc, const char* rpath, const char* lpath,
+                      const char* name=nullptr) {
+    sc.Print(rpath);
 
     unsigned size = 0;
-    if (show_progress) {
-        if (!sync_stat(sc, rpath, nullptr, nullptr, &size)) return -1;
-    }
+    if (!sync_stat(sc, rpath, nullptr, nullptr, &size)) return false;
 
-    if (!SendRequest(sc.fd, ID_RECV, rpath)) return -1;
-    if (!ReadFdExactly(sc.fd, &msg.data, sizeof(msg.data))) return -1;
+    if (!sc.SendRequest(ID_RECV, rpath)) return false;
 
-    id = msg.data.id;
-
-    if (id == ID_DATA || id == ID_DONE) {
-        adb_unlink(lpath);
-        mkdirs(lpath);
-        lfd = adb_creat(lpath, 0644);
-        if(lfd < 0) {
-            fprintf(stderr, "cannot create '%s': %s\n", lpath, strerror(errno));
-            return -1;
-        }
-        goto handle_data;
-    } else {
-        goto remote_error;
-    }
-
-    while (true) {
-        if(!ReadFdExactly(sc.fd, &msg.data, sizeof(msg.data))) {
-            return -1;
-        }
-        id = msg.data.id;
-
-    handle_data:
-        len = ltohl(msg.data.size);
-        if (id == ID_DONE) break;
-        if (id != ID_DATA) goto remote_error;
-        if (len > sc.max) {
-            fprintf(stderr, "msg.data.size too large: %zu (max %zu)\n", len, sc.max);
-            adb_close(lfd);
-            return -1;
-        }
-
-        if(!ReadFdExactly(sc.fd, buffer, len)) {
-            adb_close(lfd);
-            return -1;
-        }
-
-        if(!WriteFdExactly(lfd, buffer, len)) {
-            fprintf(stderr, "cannot write '%s': %s\n", rpath, strerror(errno));
-            adb_close(lfd);
-            return -1;
-        }
-
-        sc.total_bytes += len;
-
-        if (show_progress) {
-            print_transfer_progress(sc.total_bytes, size);
-        }
-    }
-
-    adb_close(lfd);
-    return 0;
-
-remote_error:
-    adb_close(lfd);
     adb_unlink(lpath);
-
-    if(id == ID_FAIL) {
-        len = ltohl(msg.data.size);
-        if(len > 256) len = 256;
-        if(!ReadFdExactly(sc.fd, buffer, len)) {
-            return -1;
-        }
-        buffer[len] = 0;
-    } else {
-        memcpy(buffer, &id, 4);
-        buffer[4] = 0;
+    mkdirs(lpath);
+    int lfd = adb_creat(lpath, 0644);
+    if (lfd < 0) {
+        sc.Error("cannot create '%s': %s", lpath, strerror(errno));
+        return false;
     }
-    fprintf(stderr, "failed to copy '%s' to '%s': %s\n", rpath, lpath, buffer);
-    return 0;
+
+    uint64_t bytes_copied = 0;
+    while (true) {
+        syncmsg msg;
+        if (!ReadFdExactly(sc.fd, &msg.data, sizeof(msg.data))) {
+            adb_close(lfd);
+            adb_unlink(lpath);
+            return false;
+        }
+
+        if (msg.data.id == ID_DONE) break;
+
+        if (msg.data.id != ID_DATA) {
+            adb_close(lfd);
+            adb_unlink(lpath);
+            sc.ReportCopyFailure(rpath, lpath, msg);
+            return false;
+        }
+
+        if (msg.data.size > sc.max) {
+            sc.Error("msg.data.size too large: %u (max %zu)", msg.data.size, sc.max);
+            adb_close(lfd);
+            adb_unlink(lpath);
+            return false;
+        }
+
+        char buffer[SYNC_DATA_MAX];
+        if (!ReadFdExactly(sc.fd, buffer, msg.data.size)) {
+            adb_close(lfd);
+            adb_unlink(lpath);
+            return false;
+        }
+
+        if (!WriteFdExactly(lfd, buffer, msg.data.size)) {
+            sc.Error("cannot write '%s': %s", lpath, strerror(errno));
+            adb_close(lfd);
+            adb_unlink(lpath);
+            return false;
+        }
+
+        sc.total_bytes += msg.data.size;
+
+        bytes_copied += msg.data.size;
+
+        sc.ReportProgress(name != nullptr ? name : rpath, bytes_copied, size);
+    }
+
+    adb_close(lfd);
+    return true;
 }
 
 static void do_sync_ls_cb(unsigned mode, unsigned size, unsigned time,
@@ -390,7 +434,7 @@ bool do_sync_ls(const char* path) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
 
-    return sync_ls(sc.fd, path, do_sync_ls_cb, 0);
+    return sync_ls(sc, path, do_sync_ls_cb, 0);
 }
 
 struct copyinfo
@@ -400,7 +444,7 @@ struct copyinfo
     const char *dst;
     unsigned int time;
     unsigned int mode;
-    unsigned int size;
+    uint64_t size;
     int flag;
 };
 
@@ -412,7 +456,7 @@ static copyinfo* mkcopyinfo(const char* spath, const char* dpath, const char* na
     int dsize = dlen + nlen + 2;
 
     copyinfo *ci = reinterpret_cast<copyinfo*>(malloc(sizeof(copyinfo) + ssize + dsize));
-    if(ci == 0) {
+    if (ci == 0) {
         fprintf(stderr, "out of memory\n");
         abort();
     }
@@ -434,23 +478,24 @@ static bool IsDotOrDotDot(const char* name) {
     return name[0] == '.' && (name[1] == '\0' || (name[1] == '.' && name[2] == '\0'));
 }
 
-static int local_build_list(copyinfo** filelist, const char* lpath, const char* rpath) {
+static int local_build_list(SyncConnection& sc,
+                            copyinfo** filelist, const char* lpath, const char* rpath) {
     copyinfo *dirlist = 0;
     copyinfo *ci, *next;
 
     std::unique_ptr<DIR, int(*)(DIR*)> dir(opendir(lpath), closedir);
     if (!dir) {
-        fprintf(stderr, "cannot open '%s': %s\n", lpath, strerror(errno));
+        sc.Error("cannot open '%s': %s", lpath, strerror(errno));
         return -1;
     }
 
-    dirent *de;
+    dirent* de;
     while ((de = readdir(dir.get()))) {
         if (IsDotOrDotDot(de->d_name)) continue;
 
         char stat_path[PATH_MAX];
         if (strlen(lpath) + strlen(de->d_name) + 1 > sizeof(stat_path)) {
-            fprintf(stderr, "skipping long path '%s%s'\n", lpath, de->d_name);
+            sc.Error("skipping long path '%s%s'", lpath, de->d_name);
             continue;
         }
         strcpy(stat_path, lpath);
@@ -465,7 +510,7 @@ static int local_build_list(copyinfo** filelist, const char* lpath, const char* 
             } else {
                 ci = mkcopyinfo(lpath, rpath, de->d_name, 0);
                 if (!S_ISREG(st.st_mode) && !S_ISLNK(st.st_mode)) {
-                    fprintf(stderr, "skipping special file '%s'\n", ci->src);
+                    sc.Error("skipping special file '%s'", ci->src);
                     free(ci);
                 } else {
                     ci->time = st.st_mtime;
@@ -476,7 +521,7 @@ static int local_build_list(copyinfo** filelist, const char* lpath, const char* 
                 }
             }
         } else {
-            fprintf(stderr, "cannot lstat '%s': %s\n",stat_path , strerror(errno));
+            sc.Error("cannot lstat '%s': %s",stat_path , strerror(errno));
         }
     }
 
@@ -484,7 +529,7 @@ static int local_build_list(copyinfo** filelist, const char* lpath, const char* 
     dir.reset();
     for (ci = dirlist; ci != 0; ci = next) {
         next = ci->next;
-        local_build_list(filelist, ci->src, ci->dst);
+        local_build_list(sc, filelist, ci->src, ci->dst);
         free(ci);
     }
 
@@ -514,13 +559,13 @@ static bool copy_local_dir_remote(SyncConnection& sc, const char* lpath, const c
         rpath = tmp;
     }
 
-    if (local_build_list(&filelist, lpath, rpath)) {
+    if (local_build_list(sc, &filelist, lpath, rpath)) {
         return false;
     }
 
     if (check_timestamps) {
         for (ci = filelist; ci != 0; ci = ci->next) {
-            if (!sync_start_stat(sc, ci->dst)) return false;
+            if (!sc.SendRequest(ID_STAT, ci->dst)) return false;
         }
         for(ci = filelist; ci != 0; ci = ci->next) {
             unsigned int timestamp, mode, size;
@@ -537,9 +582,12 @@ static bool copy_local_dir_remote(SyncConnection& sc, const char* lpath, const c
     for (ci = filelist; ci != 0; ci = next) {
         next = ci->next;
         if (ci->flag == 0) {
-            fprintf(stderr, "%spush: %s -> %s\n", list_only ? "would " : "", ci->src, ci->dst);
-            if (!list_only && !sync_send(sc, ci->src, ci->dst, ci->time, ci->mode, false)) {
-                return false;
+            if (list_only) {
+                fprintf(stderr, "would push: %s -> %s\n", ci->src, ci->dst);
+            } else {
+                if (!sync_send(sc, ci->src, ci->dst, ci->time, ci->mode)) {
+                  return false;
+                }
             }
             pushed++;
         } else {
@@ -548,51 +596,95 @@ static bool copy_local_dir_remote(SyncConnection& sc, const char* lpath, const c
         free(ci);
     }
 
-    fprintf(stderr, "%d file%s pushed. %d file%s skipped.\n",
-            pushed, (pushed == 1) ? "" : "s",
-            skipped, (skipped == 1) ? "" : "s");
-
+    sc.Print(android::base::StringPrintf("%s: %d file%s pushed. %d file%s skipped.%s\n",
+                                         rpath,
+                                         pushed, (pushed == 1) ? "" : "s",
+                                         skipped, (skipped == 1) ? "" : "s",
+                                         sc.TransferRate().c_str()));
     return true;
 }
 
-bool do_sync_push(const char* lpath, const char* rpath, bool show_progress) {
+bool do_sync_push(const std::vector<const char*>& srcs, const char* dst) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
 
-    struct stat st;
-    if (stat(lpath, &st)) {
-        fprintf(stderr, "cannot stat '%s': %s\n", lpath, strerror(errno));
-        return false;
-    }
-
-    if (S_ISDIR(st.st_mode)) {
-        return copy_local_dir_remote(sc, lpath, rpath, false, false);
-    }
-
+    bool success = true;
     unsigned mode;
-    if (!sync_stat(sc, rpath, nullptr, &mode, nullptr)) return false;
-    std::string path_holder;
-    if (mode != 0 && S_ISDIR(mode)) {
-        // If we're copying a local file to a remote directory,
-        // we really want to copy to remote_dir + "/" + local_filename.
-        path_holder = android::base::StringPrintf("%s/%s", rpath, adb_basename(lpath).c_str());
-        rpath = path_holder.c_str();
+    if (!sync_stat(sc, dst, nullptr, &mode, nullptr)) return false;
+    bool dst_exists = (dst_mode != 0);
+    bool dst_isdir = S_ISDIR(dst_mode);
+
+    if (!dst_isdir) {
+        if (srcs.size() > 1) {
+            sc.Error("target '%s' is not a directory", dst);
+            return false;
+        } else {
+            size_t dst_len = strlen(dst);
+            if (dst[dst_len - 1] == '/') {
+                sc.Error("failed to access '%s': Not a directory", dst);
+                return false;
+            }
+        }
     }
-    return sync_send(sc, lpath, rpath, st.st_mtime, st.st_mode, show_progress);
+
+    for (const char* src_path : srcs) {
+        const char* dst_path = dst;
+        struct stat st;
+        if (stat(src_path, &st)) {
+            sc.Error("cannot stat '%s': %s", src_path, strerror(errno));
+            success = false;
+            continue;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            std::string dst_dir = dst;
+
+            // If the destination path existed originally, the source directory
+            // should be copied as a child of the destination.
+            if (dst_exists) {
+                if (!dst_isdir) {
+                    sc.Error("target '%s' is not a directory", dst);
+                    return false;
+                }
+                // dst is a POSIX path, so we don't want to use the sysdeps
+                // helpers here.
+                if (dst_dir.back() != '/') {
+                    dst_dir.push_back('/');
+                }
+                dst_dir.append(adb_basename(src_path));
+            }
+
+            success &= copy_local_dir_remote(sc, src_path, dst_dir.c_str(),
+                                             false, false);
+            continue;
+        }
+
+        std::string path_holder;
+        if (dst_isdir) {
+            // If we're copying a local file to a remote directory,
+            // we really want to copy to remote_dir + "/" + local_filename.
+            path_holder = android::base::StringPrintf(
+                "%s/%s", dst_path, adb_basename(src_path).c_str());
+            dst_path = path_holder.c_str();
+        }
+        success &= sync_send(sc, src_path, dst_path, st.st_mtime, st.st_mode);
+    }
+
+    return success;
 }
 
-
 struct sync_ls_build_list_cb_args {
-    copyinfo **filelist;
-    copyinfo **dirlist;
-    const char *rpath;
-    const char *lpath;
+    SyncConnection* sc;
+    copyinfo** filelist;
+    copyinfo** dirlist;
+    const char* rpath;
+    const char* lpath;
 };
 
 static void sync_ls_build_list_cb(unsigned mode, unsigned size, unsigned time,
                                   const char* name, void* cookie)
 {
-    sync_ls_build_list_cb_args *args = (sync_ls_build_list_cb_args *)cookie;
+    sync_ls_build_list_cb_args* args = static_cast<sync_ls_build_list_cb_args*>(cookie);
     copyinfo *ci;
 
     if (S_ISDIR(mode)) {
@@ -614,29 +706,30 @@ static void sync_ls_build_list_cb(unsigned mode, unsigned size, unsigned time,
         ci->next = *filelist;
         *filelist = ci;
     } else {
-        fprintf(stderr, "skipping special file '%s'\n", name);
+        args->sc->Print(android::base::StringPrintf("skipping special file '%s'\n", name));
     }
 }
 
-static bool remote_build_list(int syncfd, copyinfo **filelist,
+static bool remote_build_list(SyncConnection& sc, copyinfo **filelist,
                               const char *rpath, const char *lpath) {
-    copyinfo *dirlist = NULL;
-    sync_ls_build_list_cb_args args;
+    copyinfo* dirlist = nullptr;
 
+    sync_ls_build_list_cb_args args;
+    args.sc = &sc;
     args.filelist = filelist;
     args.dirlist = &dirlist;
     args.rpath = rpath;
     args.lpath = lpath;
 
     // Put the files/dirs in rpath on the lists.
-    if (!sync_ls(syncfd, rpath, sync_ls_build_list_cb, (void *)&args)) {
+    if (!sync_ls(sc, rpath, sync_ls_build_list_cb, &args)) {
         return false;
     }
 
     // Recurse into each directory we found.
     while (dirlist != NULL) {
-        copyinfo *next = dirlist->next;
-        if (!remote_build_list(syncfd, filelist, dirlist->src, dirlist->dst)) {
+        copyinfo* next = dirlist->next;
+        if (!remote_build_list(sc, filelist, dirlist->src, dirlist->dst)) {
             return false;
         }
         free(dirlist);
@@ -660,7 +753,7 @@ static int set_time_and_mode(const char *lpath, time_t time, unsigned int mode)
 }
 
 static bool copy_remote_dir_local(SyncConnection& sc, const char* rpath, const char* lpath,
-                                  int copy_attrs) {
+                                  bool copy_attrs) {
     // Make sure that both directory paths end in a slash.
     std::string rpath_clean(rpath);
     std::string lpath_clean(lpath);
@@ -669,9 +762,9 @@ static bool copy_remote_dir_local(SyncConnection& sc, const char* rpath, const c
     if (lpath_clean.back() != '/') lpath_clean.push_back('/');
 
     // Recursively build the list of files to copy.
-    fprintf(stderr, "pull: building file list...\n");
+    sc.Print("pull: building file list...");
     copyinfo* filelist = nullptr;
-    if (!remote_build_list(sc.fd, &filelist, rpath_clean.c_str(), lpath_clean.c_str())) return false;
+    if (!remote_build_list(sc, &filelist, rpath_clean.c_str(), lpath_clean.c_str())) return false;
 
     int pulled = 0;
     int skipped = 0;
@@ -679,8 +772,8 @@ static bool copy_remote_dir_local(SyncConnection& sc, const char* rpath, const c
     while (ci) {
         copyinfo* next = ci->next;
         if (ci->flag == 0) {
-            fprintf(stderr, "pull: %s -> %s\n", ci->src, ci->dst);
-            if (sync_recv(sc, ci->src, ci->dst, false)) {
+            sc.Print(android::base::StringPrintf("pull: %s -> %s", ci->src, ci->dst));
+            if (!sync_recv(sc, ci->src, ci->dst)) {
                 return false;
             }
 
@@ -695,53 +788,105 @@ static bool copy_remote_dir_local(SyncConnection& sc, const char* rpath, const c
         ci = next;
     }
 
-    fprintf(stderr, "%d file%s pulled. %d file%s skipped.\n",
-            pulled, (pulled == 1) ? "" : "s",
-            skipped, (skipped == 1) ? "" : "s");
+    sc.Print(android::base::StringPrintf("%s: %d file%s pulled. %d file%s skipped.%s\n",
+                                         rpath,
+                                         pulled, (pulled == 1) ? "" : "s",
+                                         skipped, (skipped == 1) ? "" : "s",
+                                         sc.TransferRate().c_str()));
     return true;
 }
 
-bool do_sync_pull(const char* rpath, const char* lpath, bool show_progress, int copy_attrs) {
+bool do_sync_pull(const std::vector<const char*>& srcs, const char* dst,
+                  bool copy_attrs, const char* name) {
     SyncConnection sc;
     if (!sc.IsValid()) return false;
 
+    bool success = true;
     unsigned mode, time;
-    if (!sync_stat(sc, rpath, &time, &mode, nullptr)) return false;
-    if (mode == 0) {
-        fprintf(stderr, "remote object '%s' does not exist\n", rpath);
-        return false;
+    struct stat st;
+    if (stat(dst, &st)) {
+        // If we're only pulling one file, the destination path might point to
+        // a path that doesn't exist yet.
+        if (srcs.size() != 1 || errno != ENOENT) {
+            sc.Error("cannot stat '%s': %s", dst, strerror(errno));
+            return false;
+        }
     }
 
-    if (S_ISREG(mode) || S_ISLNK(mode) || S_ISCHR(mode) || S_ISBLK(mode)) {
-        std::string path_holder;
-        struct stat st;
-        if (stat(lpath, &st) == 0) {
-            if (S_ISDIR(st.st_mode)) {
-                // If we're copying a remote file to a local directory,
-                // we really want to copy to local_dir + "/" + basename(remote).
-                path_holder = android::base::StringPrintf("%s/%s", lpath, adb_basename(rpath).c_str());
-                lpath = path_holder.c_str();
-            }
-        }
-        if (sync_recv(sc, rpath, lpath, show_progress)) {
+    bool dst_isdir = dst_exists && S_ISDIR(st.st_mode);
+    if (!dst_isdir) {
+        if (srcs.size() > 1) {
+            sc.Error("target '%s' is not a directory", dst);
             return false;
         } else {
-            if (copy_attrs && set_time_and_mode(lpath, time, mode)) {
+            size_t dst_len = strlen(dst);
+            if (dst[dst_len - 1] == '/') {
+                sc.Error("failed to access '%s': Not a directory", dst);
                 return false;
             }
         }
-        return true;
-    } else if (S_ISDIR(mode)) {
-        return copy_remote_dir_local(sc, rpath, lpath, copy_attrs);
     }
 
-    fprintf(stderr, "remote object '%s' not a file or directory\n", rpath);
-    return false;
+    for (const char* src_path : srcs) {
+        const char* dst_path = dst;
+        if (!sync_stat(sc, src_path, &time, &mode, nullptr)) return false;
+        if (mode == 0) {
+            sc.Error("remote object '%s' does not exist", src_path);
+            success = false;
+            continue;
+        }
+
+        if (S_ISREG(mode) || S_ISLNK(mode) || S_ISCHR(mode) || S_ISBLK(mode)) {
+            std::string path_holder;
+            struct stat st;
+            if (stat(dst_path, &st) == 0) {
+                if (dst_isdir) {
+                    // If we're copying a remote file to a local directory, we
+                    // really want to copy to local_dir + "/" + basename(remote).
+                    path_holder = android::base::StringPrintf(
+                        "%s/%s", dst_path, adb_basename(src_path).c_str());
+                    dst_path = path_holder.c_str();
+                }
+                if (!sync_recv(sc, src_path, dst_path, name)) {
+                    success = false;
+                    continue;
+		}
+            } else {
+                if (copy_attrs && set_time_and_mode(dst_path, time, mode)) {
+                    success = false;
+                    continue;
+                }
+            }
+        } else if (S_ISDIR(mode)) {
+            std::string dst_dir = dst;
+
+            // If the destination path existed originally, the source directory
+            // should be copied as a child of the destination.
+            if (dst_exists) {
+                if (!dst_isdir) {
+                    sc.Error("target '%s' is not a directory", dst);
+                    return false;
+                }
+                if (!adb_is_separator(dst_dir.back())) {
+                    dst_dir.push_back(OS_PATH_SEPARATOR);
+                }
+                dst_dir.append(adb_basename(src_path));
+            }
+
+            success &= copy_remote_dir_local(sc, src_path, dst_dir.c_str(),
+                                             copy_attrs);
+            continue;
+        } else {
+            sc.Error("remote object '%s' not a file or directory", src_path);
+            success = false;
+            continue;
+        }
+    }
+
+    return success;
 }
 
 bool do_sync_sync(const std::string& lpath, const std::string& rpath, bool list_only) {
-    fprintf(stderr, "syncing %s...\n", rpath.c_str());
-
     SyncConnection sc;
     if (!sc.IsValid()) return false;
 

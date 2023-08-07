@@ -106,7 +106,7 @@ run_configfs() {
 	ln -s functions/$qdss_func configs/c.1/f2
 	ln -s functions/ffs.adb configs/c.1/f3
 	echo 1 > functions/$qdss_func/enable_debug_inface
-	echo 0x80 > configs/c.1/bmAttributes
+	echo $bmAttributes > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
@@ -135,29 +135,39 @@ case $target in
 		run_9x35 &
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
-							| *sxrneo* | *cinder* | *sm8450p* )
-		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || [ $target == "cinder" ] || [ $target == "sm8450p" ]
-		then
+		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* )
+		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || \
+		   [ $target == "cinder" ] || [ $target == "sm8450p" ] || [ $target == "sdxpinn" ]; then
 			qdss_func="qdss.qdss_mdm"
+		elif [ $target == "kalama" ]; then
+			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"
 		fi
 
-		i=1
-		while [ $i -lt 60 ]
-		do
-			udcname=`ls -1 /sys/class/udc | grep -v dummy_udc | head -n 1`
-			if [ -n "$udcname" ]; then
-				break
+		if [ $target == "sm8450p" ] ; then
+			bmAttributes="0xc0"
+		else
+			bmAttributes="0x80"
+		fi
+
+		if [ $target != "sdxpinn" ]; then
+			i=1
+			while [ $i -lt 60 ]
+			do
+				udcname=`ls -1 /sys/class/udc | grep -v dummy_udc | head -n 1`
+				if [ -n "$udcname" ]; then
+					break
+				fi
+
+				echo "UDC not found sleep for 1 sec\n"
+				sleep 1
+				((i=i+1))
+			done
+
+			if [ -z "$udcname" ]; then
+				echo "UDC didn't come up, won't be able to connect to adbd"
 			fi
-
-			echo "UDC not found sleep for 1 sec\n"
-			sleep 1
-			((i=i+1))
-		done
-
-		if [ -z "$udcname" ]; then
-			echo "UDC didn't come up, won't be able to connect to adbd"
 		fi
 
 		run_configfs $udcname &

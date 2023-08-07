@@ -130,7 +130,7 @@ run_configfs() {
 	echo 0x05c6 > idVendor
 	echo 0x9024 > idProduct
 	echo "RNDIS_ADB" > configs/c.1/strings/0x409/configuration
-	ln -s functions/gsi.rndis configs/c.1/f1
+	ln -s functions/$rndis_inst configs/c.1/f1
 	ln -s functions/ffs.adb configs/c.1/f2
 	echo 0xA0 > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
@@ -164,7 +164,13 @@ case `source /sbin/usb/target` in
 	*9650* )
 		run_9650 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
+		rndis_inst="gsi.rndis"
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		run_configfs $udcname &
+		;;
+	*sxrneo* )
+		rndis_inst="rndis.rndis"
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &
 		;;

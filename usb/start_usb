@@ -34,6 +34,30 @@ export KERNEL=`uname -r`
 export SOFTAP_W_DUN="N"
 export ANDROID_LOG_TAGS="*:d"
 export LS_COLORS="none"
+export USB_ROLE_SWITCH="N"
+
+usb_bind() {
+	timeout=0
+	while :
+	do
+		UDC=`ls -1 /sys/class/udc | head -n 1`
+		if [ ! -z $UDC ]; then
+			echo $UDC > /sys/kernel/config/usb_gadget/g1/UDC
+			break
+		fi
+		if [ "$timeout" -ge 25 ]; then
+			echo "No role switch notification. Enabling USB in debug mode" > /dev/kmsg
+			udcname=`ls -1 /sys/bus/platform/devices/ | grep ssusb | head -n 1`
+			echo peripheral > /sys/bus/platform/devices/${udcname}/mode
+			sleep 2
+			UDC=`ls -1 /sys/class/udc | head -n 1`
+			echo $UDC > /sys/kernel/config/usb_gadget/g1/UDC
+			break
+		fi
+		timeout=`expr $timeout + 1`
+		sleep 1
+	done
+}
 
 case "$1" in
   init)
@@ -248,6 +272,12 @@ case "$1" in
 				esac
 			fi
 		        ;;
+		*sdxpinn* )
+			adbd_params="0 y"
+			if [ -d /sys/class/usb_role/a600000.ssusb-role-switch ]; then
+				USB_ROLE_SWITCH="Y"
+			fi
+			;;
 	esac
 
 	#
@@ -257,7 +287,7 @@ case "$1" in
 		cd /sys/kernel/config/usb_gadget/g1/functions/uvc.0
 
 		echo 3072 > streaming_maxpacket
-		echo 4 > streaming_maxburst
+		echo 10 > streaming_maxburst
 		mkdir control/header/h
 		ln -s control/header/h control/class/fs/
 		ln -s control/header/h control/class/ss
@@ -386,6 +416,17 @@ case "$1" in
 		cd /
 	fi
 
+	#Initialize NCM configuration
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
+		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
+		echo WINNCM > os_desc/interface.ncm/compatible_id
+	fi
+
+	# enable adaptive for capture path
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
+		echo adaptive > /sys/kernel/config/usb_gadget/g1/functions/uac2.0/c_sync
+	fi
+
 	# enable debug message
 	if [ -f /sbin/usb/debuger/default_debug ];
 	then
@@ -430,6 +471,14 @@ case "$1" in
 			fi
 		else
 			/sbin/usb/compositions/$pid n $adbd_params
+		fi
+
+		# targets with cable detection support on Modem might need
+		# more time for UDC to come up. So schedule a bind operation
+		# accordingly
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		if [ -z $udcname ] && [ "$USB_ROLE_SWITCH" == "Y" ]; then
+			usb_bind &
 		fi
 	fi
 	;;

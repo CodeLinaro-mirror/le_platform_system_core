@@ -73,3 +73,7 @@ do
 done
 
 echo "++++ $0 -> done sched settings" > /dev/kmsg
+
+# Disabling proactive compaction since there is no benefit of higher order
+# pages here hence proactive compaction activity would be wasteful.
+echo 0 > /proc/sys/vm/compaction_proactiveness

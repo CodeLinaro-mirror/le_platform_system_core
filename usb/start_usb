@@ -108,6 +108,7 @@ case "$1" in
 		mkdir functions/cser.nmea.1
 		mkdir functions/gser.0
 		mkdir functions/rmnet_bam.rmnet
+		mkdir functions/rmnet_bam.rmnet_bam_demux
 		mkdir functions/gsi.rmnet
 		mkdir functions/gsi.rndis
 		mkdir functions/gsi.ecm
@@ -246,7 +247,7 @@ case "$1" in
 				echo 9104 > /etc/usb/boot_hsusb_comp
 			fi
 			;;
-		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* | *sa2150p* | *qcs610* )
+		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* | *sa2150p* | *qcs610* | *qcs6490* )
 			echo 901D > /etc/usb/boot_hsusb_comp
 		        ;;
 		*sm8150* )

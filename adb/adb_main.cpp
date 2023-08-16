@@ -45,7 +45,9 @@
 
 #include "cutils/properties.h"
 #include "private/android_filesystem_config.h"
+#ifdef SELINUX_IS_ENABLE
 #include "selinux/selinux.h"
+#endif
 
 #ifdef ADB_QEMU
 #include "qemu_tracing.h"
@@ -325,12 +327,14 @@ int adb_main(int is_daemon, int server_port)
 
         D("Local port disabled\n");
     } else {
+#ifdef SELINUX_IS_ENABLE
         if ((root_seclabel != NULL) && (is_selinux_enabled() > 0)) {
             // b/12587913: fix setcon to allow const pointers
             if (setcon((char *)root_seclabel) < 0) {
                 exit(1);
             }
         }
+#endif
         std::string local_name = android::base::StringPrintf("tcp:%d", server_port);
         if (install_listener(local_name, "*smartsocket*", NULL, 0)) {
             exit(1);

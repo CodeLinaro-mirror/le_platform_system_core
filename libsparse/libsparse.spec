@@ -30,6 +30,8 @@ items necessary for software development.
 %prep
 %autosetup -n libsparse
 
+cp -rf ../NOTICE .
+
 %build
 autoreconf -if
 %configure
@@ -40,12 +42,14 @@ autoreconf -if
 %make_install
 
 %files
+%license NOTICE
 %{_libdir}/libsparse.a
 %{_libdir}/libsparse.la
 %{_libdir}/libsparse.so.0
 %{_libdir}/libsparse.so.0.0.0
 
 %files -n libsparse-dev
+%license NOTICE
 %{_includedir}/sparse/sparse.h
 %{_includedir}/sparse/sparse_crc32.h
 %{_libdir}/libsparse.so

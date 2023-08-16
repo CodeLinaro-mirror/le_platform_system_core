@@ -108,9 +108,9 @@ run_configfs() {
 	else
 		ln -s functions/diag.diag configs/c.1/f1
 	fi
-	ln -s functions/qdss.qdss configs/c.1/f2
+	ln -s functions/$qdss_func configs/c.1/f2
 	ln -s functions/ffs.adb configs/c.1/f3
-	echo 1 > functions/qdss.qdss/enable_debug_inface
+	echo 1 > functions/$qdss_func/enable_debug_inface
 	rm -f /data/usb_bind_in_progress
 	echo 0x80 > configs/c.1/bmAttributes
 	echo "binding UDC with Gadget..." $1
@@ -124,10 +124,12 @@ case `source /sbin/usb/target` in
 		;;
 	*lemans* )
 		udcname=a600000.dwc3
+		qdss_func="qdss.qdss_sw"
 		run_configfs $udcname &
 		;;
 	* )
 		if [ $configfs_supported = "y" ]; then
+			qdss_func="qdss.qdss"
 			udcname=`ls -1 /sys/class/udc | head -n 1`
 			run_configfs $udcname &
 		else

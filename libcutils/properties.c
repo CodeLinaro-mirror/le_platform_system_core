@@ -34,6 +34,7 @@ static char* atrace_ptext = MAP_FAILED;
 int property_get(const char *key, char *value, const char *default_value) {
     int rc = 0;
 #ifdef LE_PROPERTIES
+    memset(value, 0, PROP_VALUE_MAX);
     if (strcmp("debug.atrace.tags.enableflags", key) == 0) {
         read_shm_atags_property(key, value);
         rc = strlen(value);

@@ -422,6 +422,11 @@ case "$1" in
 		echo WINNCM > os_desc/interface.ncm/compatible_id
 	fi
 
+	# enable adaptive for capture path
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
+		echo adaptive > /sys/kernel/config/usb_gadget/g1/functions/uac2.0/c_sync
+	fi
+
 	# enable debug message
 	if [ -f /sbin/usb/debuger/default_debug ];
 	then

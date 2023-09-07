@@ -1254,6 +1254,14 @@ config_dcc_gcc()
     echo 0x18e214 > $DCC_PATH/config
 
     echo 0x121004 5 > $DCC_PATH/config
+
+    echo 0x127004 > $DCC_PATH/config
+    echo 0x127008 > $DCC_PATH/config
+    echo 0x127878 > $DCC_PATH/config
+    echo 0x133000 > $DCC_PATH/config
+    echo 0x13300C > $DCC_PATH/config
+    echo 0x162008 > $DCC_PATH/config
+    echo 0x161008 > $DCC_PATH/config
 }
 
 config_dcc_smmu()
@@ -1604,6 +1612,15 @@ config_dcc_wpss()
     echo 0x8a00304 > $DCC_PATH/config
 }
 
+config_dcc_tlmm()
+{
+    echo 0xF11A000 > $DCC_PATH/config
+    echo 0xF11A004 > $DCC_PATH/config
+    echo 0xF11A008 > $DCC_PATH/config
+    echo 0xF11B000 > $DCC_PATH/config
+    echo 0xF11B004 > $DCC_PATH/config
+    echo 0xF11B008 > $DCC_PATH/config
+}
 
 enable_cpuss_register()
 {
@@ -6821,6 +6838,7 @@ enable_dcc()
 
     config_dcc_gic
     config_dcc_gcc
+    config_dcc_tlmm
     config_dcc_smmu
     config_dcc_gemnoc
     config_dcc_cnoc
@@ -6969,7 +6987,7 @@ enable_waipio_debug()
     enable_cti_flush_for_etf
 
     enable_waipio_ftrace_event_tracing
-    #enable_dcc
+    enable_dcc
     #enable_cpuss_register
     echo "++++ $0 -> enable_waipio_debug END" > /dev/kmsg
 }

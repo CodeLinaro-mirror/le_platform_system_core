@@ -1667,6 +1667,10 @@ case "$target" in
         echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:prime/max_freq
         echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3_1/soc:qcom,memlat:l3_1:silver/max_freq
 
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy2/scaling_governor
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
+
         #read feature id from nvram
         reg_val=`cat /sys/devices/platform/soc/780158.qfprom/qfprom0/nvmem | od -An -t d4`
         feature_id=$(((reg_val >> 20) & 0xFF))

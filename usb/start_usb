@@ -209,7 +209,7 @@ case "$1" in
 		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* )
 			echo 901D > /etc/usb/boot_hsusb_comp
 		        ;;
-		*sm8150* | *sm6150* | *sm8195* | *direwolf* | *lemans* )
+		*sm8150* | *sm6150* | *sm8195* | *direwolf* | *lemans* | *sa_monacoau_ivi* )
 			echo 901D > /etc/usb/boot_hsusb_comp
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
 				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`

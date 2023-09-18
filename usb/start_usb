@@ -49,7 +49,7 @@ case "$1" in
 
 	# find serialno from cmdline
 	serialno=`cat /proc/cmdline | grep -o "androidboot.serialno=[A-Za-z0-9]*" | cut -d "=" -f2`
-	if [ "$serialno" == "" ]; then
+	if [ "$serialno" = "" ]; then
 		echo "serialno not found with cmdline, use default"
 		serialno="12345678"
 	fi
@@ -168,7 +168,7 @@ case "$1" in
 
 	mount -o remount,gid=5,mode=620 /dev/pts
 
-	case `source /sbin/usb/target` in
+	case `. /sbin/usb/target` in
 		*9x15* )
 			# Nothing to do here for 9x15
 			;;
@@ -242,7 +242,7 @@ case "$1" in
 		ln -s control/header/h control/class/ss
 
 		mkdir -p streaming/uncompressed/u/360p
-		echo -e "666666\n1000000\n5000000\n" > streaming/uncompressed/u/360p/dwFrameInterval
+		echo "666666 1000000 5000000" > streaming/uncompressed/u/360p/dwFrameInterval
 
 		mkdir -p streaming/uncompressed/u/720p
 		echo 1280 > streaming/uncompressed/u/720p/wWidth
@@ -251,10 +251,10 @@ case "$1" in
 		echo 29491200 > streaming/uncompressed/u/720p/dwMaxBitRate
 		echo 1843200 > streaming/uncompressed/u/720p/dwMaxVideoFrameBufferSize
 		echo 5000000 > streaming/uncompressed/u/720p/dwDefaultFrameInterval
-		echo -e "5000000\n" > streaming/uncompressed/u/720p/dwFrameInterval
+		echo "5000000" > streaming/uncompressed/u/720p/dwFrameInterval
 
 		mkdir -p streaming/mjpeg/m/360p
-		echo -e "666666\n1000000\n5000000\n" > streaming/mjpeg/m/360p/dwFrameInterval
+		echo "666666 1000000 5000000" > streaming/mjpeg/m/360p/dwFrameInterval
 
 		mkdir -p streaming/mjpeg/m/720p
 		echo 1280 > streaming/mjpeg/m/720p/wWidth
@@ -263,7 +263,7 @@ case "$1" in
 		echo 29491200 > streaming/mjpeg/m/720p/dwMaxBitRate
 		echo 1843200 > streaming/mjpeg/m/720p/dwMaxVideoFrameBufferSize
 		echo 5000000 > streaming/mjpeg/m/720p/dwDefaultFrameInterval
-		echo -e "5000000\n" > streaming/mjpeg/m/720p/dwFrameInterval
+		echo "5000000" > streaming/mjpeg/m/720p/dwFrameInterval
 
 		echo 0x04 > /sys/kernel/config/usb_gadget/g1/functions/uvc.0/streaming/mjpeg/m/bmaControls
 
@@ -271,10 +271,10 @@ case "$1" in
 		echo 1920 > streaming/h264/h/960p/wWidth
 		echo 960 > streaming/h264/h/960p/wWidth
 		echo 40 > streaming/h264/h/960p/bLevelIDC
-		echo -e "333667\n" > streaming/h264/h/960p/dwFrameInterval
+		echo "333667" > streaming/h264/h/960p/dwFrameInterval
 
 		mkdir -p streaming/h264/h/1920p
-		echo -e "333667\n" > streaming/h264/h/1920p/dwFrameInterval
+		echo "333667" > streaming/h264/h/1920p/dwFrameInterval
 
 		mkdir streaming/header/h
 		ln -s streaming/uncompressed/u streaming/header/h
@@ -325,7 +325,7 @@ case "$1" in
 		fi
 		/sbin/usb/compositions/$pid n $adbd_params
 
-		if [ "$SOFTAP_W_DUN" == "Y" ]
+		if [ "$SOFTAP_W_DUN" = "Y" ]
 		then
 			echo "DUN+SOFTAP mode is enabled."
 			echo 1  > /sys/devices/virtual/android_usb/android0/f_serial/dun_w_softap_enable

@@ -73,7 +73,7 @@ run_configfs() {
 	then
 		SOFTAP_W_DUN=`cat /etc/data/usb/softap_w_dun`
 	fi
-	if [ "$SOFTAP_W_DUN" == "Y" ]
+	if [ "$SOFTAP_W_DUN" = "Y" ]
 	then
 		ln -s functions/gser.0 configs/c.1/f3
 	else
@@ -87,7 +87,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*sdxpoorwills* | *sdxprairie* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &

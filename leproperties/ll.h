@@ -95,7 +95,7 @@ bool __remove_node_from_list(unsigned char* property_name);
  * @param Null
  * @return True for success and False otherwise
  */
-bool __free_list();
+bool __free_list(void);
 
 /**
  * Return the head node of this list
@@ -109,13 +109,13 @@ property_db* __get_list_head();
  * @param None
  * @return Void - dump will be created on standard output
  */
-void __dump_nodes();
+void __dump_nodes(void);
 
 /**
  * Function to traverse linklist and dump property name
  * starting with persist to file
  * @return True on success and false otherwise
  */
-bool __save_persist_nodes_to_file();
+bool __save_persist_nodes_to_file(void);
 
 #endif //#define LE_PROP_LL_H

@@ -39,7 +39,7 @@
 #include <cutils/sockets.h>
 #include "property_ops.h"
 
-static int open_prop_socket()
+static int open_prop_socket(void)
 {
     int fd, ret = 0;
 

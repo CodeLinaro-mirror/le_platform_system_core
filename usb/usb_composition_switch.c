@@ -81,6 +81,6 @@ int main(int argc, char **argv) {
             /* Let child process execute remaining usb_composition switch */
             system(command);
             exit(EXIT_SUCCESS);
-    }
-
+        }
+        return 0;
 }

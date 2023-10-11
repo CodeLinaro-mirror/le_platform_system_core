@@ -30,10 +30,11 @@
  *****************************************************************************/
 
 #include "ll.h"
+#include <string.h>
 
 property_db* glisthead = NULL;
 
-bool __list_is_empty()
+bool __list_is_empty(void)
 {
   if (!glisthead)
     return true;
@@ -163,7 +164,7 @@ bool __list_add(property_db* list)
 
 bool __remove_node_from_list(unsigned char* property_name)
 {
-    bool retval;
+    bool retval = false;
 
     if (__list_is_empty())
     {
@@ -200,7 +201,7 @@ bool __remove_node_from_list(unsigned char* property_name)
 }
 
 //to be called on deinit
-bool __free_list()
+bool __free_list(void)
 {
     bool retval;
     property_db *ln = glisthead;
@@ -226,7 +227,7 @@ property_db* __get_list_head()
     return glisthead;
 }
 
-void __dump_nodes()
+void __dump_nodes(void)
 {
     property_db *ln = glisthead;
     if (__list_is_empty())
@@ -240,7 +241,7 @@ void __dump_nodes()
                 ln->unit.property_value, ln->unit.callback_to_be_invoked);
     }
 }
-bool __save_persist_nodes_to_file()
+bool __save_persist_nodes_to_file(void)
 {
     property_db *ln = glisthead;
     bool retval = false;

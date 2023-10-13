@@ -172,6 +172,13 @@ case "$platformid" in
     echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
     echo 0 > /sys/devices/system/cpu/cpu3/core_ctl/enable
     echo 0 > /sys/devices/system/cpu/cpu7/core_ctl/enable
+
+    nonGPUid=`cat /sys/devices/soc0/gpu`
+    if [ $nonGPUid == "0x1" ]; then
+        # limit DDR frequency to 3.2GHz
+        echo "{class:ddr, res:capped, val: 3187}" > /sys/kernel/debug/aoss_send_message
+	echo "limit DDR frequnecy to 3.2G for nonGPU"
+    fi
 esac
 
 case "$platformid" in

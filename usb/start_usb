@@ -287,7 +287,7 @@ case "$1" in
 		cd /sys/kernel/config/usb_gadget/g1/functions/uvc.0
 
 		echo 3072 > streaming_maxpacket
-		echo 4 > streaming_maxburst
+		echo 10 > streaming_maxburst
 		mkdir control/header/h
 		ln -s control/header/h control/class/fs/
 		ln -s control/header/h control/class/ss
@@ -420,6 +420,11 @@ case "$1" in
 	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
 		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
 		echo WINNCM > os_desc/interface.ncm/compatible_id
+	fi
+
+	# enable adaptive for capture path
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
+		echo adaptive > /sys/kernel/config/usb_gadget/g1/functions/uac2.0/c_sync
 	fi
 
 	# enable debug message

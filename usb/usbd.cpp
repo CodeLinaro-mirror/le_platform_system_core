@@ -113,10 +113,15 @@ static bool checkUsbInterfaceAutoSuspend(const std::string &devicePath,
 }
 
 #define UEVENT_MSG_LEN 2048
+#define CONFIGFS_UDC_PATH "/sys/kernel/config/usb_gadget/g1/UDC"
+
 static void uevent_event(uint32_t ep) {
     char msg[UEVENT_MSG_LEN+2];
-    char *cp;
+    char *context, *tmp_str;
     int n;
+    std::string udc_string;
+    static std::string udc_name;
+    std::regex xhci_regex("(unbind|remove)@/devices/platform/soc/.*/.*/xhci-hcd\\..*\\.auto/usb.*");
 
     n = uevent_kernel_multicast_recv(uevent_fd, msg, UEVENT_MSG_LEN);
     if (n <= 0)
@@ -126,36 +131,56 @@ static void uevent_event(uint32_t ep) {
 
     msg[n] = '\0';
     msg[n+1] = '\0';
-    cp = msg;
 
     dbg("Got uevent %s\n", msg);
 
-    while (*cp) {
-	std::cmatch match;
+    std::cmatch match;
 
-	if (std::regex_match(cp, match,
-		    std::regex("bind@(/devices/platform/.*dwc3/xhci-hcd\\.\\d\\.auto/"
-                     "usb\\d(?:/\\d-\\d)*(?:/[\\d\\.-]+)*)/([^/]*:[^/]*)"))) {
-	  if (match.size() == 3) {
-	      std::csub_match devpath = match[1];
-	      std::csub_match intfpath = match[2];
-	      checkUsbInterfaceAutoSuspend("/sys/" + devpath.str(), intfpath.str());
-	  }
-	} else if (!strncmp(cp, "DEVTYPE=typec_", strlen("DEVTYPE=typec_"))) {
-	    std::string power_operation_mode;
+    if (std::regex_match(msg, match,
+		std::regex("bind@(/devices/platform/.*dwc3/xhci-hcd\\.\\d\\.auto/"
+		"usb\\d(?:/\\d-\\d)*(?:/[\\d\\.-]+)*)/([^/]*:[^/]*)"))) {
+	if (match.size() == 3) {
+	    std::csub_match devpath = match[1];
+	    std::csub_match intfpath = match[2];
+	    checkUsbInterfaceAutoSuspend("/sys/" + devpath.str(), intfpath.str());
+	}
+    } else if (!strncmp(msg, "DEVTYPE=typec_", strlen("DEVTYPE=typec_"))) {
+	std::string power_operation_mode;
 
-	    if (!readFile("/sys/class/typec/port0/power_operation_mode", &power_operation_mode)) {
-		if (power_operation_mode == "usb_power_delivery") {
-		    writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower", "0");
-		    writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/bmAttributes", "0x80");
-		} else {
-		    writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower", "900");
-		    writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/bmAttributes", "0xa0");
-		}
+	if (!readFile("/sys/class/typec/port0/power_operation_mode", &power_operation_mode)) {
+	    if (power_operation_mode == "usb_power_delivery") {
+		writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower", "0");
+		writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/bmAttributes", "0x80");
+	    } else {
+		writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower", "900");
+		writeFile("/sys/kernel/config/usb_gadget/g1/configs/c.1/bmAttributes", "0xa0");
 	    }
 	}
-
-	while (*cp++) {}
+    // Monitor xhci unbind/remove uevents only if the udc_name is empty / not cached yet.
+    } else if (!udc_name.length() && std::regex_match(msg, match, xhci_regex)) {
+	/*
+	 * As std::string can't be used to check retval of strtok_r, use char* to tokenize the
+	 * string, and then typecast char* to std::string (strings are easier to use in regex)
+	 */
+	tmp_str = strtok_r(msg, "/", &context);
+	if(!tmp_str)
+	    return;
+	for (n=0; n<5; n++) {
+	    tmp_str = strtok_r(NULL ,"/", &context);
+	    if(!tmp_str)
+		return;
+	}
+	udc_name = tmp_str;
+	dbg("UDC Name extracted from xhci unbind/remove uevent: %s\n", tmp_str);
+    // Monitor UDC add/change uevents only if the udc_name is cached / already extracted.
+    } else if (udc_name.length() && std::regex_match(msg, match, std::regex("(change|add)"
+		    "@/devices/platform/soc/.*/" + udc_name + "/udc/" + udc_name))) {
+	readFile(CONFIGFS_UDC_PATH, &udc_string);
+	// Write the cached udc_name to CONFIGFS_UDC_PATH only if configfs UDC is empty.
+	if(!udc_string.length()) {
+	    dbg("Binding UDC with configfs");
+	    writeFile(CONFIGFS_UDC_PATH, udc_name);
+	}
     }
 
     return;

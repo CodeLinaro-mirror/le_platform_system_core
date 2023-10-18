@@ -52,7 +52,7 @@ run_sdx20() {
 	echo 1 > /sys/class/android_usb/android$num/enable
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*sdx20* )
 		run_sdx20 &
 		;;

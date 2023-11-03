@@ -356,7 +356,7 @@ configure_sa8195_sku_parameters() {
     fi
 }
 
-function configure_memory_parameters_auto() {
+configure_memory_parameters_auto() {
         echo 0 > /proc/sys/vm/page-cluster
         echo 100 > /proc/sys/vm/swappiness
 }
@@ -1675,7 +1675,7 @@ case "$target" in
         reg_val=`cat /sys/devices/platform/soc/780158.qfprom/qfprom0/nvmem | od -An -t d4`
         feature_id=$(((reg_val >> 20) & 0xFF))
 
-        if [ $feature_id == 1 ]; then
+        if [ $feature_id = 1 ]; then
                 echo "SKU Configured : SA7255-BBBB"
                 echo 1574400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
                 echo 1900800 > /sys/devices/system/cpu/cpufreq/policy2/scaling_max_freq

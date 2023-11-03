@@ -103,7 +103,7 @@ run_configfs() {
 }
 
 case `. /sbin/usb/target` in
-	*lemans* )
+	*lemans* | *sa_monacoau_ivi*)
 		udcname=a600000.dwc3
 		run_configfs $udcname &
 		;;

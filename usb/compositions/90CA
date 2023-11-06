@@ -97,7 +97,7 @@ run_8009() {
 	fi
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*qcs605* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &

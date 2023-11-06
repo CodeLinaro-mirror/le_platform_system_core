@@ -86,3 +86,5 @@ bool get_property_value(const char*, unsigned char *);
 bool set_property_value(const char*, unsigned char *);
 
 #endif /* LE_PROP_OPS_H */
+
+void dump_persist(void);

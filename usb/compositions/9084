@@ -172,7 +172,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*9x15* )
 		echo "This composition is not supported in 9x15"
 		;;

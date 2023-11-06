@@ -95,7 +95,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
         *sdx20* )
 		run_sdx20 &
 		;;

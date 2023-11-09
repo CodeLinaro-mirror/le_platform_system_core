@@ -368,7 +368,9 @@ int connection_state(atransport *t);
 
 extern const char *adb_device_banner;
 extern int HOST;
+#if !ADB_HOST
 extern int SHELL_EXIT_NOTIFY_FD;
+#endif // !ADB_HOST
 #if !ADB_HOST
 #define ADB_MAX_BUF_LEN 80
 extern bool adb_use_pcie;

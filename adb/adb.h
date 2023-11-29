@@ -32,7 +32,9 @@
 #include "adb_trace.h"
 #include "fdevent.h"
 
-#define MAX_PAYLOAD 4096
+constexpr size_t MAX_PAYLOAD_V1 = 4 * 1024;
+constexpr size_t MAX_PAYLOAD_V2 = 256 * 1024;
+constexpr size_t MAX_PAYLOAD = MAX_PAYLOAD_V2;
 
 #define A_SYNC 0x434e5953
 #define A_CNXN 0x4e584e43
@@ -152,6 +154,8 @@ struct asocket {
 
         /* A socket is bound to atransport */
     atransport *transport;
+
+    size_t get_max_payload() const;
 };
 
 
@@ -208,6 +212,8 @@ public:
     atransport() {
         auth_fde = {};
         transport_fde = {};
+        protocol_version = A_VERSION;
+        max_payload = MAX_PAYLOAD;
     }
 
     virtual ~atransport() {}
@@ -249,7 +255,14 @@ public:
 
     const char* connection_state_name() const;
 
+    void update_version(int version, size_t payload);
+    int get_protocol_version() const;
+    size_t get_max_payload() const;
+
 private:
+    int protocol_version;
+    size_t max_payload;
+
     DISALLOW_COPY_AND_ASSIGN(atransport);
 };
 

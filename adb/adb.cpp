@@ -94,8 +94,6 @@ bool no_sysprop_get_adb_run_as_root_conf() {
 
 ADB_MUTEX_DEFINE( D_lock );
 
-int HOST = 0;
-
 #if !ADB_HOST
 const char *adb_device_banner = "device";
 #endif
@@ -448,7 +446,9 @@ void handle_packet(apacket *p, atransport *t)
     case A_SYNC:
         if(p->msg.arg0){
             send_packet(p, t);
-            if(HOST) send_connect(t);
+#if ADB_HOST
+            send_connect(t);
+#endif
         } else {
             t->connection_state = kCsOffline;
             handle_offline(t);
@@ -465,12 +465,16 @@ void handle_packet(apacket *p, atransport *t)
         t->update_version(p->msg.arg0, p->msg.arg1);
         parse_banner(reinterpret_cast<const char*>(p->data), t);
 
-        if (HOST || !auth_required) {
+#if ADB_HOST
+        handle_online(t);
+#else
+        if (!auth_required) {
             handle_online(t);
-            if (!HOST) send_connect(t);
+            send_connect(t);
         } else {
             send_auth_request(t);
         }
+#endif
         break;
 
     case A_AUTH:

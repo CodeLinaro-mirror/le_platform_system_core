@@ -379,7 +379,7 @@ case "$1" in
 		echo 1769472000 > streaming/mjpeg/m/1440p/dwMaxBitRate
 		echo 7372800 > streaming/mjpeg/m/1440p/dwMaxVideoFrameBufferSize
 		echo 333333 > streaming/mjpeg/m/1440p/dwDefaultFrameInterval
-		echo -e "333333\n" > streaming/mjpeg/m/1440p/dwFrameInterval
+		echo -e "166666\n333333\n" > streaming/mjpeg/m/1440p/dwFrameInterval
 
 		mkdir -p streaming/mjpeg/m/2160p
 		echo 3840 > streaming/mjpeg/m/2160p/wWidth
@@ -419,6 +419,15 @@ case "$1" in
 		echo 4147200 > streaming/h264/h/1080p/dwMaxVideoFrameBufferSize
 		echo 333333 > streaming/h264/h/1080p/dwDefaultFrameInterval
 		echo -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/h264/h/1080p/dwFrameInterval
+
+		mkdir -p streaming/h264/h/2160p
+		echo 3840 > streaming/h264/h/2160p/wWidth
+		echo 2160 > streaming/h264/h/2160p/wHeight
+		echo 265420800 > streaming/h264/h/2160p/dwMinBitRate
+		echo 3981312000 > streaming/h264/h/2160p/dwMaxBitRate
+		echo 16588800 > streaming/h264/h/2160p/dwMaxVideoFrameBufferSize
+		echo 333333 > streaming/h264/h/2160p/dwDefaultFrameInterval
+		echo -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/h264/h/2160p/dwFrameInterval
 
 		mkdir streaming/header/h
 		mkdir streaming/header/h1

@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <sys/un.h>
 #include <cutils/sockets.h>
+#include <sys/stat.h>
 #include "property_service.h"
 #include "ll.h"
 

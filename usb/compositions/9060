@@ -118,11 +118,11 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*9x25* )
 		run_9x25 &
 		;;
-	*lemans* )
+	*lemans* | *sa_monacoau_ivi* )
 		udcname=a600000.dwc3
 		qdss_func="qdss.qdss_sw"
 		run_configfs $udcname &

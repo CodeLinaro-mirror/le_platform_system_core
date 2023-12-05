@@ -55,7 +55,7 @@ configure_memory_parameters () {
     #
     arch_type=`uname -m`
     MemTotalStr=`cat /proc/meminfo | grep MemTotal`
-    MemTotal=${MemTotalStr:16:8}
+    MemTotal=$(echo $MemTotalStr | awk  '{ MemTotal=substr($0, 11, 8); print MemTotal; }')
     MemTotalPg=$((MemTotal / 4))
     adjZeroMinFree=18432
     # Read adj series and set adj threshold for PPR and ALMK.
@@ -74,19 +74,19 @@ configure_memory_parameters () {
     echo 70 > /sys/module/process_reclaim/parameters/pressure_max
     echo 30 > /sys/module/process_reclaim/parameters/swap_opt_eff
     echo 1 > /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk
-    if [ "$arch_type" == "aarch64" ] && [ $MemTotal -gt 2097152 ]; then
+    if [ "$arch_type" = "aarch64" ] && [ $MemTotal -gt 2097152 ]; then
         echo 10 > /sys/module/process_reclaim/parameters/pressure_min
         echo 1024 > /sys/module/process_reclaim/parameters/per_swap_size
         echo "18432,23040,27648,32256,55296,80640" > /sys/module/lowmemorykiller/parameters/minfree
         echo 81250 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
         adjZeroMinFree=18432
-    elif [ "$arch_type" == "aarch64" ] && [ $MemTotal -gt 1048576 ]; then
+    elif [ "$arch_type" = "aarch64" ] && [ $MemTotal -gt 1048576 ]; then
         echo 10 > /sys/module/process_reclaim/parameters/pressure_min
         echo 1024 > /sys/module/process_reclaim/parameters/per_swap_size
         echo "14746,18432,22118,25805,40000,55000" > /sys/module/lowmemorykiller/parameters/minfree
         echo 81250 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
         adjZeroMinFree=14746
-    elif [ "$arch_type" == "aarch64" ]; then
+    elif [ "$arch_type" = "aarch64" ]; then
         echo 50 > /sys/module/process_reclaim/parameters/pressure_min
         echo 512 > /sys/module/process_reclaim/parameters/per_swap_size
         echo "14746,18432,22118,25805,40000,55000" > /sys/module/lowmemorykiller/parameters/minfree
@@ -105,7 +105,7 @@ configure_memory_parameters () {
 
     # Zram disk - 512MB size
     zram_enable=`getprop ro.config.zram`
-    if [ "$zram_enable" == "true" ] && [ -f /dev/block/zram0 ]; then
+    if [ "$zram_enable" = "true" ] && [ -f /dev/block/zram0 ]; then
         echo 536870912 > /sys/block/zram0/disksize
         mkswap /dev/block/zram0
         swapon /dev/block/zram0 -p 32758
@@ -121,7 +121,7 @@ configure_memory_parameters () {
     fi
 
     # Enable swap initially only for 1 GB targets
-    if [ "$MemTotal" -le "$SWAP_ENABLE_THRESHOLD" ] && [ "$swap_enable" == "true" ]; then
+    if [ "$MemTotal" -le "$SWAP_ENABLE_THRESHOLD" ] && [ "$swap_enable" = "true" ]; then
         # Static swiftness
         echo 1 > /proc/sys/vm/swap_ratio_enable
         echo 70 > /proc/sys/vm/swap_ratio
@@ -165,13 +165,13 @@ configure_sa8155_sku_parameters () {
     echo 1056000 > $cpufreq_gold/scaling_min_freq
     echo 1171200 > $cpufreq_prime/scaling_min_freq
 
-    if [ $feature_id == 0 ]; then
+    if [ $feature_id = 0 ]; then
         echo "SKU Configured : SA8155"
         echo 1785600 > $cpufreq_silver/scaling_max_freq
         echo 2131200 > $cpufreq_gold/scaling_max_freq
         echo 2419200 > $cpufreq_prime/scaling_max_freq
         echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
-    elif [ $feature_id == 1 ]; then
+    elif [ $feature_id = 1 ]; then
         echo "SKU Configured : SA8150"
         echo 1785600 > $cpufreq_silver/scaling_max_freq
         echo 1920000 > $cpufreq_gold/scaling_max_freq
@@ -188,7 +188,7 @@ configure_sa6155_sku_parameters() {
 
     echo "Feature ID is " $feature_id
 
-    if [ $feature_id == 7 ]; then
+    if [ $feature_id = 7 ]; then
         echo "SKU Configured : SA4150P"
         echo 576000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
         echo 576000 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
@@ -212,7 +212,7 @@ configure_sa6155_sku_parameters() {
         echo 1017600000 > /sys/class/devfreq/18321110.qcom,cpu6-cpu-l3-lat/max_freq
         echo 4 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
         echo 1016 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
-    elif [ $feature_id == 6 ]; then
+    elif [ $feature_id = 6 ]; then
         echo "SKU Configured : SA6145"
         echo 748800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
         echo 748800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
@@ -236,7 +236,7 @@ configure_sa6155_sku_parameters() {
         echo 1017600000 > /sys/class/devfreq/soc\:qcom,cpu6-cpu-l3-lat/max_freq
         echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
         echo 1016 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
-    elif [ $feature_id == 5 ]; then
+    elif [ $feature_id = 5 ]; then
         echo "SKU Configured : SA6150"
         echo 748800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
         echo 748800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
@@ -260,7 +260,7 @@ configure_sa6155_sku_parameters() {
         echo 1363200000 > /sys/class/devfreq/soc\:qcom,cpu6-cpu-l3-lat/max_freq
         echo 2 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
         echo 1333 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
-    elif [ $feature_id == 4 || $feature_id == 3 ]; then
+    elif [ $feature_id = 4 || $feature_id = 3 ]; then
         echo "SKU Configured : SA6155"
         echo 748800 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
         echo 748800 > /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq
@@ -337,14 +337,14 @@ configure_sa8195_sku_parameters() {
     echo 1113600 > $cpufreq_silver/scaling_min_freq
     echo 1171200 > $cpufreq_gold/scaling_min_freq
 
-    if [ $feature_id == 1 ]; then
+    if [ $feature_id = 1 ]; then
         echo "SKU Configured : SA8195P"
         # Setting min gpu freq to 392 MHz
         echo 4 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel
         # Setting max gpu freq to 670 MHz
         echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel
         echo 2092 > /sys/devices/platform/soc/soc:aop-set-ddr-freq/set_ddr_capped_freq
-    elif [ $feature_id == 0 ]; then
+    elif [ $feature_id = 0 ]; then
         echo "SKU Configured : SA8185P"
         # Setting min gpu freq to 392 MHz
         echo 4 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel
@@ -356,7 +356,7 @@ configure_sa8195_sku_parameters() {
     fi
 }
 
-function configure_memory_parameters_auto() {
+configure_memory_parameters_auto() {
         echo 0 > /proc/sys/vm/page-cluster
         echo 100 > /proc/sys/vm/swappiness
 }
@@ -1250,10 +1250,10 @@ case "$target" in
         done
 
         soc_revision=`cat /sys/devices/soc0/revision`
-        if [ "$soc_revision" == "2.0" ]; then
+        if [ "$soc_revision" = "2.0" ]; then
             #Disable suspend for v2.0
             echo pwr_dbg > /sys/power/wake_lock
-        elif [ "$soc_revision" == "2.1" ]; then
+        elif [ "$soc_revision" = "2.1" ]; then
             # Enable C4.D4.E4.M3 LPM modes
             # Disable D3 state
             echo 0 > /sys/module/lpm_levels/system/pwr/pwr-l2-gdhs/idle_enabled
@@ -1292,8 +1292,8 @@ case "$target" in
         ProductName=`grep ro.product.name /build.prop | sed "s/ro.product.name=//"`
 	#if the kernel version >=4.9,use the schedutil governor
 	KernelVersionStr=`cat /proc/sys/kernel/osrelease`
-	KernelVersionS=${KernelVersionStr:2:2}
-	KernelVersionA=${KernelVersionStr:0:1}
+	KernelVersionS=$(echo $KernelVersionStr | awk  '{ KernelVersionS=substr($0, 3, 2); print KernelVersionS; }')
+	KernelVersionA=$(echo $KernelVersionStr | awk  '{ KernelVersionA=substr($0, 1, 1); print KernelVersionA; }')
 	KernelVersionB=${KernelVersionS%.*}
         case $ProductName in
             *robot*)
@@ -1667,11 +1667,15 @@ case "$target" in
         echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:prime/max_freq
         echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3_1/soc:qcom,memlat:l3_1:silver/max_freq
 
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy2/scaling_governor
+        echo schedutil > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
+
         #read feature id from nvram
         reg_val=`cat /sys/devices/platform/soc/780158.qfprom/qfprom0/nvmem | od -An -t d4`
         feature_id=$(((reg_val >> 20) & 0xFF))
 
-        if [ $feature_id == 1 ]; then
+        if [ $feature_id = 1 ]; then
                 echo "SKU Configured : SA7255-BBBB"
                 echo 1574400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
                 echo 1900800 > /sys/devices/system/cpu/cpufreq/policy2/scaling_max_freq

@@ -1660,13 +1660,6 @@ case "$target" in
 
         configure_memory_parameters_auto
 
-        echo 921600  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:gold/min_freq
-        echo 921600  > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:prime/min_freq
-        echo 921600  > /sys/devices/system/cpu/bus_dcvs/L3_1/soc:qcom,memlat:l3_1:silver/min_freq
-        echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:gold/max_freq
-        echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3/soc:qcom,memlat:l3_0:prime/max_freq
-        echo 1612800 > /sys/devices/system/cpu/bus_dcvs/L3_1/soc:qcom,memlat:l3_1:silver/max_freq
-
         echo schedutil > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
         echo schedutil > /sys/devices/system/cpu/cpufreq/policy2/scaling_governor
         echo schedutil > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
@@ -1753,9 +1746,6 @@ case "$target" in
 	chown diag:root /sys/bus/coresight/reset_source_sink
 	chown diag:root /dev/byte-cntr1
 	chown diag:root /dev/byte-cntr
-
-;;
-esac
 
 ;;
 esac

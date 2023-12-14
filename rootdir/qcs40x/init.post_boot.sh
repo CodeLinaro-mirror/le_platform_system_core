@@ -47,16 +47,30 @@ else
 fi
 
 function configure_read_ahead_kb_values() {
-    MemTotalStr=`cat /proc/meminfo | grep MemTotal`
-    MemTotal=${MemTotalStr:16:8}
+	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+	MemTotal=${MemTotalStr:16:8}
 
-    # Set 128 for <= 3GB &
-    # set 512 for >= 4GB targets.
-    if [ $MemTotal -le 3145728 ]; then
-        echo 128 > /sys/block/sda/queue/read_ahead_kb
-    else
-        echo 512 > /sys/block/sda/queue/read_ahead_kb
-    fi
+	dmpts=$(ls /sys/block/*/queue/read_ahead_kb | grep -e dm -e mmc -e sd)
+	# dmpts holds below read_ahead_kb nodes if exists:
+	# /sys/block/dm-0/queue/read_ahead_kb to /sys/block/dm-10/queue/read_ahead_kb
+	# /sys/block/sda/queue/read_ahead_kb to /sys/block/sdh/queue/read_ahead_kb
+
+	# Set 128 for <= 4GB &
+	# set 512 for >= 5GB targets.
+	if [ $MemTotal -le 4194304 ]; then
+		ra_kb=128
+	else
+		ra_kb=512
+	fi
+	if [ -f /sys/block/mmcblk0/bdi/read_ahead_kb ]; then
+		echo $ra_kb > /sys/block/mmcblk0/bdi/read_ahead_kb
+	fi
+	if [ -f /sys/block/mmcblk0rpmb/bdi/read_ahead_kb ]; then
+		echo $ra_kb > /sys/block/mmcblk0rpmb/bdi/read_ahead_kb
+	fi
+	for dm in $dmpts; do
+		echo $ra_kb > $dm
+	done
 }
 
 function configure_memory_parameters() {
@@ -109,82 +123,64 @@ case "$target" in
         case "$soc_id" in
            "352" | "410" | "411")
 
-                #disable sched_boost in qcs405
-                if [ -f /proc/sys/kernel/sched_boost ]; then
-                    boost=`cat /proc/sys/kernel/sched_boost`
-                    if [ $boost != 0 ] ; then
-                        echo 0 > /proc/sys/kernel/sched_boost
-                    fi
-                fi
+		# PELT Tunable setting for qcs405, as WALT is disabled
+		sched="/proc/sys/kernel"
 
-                # core_ctl is not needed for qcs405. Disable it.
-                if [ -f /sys/devices/system/cpu/cpu0/core_ctl/disable ]; then
-                    echo 1 > /sys/devices/system/cpu/cpu0/core_ctl/disable
-                fi
+		echo 1 > $sched/sched_child_runs_first
+		echo 4194304 > $sched/sched_deadline_period_max_us
+		echo 100 > $sched/sched_deadline_period_min_us
+		echo 1 > $sched/sched_energy_aware
+		echo 1 > $sched/sched_pelt_multiplier
+		echo 100 > $sched/sched_rr_timeslice_ms
+		echo 1000000 > $sched/sched_rt_period_us
+		echo 950000 > $sched/sched_rt_runtime_us
+		echo 0 > $sched/sched_schedstats
+		echo 1024 > $sched/sched_util_clamp_max
+		echo 1024 > $sched/sched_util_clamp_min
+		echo 1024 > $sched/sched_util_clamp_min_rt_default
 
-                for latfloor in /sys/devices/platform/soc/*cpu-ddr-latfloor*/devfreq/*cpu-ddr-latfloor*
-                do
-                    echo "compute" > $latfloor/governor
-                    echo 10 > $latfloor/polling_interval
-                done
+		# configure bus-dcvs
+		bus_dcvs="/sys/devices/system/cpu/bus_dcvs"
 
-                for devfreq_gov in /sys/class/devfreq/soc:qcom,cpubw/governor
-                do
-                    node=`cat $devfreq_gov`
-                    if [ $node != "bw_hwmon" ] ; then
-                        echo "bw_hwmon" > $devfreq_gov
-                    fi
-                    for cpu_io_percent in /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/io_percent
-                    do
-                        echo 20 > $cpu_io_percent
-                    done
+		for device in $bus_dcvs/*
+		    do
+			cat $device/hw_min_freq > $device/boost_freq
+		    done
 
-                for cpu_guard_band in /sys/class/devfreq/soc:qcom,cpubw/bw_hwmon/guard_band_mbps
-                    do
-                        echo 30 > $cpu_guard_band
-                    done
-                done
+		for ddrbw in $bus_dcvs/DDR/*bwmon-ddr
+		    do
+			#echo "1720 2086 2929 3879 5161 5931 6881 7980" > $ddrbw/mbps_zones
+			echo 4 > $ddrbw/sample_ms
+			echo 68 > $ddrbw/io_percent
+			echo 20 > $ddrbw/hist_memory
+			echo 0 > $ddrbw/hyst_length
+			echo 80 > $ddrbw/down_thres
+			echo 30 > $ddrbw/guard_band_mbps
+			echo 250 > $ddrbw/up_scale
+			echo 762 > $ddrbw/idle_mbps
+			echo 710000 > $ddrbw/max_freq
+			echo 40 > $ddrbw/window_ms
+			done
 
-                # disable thermal core_control to update interactive gov settings
-                if [ -f /sys/module/msm_thermal/core_control/enabled ]; then
-                     echo 0 > /sys/module/msm_thermal/core_control/enabled
-                fi
+		for latfloor in $bus_dcvs/*/*latfloor
+		    do
+			echo 25000 > $latfloor/ipm_ceil
+		    done
 
                 echo 1 > /sys/devices/system/cpu/cpu0/online
-                echo "schedutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo "schedutil" >  /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
                 echo 0 > /sys/devices/system/cpu/cpufreq/schedutil/rate_limit_us
-                # set the hispeed freq
-                echo 1094400 > /sys/devices/system/cpu/cpufreq/schedutil/hispeed_freq
-                echo 85 > /sys/devices/system/cpu/cpufreq/schedutil/hispeed_load
-                echo 1094400 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+		echo 1094400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
 
-                # enable console suspend
+		# enable console suspend
                 echo Y > /sys/module/printk/parameters/console_suspend
-
-                # sched_load_boost as -6 is equivalent to target load as 85.
-                echo -6 > /sys/devices/system/cpu/cpu0/sched_load_boost
-                echo -6 > /sys/devices/system/cpu/cpu1/sched_load_boost
-                echo -6 > /sys/devices/system/cpu/cpu2/sched_load_boost
-                echo -6 > /sys/devices/system/cpu/cpu3/sched_load_boost
-
-                # re-enable thermal core_control now
-                if [ -f /sys/module/msm_thermal/core_control/enabled ]; then
-                     echo 1 > /sys/module/msm_thermal/core_control/enabled
-                fi
 
                 # Bring up all cores online
                 echo 1 > /sys/devices/system/cpu/cpu1/online
                 echo 1 > /sys/devices/system/cpu/cpu2/online
                 echo 1 > /sys/devices/system/cpu/cpu3/online
 
-                # Enable low power modes
-                # Keep L2-retention disabled
-                echo N > /sys/module/lpm_levels/perf/perf-l2-retention/idle_enabled
-                echo N > /sys/module/lpm_levels/perf/perf-l2-retention/suspend_enabled
-                echo N > /sys/module/lpm_levels/perf/perf-l2-gdhs/idle_enabled
-                echo N > /sys/module/lpm_levels/perf/perf-l2-gdhs/suspend_enabled
-
-                echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
+		echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
                 #echo mem > /sys/power/autosleep
 
                 configure_memory_parameters

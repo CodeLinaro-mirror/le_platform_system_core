@@ -1675,15 +1675,6 @@ case "$target" in
         reg_val=`cat /sys/devices/platform/soc/780158.qfprom/qfprom0/nvmem | od -An -t d4`
         feature_id=$(((reg_val >> 20) & 0xFF))
 
-        if [ $feature_id = 1 ]; then
-                echo "SKU Configured : SA7255-BBBB"
-                echo 1574400 > /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq
-                echo 1900800 > /sys/devices/system/cpu/cpufreq/policy2/scaling_max_freq
-                echo 1574400 > /sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq
-        else
-                echo "unknown feature_id value" $feature_id
-        fi
-
         # Configure RT parameters:
         # Long running RT task detection is confined to consolidated builds.
         # Set RT throttle runtime to 50ms more than long running RT

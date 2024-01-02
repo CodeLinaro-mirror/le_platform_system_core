@@ -36,6 +36,7 @@ StartLimitBurst=10
 Type=simple
 KillMode=process
 Restart=always
+NoNewPrivileges=ture
 ExecStartPre=-/etc/default/adbd
 ExecStart=/sbin/adbd
 ExecStartPost=-/etc/launch_adbd

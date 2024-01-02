@@ -34,7 +34,7 @@
 
 #include <stdbool.h>
 #include <log/log.h>
-
+#include <cutils/memory.h>
 #include "sys/system_properties.h"
 
 /***********************************************************************

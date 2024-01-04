@@ -199,7 +199,7 @@ run_configfs() {
 		ln -s functions/cser.dun.0 configs/c.1/f3
 	fi
 	ln -s functions/cser.nmea.1 configs/c.1/f4
-	ln -s functions/$2.rmnet configs/c.1/f5
+	ln -s functions/$2 configs/c.1/f5
 	ln -s functions/mass_storage.0 configs/c.1/f6
 	echo 0xA0 > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
@@ -229,7 +229,9 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport="rmnet_bam.rmnet_bam_dmux"
+		run_configfs  $udcname $xport &
 		;;
 	*8909* )
 		echo "This composition can't be supported on 8909"
@@ -239,7 +241,7 @@ case `source /sbin/usb/target` in
 		if [ -f /sys/class/android_usb/android$num/enable ]; then
 			run_9x35 &
 		else
-			xport="rmnet_bam"
+			xport="rmnet_bam.rmnet"
 			run_configfs $udcname $xport &
 		fi
                 ;;
@@ -254,7 +256,7 @@ case `source /sbin/usb/target` in
 		;;
 	*sdxpoorwills* | *sm8150* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		xport="gsi"
+		xport="gsi.rmnet"
 		run_configfs $udcname $xport &
 		;;
 	* )

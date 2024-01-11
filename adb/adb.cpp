@@ -94,8 +94,6 @@ bool no_sysprop_get_adb_run_as_root_conf() {
 
 ADB_MUTEX_DEFINE( D_lock );
 
-int HOST = 0;
-
 #if !ADB_HOST
 const char *adb_device_banner = "device";
 #endif
@@ -367,10 +365,10 @@ void send_connect(atransport *t)
     D("Calling send_connect \n");
     apacket *cp = get_apacket();
     cp->msg.command = A_CNXN;
-    cp->msg.arg0 = A_VERSION;
-    cp->msg.arg1 = MAX_PAYLOAD;
+    cp->msg.arg0 = t->get_protocol_version();
+    cp->msg.arg1 = t->get_max_payload();
     cp->msg.data_length = fill_connect_data((char *)cp->data,
-                                            sizeof(cp->data));
+                                            MAX_PAYLOAD_V1);
     send_packet(cp, t);
 }
 
@@ -413,24 +411,24 @@ void parse_banner(const char* banner, atransport* t) {
 
     const std::string& type = pieces[0];
     if (type == "bootloader") {
-        D("setting connection_state to CS_BOOTLOADER\n");
-        t->connection_state = CS_BOOTLOADER;
+        D("setting connection_state to kCsBootloader\n");
+        t->connection_state = kCsBootloader;
         update_transports();
     } else if (type == "device") {
-        D("setting connection_state to CS_DEVICE\n");
-        t->connection_state = CS_DEVICE;
+        D("setting connection_state to kCsDevice\n");
+        t->connection_state = kCsDevice;
         update_transports();
     } else if (type == "recovery") {
-        D("setting connection_state to CS_RECOVERY\n");
-        t->connection_state = CS_RECOVERY;
+        D("setting connection_state to kCsRecovery\n");
+        t->connection_state = kCsRecovery;
         update_transports();
     } else if (type == "sideload") {
-        D("setting connection_state to CS_SIDELOAD\n");
-        t->connection_state = CS_SIDELOAD;
+        D("setting connection_state to kCsSideload\n");
+        t->connection_state = kCsSideload;
         update_transports();
     } else {
-        D("setting connection_state to CS_HOST\n");
-        t->connection_state = CS_HOST;
+        D("setting connection_state to kCsHost\n");
+        t->connection_state = kCsHost;
     }
 }
 
@@ -448,34 +446,40 @@ void handle_packet(apacket *p, atransport *t)
     case A_SYNC:
         if(p->msg.arg0){
             send_packet(p, t);
-            if(HOST) send_connect(t);
+#if ADB_HOST
+            send_connect(t);
+#endif
         } else {
-            t->connection_state = CS_OFFLINE;
+            t->connection_state = kCsOffline;
             handle_offline(t);
             send_packet(p, t);
         }
         return;
 
     case A_CNXN: /* CONNECT(version, maxdata, "system-id-string") */
-            /* XXX verify version, etc */
-        if(t->connection_state != CS_OFFLINE) {
-            t->connection_state = CS_OFFLINE;
+        if(t->connection_state != kCsOffline) {
+            t->connection_state = kCsOffline;
             handle_offline(t);
         }
 
+        t->update_version(p->msg.arg0, p->msg.arg1);
         parse_banner(reinterpret_cast<const char*>(p->data), t);
 
-        if (HOST || !auth_required) {
+#if ADB_HOST
+        handle_online(t);
+#else
+        if (!auth_required) {
             handle_online(t);
-            if (!HOST) send_connect(t);
+            send_connect(t);
         } else {
             send_auth_request(t);
         }
+#endif
         break;
 
     case A_AUTH:
         if (p->msg.arg0 == ADB_AUTH_TOKEN) {
-            t->connection_state = CS_UNAUTHORIZED;
+            t->connection_state = kCsUnauthorized;
             t->key = adb_auth_nextkey(t->key);
             if (t->key) {
                 send_auth_response(p->data, p->msg.data_length, t);
@@ -740,7 +744,7 @@ int launch_server(int server_port)
 // Try to handle a network forwarding request.
 // This returns 1 on success, 0 on failure, and -1 to indicate this is not
 // a forwarding-related request.
-int handle_forward_request(const char* service, transport_type ttype, char* serial, int reply_fd)
+int handle_forward_request(const char* service, TransportType type, char* serial, int reply_fd)
 {
     if (!strcmp(service, "list-forward")) {
         // Create the list of forward redirections.
@@ -801,13 +805,13 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
         }
 
         std::string error_msg;
-        transport = acquire_one_transport(CS_ANY, ttype, serial, &error_msg);
+        transport = acquire_one_transport(kCsAny, type, serial, &error_msg);
         if (!transport) {
             SendFail(reply_fd, error_msg);
             return 1;
         }
 
-        install_status_t r;
+        InstallStatus r;
         if (createForward) {
             r = install_listener(local, remote, transport, no_rebind);
         } else {
@@ -841,7 +845,7 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
     return 0;
 }
 
-int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s)
+int handle_host_request(char *service, TransportType type, char* serial, int reply_fd, asocket *s)
 {
     if(!strcmp(service, "kill")) {
         fprintf(stderr,"adb server killed by remote request\n");
@@ -858,7 +862,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     // "transport-local:" is used for switching transport to the only local transport
     // "transport-any:" is used for switching transport to the only transport
     if (!strncmp(service, "transport", strlen("transport"))) {
-        transport_type type = kTransportAny;
+        TransportType type = kTransportAny;
 
         if (!strncmp(service, "transport-usb", strlen("transport-usb"))) {
             type = kTransportUsb;
@@ -872,7 +876,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
         }
 
         std::string error_msg = "unknown failure";
-        transport = acquire_one_transport(CS_ANY, type, serial, &error_msg);
+        transport = acquire_one_transport(kCsAny, type, serial, &error_msg);
 
         if (transport) {
             s->transport = transport;
@@ -935,7 +939,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
 
     if(!strncmp(service,"get-serialno",strlen("get-serialno"))) {
         const char *out = "unknown";
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         if (transport && transport->serial) {
             out = transport->serial;
         }
@@ -945,7 +949,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     }
     if(!strncmp(service,"get-devpath",strlen("get-devpath"))) {
         const char *out = "unknown";
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         if (transport && transport->devpath) {
             out = transport->devpath;
         }
@@ -962,14 +966,14 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     }
 
     if(!strncmp(service,"get-state",strlen("get-state"))) {
-        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        transport = acquire_one_transport(kCsAny, type, serial, NULL);
         SendOkay(reply_fd);
         SendProtocolString(reply_fd, transport->connection_state_name());
         return 0;
     }
 #endif // ADB_HOST
 
-    int ret = handle_forward_request(service, ttype, serial, reply_fd);
+    int ret = handle_forward_request(service, type, serial, reply_fd);
     if (ret >= 0)
       return ret - 1;
     return -1;

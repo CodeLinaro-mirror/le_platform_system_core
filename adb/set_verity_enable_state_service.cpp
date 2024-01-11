@@ -281,6 +281,9 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
         }
         match = match + strlen("androidboot.slot_suffix=");
         slot = strtok_r(match, " \t\n\r", &save_ptr);
+
+        if (slot == NULL)  goto errout;
+
         if (strcmp(slot, "_a") == 0) {
             device = adb_open(VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
             if (device < 0) {

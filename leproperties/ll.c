@@ -67,6 +67,8 @@ bool __create_list_and_add( const char* search_name, const char* property_value)
     property_db *ln = (property_db*) calloc(1, sizeof(property_db)*
         sizeof(unsigned char));
 
+    if (ln == NULL) return false;
+
     strlcpy(ln->unit.property_name, search_name, sizeof(ln->unit.property_name));
     strlcpy(ln->unit.property_value, property_value, sizeof(ln->unit.property_value));
 

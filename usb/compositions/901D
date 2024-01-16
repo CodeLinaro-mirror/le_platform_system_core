@@ -102,8 +102,8 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
-	*lemans* )
+case `. /sbin/usb/target` in
+	*lemans* | *sa_monacoau_ivi*)
 		udcname=a600000.dwc3
 		run_configfs $udcname &
 		;;

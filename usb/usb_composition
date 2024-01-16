@@ -42,61 +42,71 @@ legal_composition() {
 
 read_pid() {
 	local tmp_pid='0'
-	read -p "Pid number : " tmp_pid
+	echo "Pid number : "
+	read tmp_pid
 	while [ true ]; do
 		if [ `legal_composition $tmp_pid` = "1" ]; then
 			echo "$tmp_pid"
 			exit
 		fi
-		read -p "Illegal Pid number, try again : " tmp_pid
+		echo "Illegal Pid number, try again : "
+		read tmp_pid
 	done
 }
 
 read_hsic() {
 	local tmp_hsic='0'
-	read -p "Choose core: y - hsic, n - hsusb  ? (y/n)" tmp_hsic
+	echo "Choose core: y - hsic, n - hsusb  ? (y/n)"
+	read tmp_hsic
 	while [ true ]; do
 		if [ $tmp_hsic = "y" ] || [ $tmp_hsic = "n" ]; then
 			echo "$tmp_hsic"
 			exit
 		fi
-		read -p "Only 'y' or 'n' are allowed, try again : " tmp_hsic
+		echo "Only 'y' or 'n' are allowed, try again : "
+		read tmp_hsic
 	done
 }
 
 read_persistent() {
 	local tmp_persistent='0'
-	read -p "Would you like it to be the default composition ? (y/n)" tmp_persistent
+	echo "Would you like it to be the default composition ? (y/n)"
+	read tmp_persistent
 	while [ true ]; do
 		if [ $tmp_persistent = "y" ] || [ $tmp_persistent = "n" ]; then
 			echo "$tmp_persistent"
 			exit
 		fi
-		read -p "Only 'y' or 'n' are allowed, try again : " tmp_persistent
+		echo "Only 'y' or 'n' are allowed, try again : "
+		read tmp_persistent
 	done
 }
 
 read_immediate() {
 	local tmp_immediate='0'
-	read -p "Would you like the composition to change immediately? (y/n)" tmp_immediate
+	echo "Would you like the composition to change immediately? (y/n)"
+	read tmp_immediate
 	while [ true ]; do
 		if [ $tmp_immediate = "y" ] || [ $tmp_immediate = "n" ]; then
 			echo "$tmp_immediate"
 			exit
 		fi
-		read -p "Only 'y' or 'n' are allowed, try again : " tmp_immediate
+		echo "Only 'y' or 'n' are allowed, try again : "
+		read tmp_immediate
 	done
 }
 
 read_from_adb() {
 	local tmp_adbd='0'
-	read -p "Are you performing the composition switch from adbd? (y/n)" tmp_adbd
+	echo "Are you performing the composition switch from adbd? (y/n)"
+	read tmp_adbd
 	while [ true ]; do
 		if [ $tmp_adbd = "y" ] || [ $tmp_adbd = "n" ]; then
 			echo "$tmp_adbd"
 			exit
 		fi
-		read -p "Only 'y' or 'n' are allowed, try again : " tmp_adbd
+		echo "Only 'y' or 'n' are allowed, try again : "
+		read tmp_adbd
 	done
 }
 

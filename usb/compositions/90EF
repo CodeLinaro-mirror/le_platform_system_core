@@ -63,7 +63,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*sdxpoorwills* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &

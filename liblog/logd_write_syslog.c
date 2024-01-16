@@ -30,6 +30,10 @@
 #include <log/log.h>
 #include <syslog.h>
 #include <stdlib.h>
+#ifdef USE_GLIB
+#include <glib.h>
+#endif
+
 #define LOG_BUF_SIZE 1024
 
 #ifndef __unused

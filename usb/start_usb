@@ -49,7 +49,7 @@ case "$1" in
 
 	# find serialno from cmdline
 	serialno=`cat /proc/cmdline | grep -o "androidboot.serialno=[A-Za-z0-9]*" | cut -d "=" -f2`
-	if [ "$serialno" == "" ]; then
+	if [ "$serialno" = "" ]; then
 		echo "serialno not found with cmdline, use default"
 		serialno="12345678"
 	fi
@@ -91,6 +91,7 @@ case "$1" in
 		mkdir functions/gsi.gps
 		mkdir functions/ncm.0
 		mkdir functions/qdss.qdss
+		mkdir functions/qdss.qdss_sw
 		mkdir functions/qdss.qdss_mdm
 		mkdir functions/uac1.uac1
 		mkdir functions/uac2.0
@@ -139,20 +140,35 @@ case "$1" in
 
 	# mount functionfs
 	mkdir -p /dev/usb-ffs/adb
-	mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
-
+	if [ -d /sys/fs/smackfs ]; then
+		# change smack label of /dev/usb-ffs/adb/ep0 to System
+		mount -o smackfsdef=System,uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+		chsmack -a 'System' -t -r /dev/usb-ffs/adb
+	else
+		mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+	fi
 	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.diag ]; then
 		mkdir -p /dev/ffs-diag
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
 		mkdir -p /dev/ffs-diag-1
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
 		mkdir -p /dev/ffs-diag-2
-		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+		if [ -d /sys/fs/smackfs ]; then
+			# change smack label of /dev/ffs-diag()/ep0 to System
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
+			chsmack -a 'System' -t -r /dev/ffs-diag
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
+			chsmack -a 'System' -t -r /dev/ffs-diag-1
+			mount -o smackfsdef=System,uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+			chsmack -a 'System' -t -r /dev/ffs-diag-2
+		else
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
+			mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm2 /dev/ffs-diag-2
+		fi
 	fi
 
 	mount -o remount,gid=5,mode=620 /dev/pts
 
-	case `source /sbin/usb/target` in
+	case `. /sbin/usb/target` in
 		*9x15* )
 			# Nothing to do here for 9x15
 			;;
@@ -193,7 +209,7 @@ case "$1" in
 		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* )
 			echo 901D > /etc/usb/boot_hsusb_comp
 		        ;;
-		*sm8150* | *sm6150* | *sm8195* | *direwolf* | *lemans* )
+		*sm8150* | *sm6150* | *sm8195* | *direwolf* | *lemans* | *sa_monacoau_ivi* )
 			echo 901D > /etc/usb/boot_hsusb_comp
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
 				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
@@ -227,7 +243,7 @@ case "$1" in
 		ln -s control/header/h control/class/ss
 
 		mkdir -p streaming/uncompressed/u/360p
-		echo -e "666666\n1000000\n5000000\n" > streaming/uncompressed/u/360p/dwFrameInterval
+		echo "666666 1000000 5000000" > streaming/uncompressed/u/360p/dwFrameInterval
 
 		mkdir -p streaming/uncompressed/u/720p
 		echo 1280 > streaming/uncompressed/u/720p/wWidth
@@ -236,10 +252,10 @@ case "$1" in
 		echo 29491200 > streaming/uncompressed/u/720p/dwMaxBitRate
 		echo 1843200 > streaming/uncompressed/u/720p/dwMaxVideoFrameBufferSize
 		echo 5000000 > streaming/uncompressed/u/720p/dwDefaultFrameInterval
-		echo -e "5000000\n" > streaming/uncompressed/u/720p/dwFrameInterval
+		echo "5000000" > streaming/uncompressed/u/720p/dwFrameInterval
 
 		mkdir -p streaming/mjpeg/m/360p
-		echo -e "666666\n1000000\n5000000\n" > streaming/mjpeg/m/360p/dwFrameInterval
+		echo "666666 1000000 5000000" > streaming/mjpeg/m/360p/dwFrameInterval
 
 		mkdir -p streaming/mjpeg/m/720p
 		echo 1280 > streaming/mjpeg/m/720p/wWidth
@@ -248,7 +264,7 @@ case "$1" in
 		echo 29491200 > streaming/mjpeg/m/720p/dwMaxBitRate
 		echo 1843200 > streaming/mjpeg/m/720p/dwMaxVideoFrameBufferSize
 		echo 5000000 > streaming/mjpeg/m/720p/dwDefaultFrameInterval
-		echo -e "5000000\n" > streaming/mjpeg/m/720p/dwFrameInterval
+		echo "5000000" > streaming/mjpeg/m/720p/dwFrameInterval
 
 		echo 0x04 > /sys/kernel/config/usb_gadget/g1/functions/uvc.0/streaming/mjpeg/m/bmaControls
 
@@ -256,10 +272,10 @@ case "$1" in
 		echo 1920 > streaming/h264/h/960p/wWidth
 		echo 960 > streaming/h264/h/960p/wWidth
 		echo 40 > streaming/h264/h/960p/bLevelIDC
-		echo -e "333667\n" > streaming/h264/h/960p/dwFrameInterval
+		echo "333667" > streaming/h264/h/960p/dwFrameInterval
 
 		mkdir -p streaming/h264/h/1920p
-		echo -e "333667\n" > streaming/h264/h/1920p/dwFrameInterval
+		echo "333667" > streaming/h264/h/1920p/dwFrameInterval
 
 		mkdir streaming/header/h
 		ln -s streaming/uncompressed/u streaming/header/h
@@ -310,7 +326,7 @@ case "$1" in
 		fi
 		/sbin/usb/compositions/$pid n $adbd_params
 
-		if [ "$SOFTAP_W_DUN" == "Y" ]
+		if [ "$SOFTAP_W_DUN" = "Y" ]
 		then
 			echo "DUN+SOFTAP mode is enabled."
 			echo 1  > /sys/devices/virtual/android_usb/android0/f_serial/dun_w_softap_enable

@@ -318,8 +318,9 @@ static void local_socket_event_func(int fd, unsigned ev, void* _s)
     if (ev & FDE_READ) {
         apacket *p = get_apacket();
         unsigned char *x = p->data;
-        size_t avail = MAX_PAYLOAD;
-        int r;
+        const size_t max_payload = s->get_max_payload();
+        size_t avail = max_payload;
+        int r = 0;
         int is_eof = 0;
 
         while (avail > 0) {
@@ -342,10 +343,10 @@ static void local_socket_event_func(int fd, unsigned ev, void* _s)
         }
         D("LS(%u): fd=%d post avail loop. r=%d is_eof=%d forced_eof=%d\n",
           s->id, s->fd, r, is_eof, s->fde.force_eof);
-        if ((avail == MAX_PAYLOAD) || (s->peer == 0)) {
+        if ((avail == max_payload) || (s->peer == 0)) {
             put_apacket(p);
         } else {
-            p->len = MAX_PAYLOAD - avail;
+            p->len = max_payload - avail;
 
             r = s->peer->enqueue(s->peer, p);
             D("LS(%u): fd=%d post peer->enqueue(). r=%d\n", s->id, s->fd,
@@ -557,9 +558,9 @@ void connect_to_remote(asocket *s, const char *destination)
 {
     D("Connect_to_remote call RS(%u) fd=%d\n", s->id, s->fd);
     apacket *p = get_apacket();
-    int len = strlen(destination) + 1;
+    size_t len = strlen(destination) + 1;
 
-    if(len > (MAX_PAYLOAD-1)) {
+    if(len > (s->get_max_payload()-1)) {
         fatal("destination oversized");
     }
 
@@ -679,7 +680,7 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
 #if ADB_HOST
     char *service = NULL;
     char* serial = NULL;
-    transport_type ttype = kTransportAny;
+    TransportType type = kTransportAny;
 #endif
 
     D("SS(%u): enqueue %u\n", s->id, p->len);
@@ -688,8 +689,8 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
         s->pkt_first = p;
         s->pkt_last = p;
     } else {
-        if((s->pkt_first->len + p->len) > MAX_PAYLOAD) {
-            D("SS(%u): overflow\n", s->id);
+        if((s->pkt_first->len + p->len) > s->get_max_payload()) {
+            D("SS(%d): overflow\n", s->id);
             put_apacket(p);
             goto fail;
         }
@@ -736,13 +737,13 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
             service = serial_end + 1;
         }
     } else if (!strncmp(service, "host-usb:", strlen("host-usb:"))) {
-        ttype = kTransportUsb;
+        type = kTransportUsb;
         service += strlen("host-usb:");
     } else if (!strncmp(service, "host-local:", strlen("host-local:"))) {
-        ttype = kTransportLocal;
+        type = kTransportLocal;
         service += strlen("host-local:");
     } else if (!strncmp(service, "host:", strlen("host:"))) {
-        ttype = kTransportAny;
+        type = kTransportAny;
         service += strlen("host:");
     } else {
         service = NULL;
@@ -756,7 +757,7 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
             ** the OKAY or FAIL message and all we have to do
             ** is clean up.
             */
-        if(handle_host_request(service, ttype, serial, s->peer->fd, s) == 0) {
+        if(handle_host_request(service, type, serial, s->peer->fd, s) == 0) {
                 /* XXX fail message? */
             D( "SS(%d): handled host service '%s'\n", s->id, service );
             goto fail;
@@ -803,7 +804,8 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
 #else /* !ADB_HOST */
     if (s->transport == NULL) {
         std::string error_msg = "unknown failure";
-        s->transport = acquire_one_transport(CS_ANY, kTransportAny, NULL, &error_msg);
+        s->transport =
+            acquire_one_transport(kCsAny, kTransportAny, NULL, &error_msg);
 
         if (s->transport == NULL) {
             SendFail(s->peer->fd, error_msg);
@@ -812,7 +814,7 @@ static int smart_socket_enqueue(asocket *s, apacket *p)
     }
 #endif
 
-    if(!(s->transport) || (s->transport->connection_state == CS_OFFLINE)) {
+    if(!(s->transport) || (s->transport->connection_state == kCsOffline)) {
            /* if there's no remote we fail the connection
             ** right here and terminate it
             */
@@ -887,4 +889,15 @@ void connect_to_smartsocket(asocket *s)
     s->peer = ss;
     ss->peer = s;
     s->ready(s);
+}
+
+size_t asocket::get_max_payload() const {
+    size_t max_payload = MAX_PAYLOAD;
+    if (transport) {
+        max_payload = std::min(max_payload, transport->get_max_payload());
+    }
+    if (peer && peer->transport) {
+        max_payload = std::min(max_payload, peer->transport->get_max_payload());
+    }
+    return max_payload;
 }

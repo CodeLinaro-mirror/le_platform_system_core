@@ -32,7 +32,7 @@ static int remote_read(apacket *p, atransport *t)
         return -1;
     }
 
-    if(check_header(p)) {
+    if(check_header(p, t)) {
         D("remote usb: check_header failed\n");
         return -1;
     }
@@ -80,7 +80,7 @@ static void remote_kick(atransport *t)
     usb_kick(t->usb);
 }
 
-void init_usb_transport(atransport *t, usb_handle *h, int state)
+void init_usb_transport(atransport *t, usb_handle *h, ConnectionState state)
 {
     D("transport: usb\n");
     t->close = remote_close;
@@ -91,12 +91,6 @@ void init_usb_transport(atransport *t, usb_handle *h, int state)
     t->connection_state = state;
     t->type = kTransportUsb;
     t->usb = h;
-
-#if ADB_HOST
-    HOST = 1;
-#else
-    HOST = 0;
-#endif
 }
 
 #if ADB_HOST

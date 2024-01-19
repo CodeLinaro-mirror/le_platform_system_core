@@ -59,7 +59,7 @@ static int __android_log_level(const char *tag, int def)
      */
     static char *last_tag;
     static int32_t global_serial;
-    int32_t current_global_serial;
+    int32_t current_global_serial = 0;
     static struct cache tag_cache[2] = {
         { NULL, -1, 0 },
         { NULL, -1, 0 }

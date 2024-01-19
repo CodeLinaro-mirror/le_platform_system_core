@@ -178,7 +178,7 @@ bool __remove_node_from_list(unsigned char* property_name)
         LOG("List is Empty\n");
         retval = false;
     } else {
-        property_db *ln_prev, *ln = glisthead;
+        property_db *ln_prev = NULL, *ln = glisthead;
 
         while(ln != NULL) {
             if (!strncmp(ln->unit.property_name, property_name,

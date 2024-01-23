@@ -26,7 +26,7 @@ if [ ! -e ${DLKM_DIR}/modules.load ]; then
 fi
 
 if [ -e ${DLKM_DIR}/modules.blocklist ]; then
-	blocklist_expr="$(sed -n -e 's/blocklist \(.*\)/\1/p' ${DLKM_DIR}/modules.blocklist | sed -e 's/-/_/g' -e 's/^/-e /')"
+	blocklist_expr="$(sed -n -e 's/blocklist \(.*\)/\1/p' ${DLKM_DIR}/modules.blocklist | sed -e 's/^/-e /')"
 else
 # Use pattern that won't be found in modules list so that all modules pass through grep below
 	echo "modules.blocklist doesn't exist!"

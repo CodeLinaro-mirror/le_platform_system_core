@@ -56,11 +56,7 @@ sync
 
 sleep 1
 # If UDC is not set up set it up.
-if [ $( /sbin/usb/target | grep -Ec "lemans") -gt 0 ]; then
-    udcname=a600000.dwc3
-else
-    udcname=`ls -1 /sys/class/udc | head -n 1`
-fi
+udcname=`ls -1 /sys/class/udc | head -n 1`
 
 echo $udcname > /sys/kernel/config/usb_gadget/g1/UDC
 

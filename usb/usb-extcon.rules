@@ -1,1 +1,4 @@
-SUBSYSTEM=="extcon", ATTR{state}=="USB=1", ATTR{name}=="2-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh'"
+SUBSYSTEM=="extcon", ATTR{state}=="USB=1", ATTR{name}=="2-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh usb1 &'"
+SUBSYSTEM=="extcon", ATTR{state}=="USB=1", ATTR{name}=="1-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh usb1 &'"
+SUBSYSTEM=="extcon", ATTR{state}=="USB=0", ATTR{name}=="1-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh usb0 &'"
+SUBSYSTEM=="extcon", ATTR{state}=="USB=0", ATTR{name}=="2-006b", RUN+="/bin/sh -c '/etc/usb_post_extcon.sh usb0 &'"

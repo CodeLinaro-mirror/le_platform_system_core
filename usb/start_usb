@@ -261,6 +261,8 @@ case "$1" in
 		        ;;
 		*kalama* )
 			echo device > /sys/class/usb_role/a600000.ssusb-role-switch/role
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
 		*sm8450p* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then

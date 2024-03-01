@@ -153,7 +153,9 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9x25 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		rndis_inst="rndis.rndis"
+		run_configfs  $udcname &
 		;;
 	*8909* )
 		run_9x25 &

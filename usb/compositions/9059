@@ -151,14 +151,14 @@ run_configfs() {
 	echo 0x9059 > idProduct
 	echo "RNDIS_DIAG_ADB" > configs/c.1/strings/0x409/configuration
 	echo "ECM" > configs/c.2/strings/0x409/configuration
-	ln -s functions/gsi.rndis configs/c.1/f1
+	ln -s functions/$2 configs/c.1/f1
 	if [ -e functions/ffs.diag ]; then
 		ln -s functions/ffs.diag configs/c.1/f2
 	else
 		ln -s functions/diag.diag configs/c.1/f2
 	fi
 	ln -s functions/ffs.adb configs/c.1/f3
-	ln -s functions/gsi.ecm configs/c.2/f1
+	ln -s functions/$3 configs/c.2/f1
 	echo 0xA0 > configs/c.1/bmAttributes
 	echo 0xA0 > configs/c.2/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
@@ -178,7 +178,10 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport_rndis="rndis.rndis"
+		xport_ecm="ecm.ecm"
+		run_configfs $udcname $xport_rndis $xport_ecm &
 		;;
 	*8909* )
 		run_9607 &
@@ -191,7 +194,9 @@ case `source /sbin/usb/target` in
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport_rndis="gsi.rndis"
+		xport_ecm="gsi.ecm"
+		run_configfs $udcname $xport_rndis $xport_ecm &
 		;;
 	* )
 		run_9650 &

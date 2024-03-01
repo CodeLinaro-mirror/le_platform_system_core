@@ -157,6 +157,7 @@ case "$1" in
 		mdkir functions/hid.usb0
 		mkdir functions/ccid.ccid
 		mkdir functions/rmnet_bam.rmnet_bam_dmux
+		mkdir functions/mbim.mbim
 
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then

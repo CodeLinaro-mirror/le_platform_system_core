@@ -147,15 +147,15 @@ run_configfs() {
 	echo "RNDIS" > configs/c.1/strings/0x409/configuration
 	echo "ECM" > configs/c.2/strings/0x409/configuration
 	echo "MBIM" > configs/c.3/strings/0x409/configuration
-	ln -s functions/gsi.rndis configs/c.1/f1
-	ln -s functions/gsi.ecm configs/c.2/f1
-	ln -s functions/gsi.mbim configs/c.3/f1
+	ln -s functions/$2 configs/c.1/f1
+	ln -s functions/$3 configs/c.2/f1
+	ln -s functions/$4 configs/c.3/f1
 	ln -s configs/c.3 os_desc
 	echo 1 > os_desc/use
 	echo 0xA5 > os_desc/b_vendor_code
 	echo MSFT100 > os_desc/qw_sign
-	echo ALTRCFG > functions/gsi.mbim/os_desc/interface.MBIM/compatible_id
-	echo 3 > functions/gsi.mbim/os_desc/interface.MBIM/sub_compatible_id
+	echo ALTRCFG > functions/$4/os_desc/interface.MBIM/compatible_id
+	echo 3 > functions/$4/os_desc/interface.MBIM/sub_compatible_id
 	echo 0xA0 > configs/c.1/bmAttributes
 	echo 0xA0 > configs/c.2/bmAttributes
 	echo 0xA0 > configs/c.3/bmAttributes
@@ -175,7 +175,11 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport_rndis="rndis.rndis"
+		xprot_ecm="ecm.ecm"
+		xport_mbim="mbim.mbim"
+		run_configfs $udcname $xport_rndis $xport_ecm $xport_mbim &
 		;;
 	*8909* )
 		run_9607 &
@@ -188,7 +192,10 @@ case `source /sbin/usb/target` in
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport_rndis="gsi.rndis"
+		xprot_ecm="gsi.ecm"
+		xport_mbim="gsi.mbim"
+		run_configfs $udcname $xport_rndis $xport_ecm $xport_mbim &
 		;;
 	* )
 		run_9650 &

@@ -156,6 +156,7 @@ case "$1" in
 		mkdir functions/ncm.0
 		mdkir functions/hid.usb0
 		mkdir functions/ccid.ccid
+		mkdir functions/rmnet_bam.rmnet_bam_dmux
 
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
@@ -261,6 +262,8 @@ case "$1" in
 		        ;;
 		*kalama* )
 			echo device > /sys/class/usb_role/a600000.ssusb-role-switch/role
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
 		*sm8450p* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then

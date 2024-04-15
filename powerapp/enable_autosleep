@@ -40,12 +40,11 @@ case "$1" in
 
 	case "$soc_id" in
 	"290" | "296" | "297" | "298" | "299" | "322")
-		echo -n "# Enabling autosleep for mdm9607: "
+		echo -n "Enabling autosleep for mdm9607: "
 
-		echo off  > /sys/power/autosleep
+		echo mem > /sys/power/autosleep
 		# Enable Low Power modes
-                echo -n "# Disabling low power modes for now"
-		#echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
+		echo N > /sys/module/lpm_levels_legacy/parameters/sleep_disabled
 		;;
 	esac
 

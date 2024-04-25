@@ -147,6 +147,7 @@ case "$1" in
 		mkdir functions/qdss.qdss
 		mkdir functions/qdss.qdss_mdm
 		mkdir functions/qdss.qdss_sw
+		mkdir functions/uac1_legacy.uac1_legacy1
 		mkdir functions/uac1.uac1
 		mkdir functions/uac2.0
 		mkdir functions/uvc.0

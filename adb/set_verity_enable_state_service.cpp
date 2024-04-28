@@ -142,7 +142,7 @@ static int set_verity_enabled_state(int fd, const char *block_device,
         goto errout;
     }
     /*Find the offset of cmdline member in boot_img_hdr structure */
-    offset = offsetof(struct boot_img_hdr, cmdline);
+    offset = offsetof(boot_img_hdr, cmdline);
     if (lseek64(device, offset, SEEK_SET) < 0) {
         WriteFdFmt(fd, "Could not seek to start of verity metadata block.\n");
         goto errout;

@@ -120,6 +120,9 @@ case $TARGET in
 	*sdxpinn* )
 		res="sdxpinn"
 		;;
+	*qrb5165* )
+		res="qrb5165"
+		;;
 	* )
 		res="none"
 		;;

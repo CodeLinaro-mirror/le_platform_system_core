@@ -283,6 +283,14 @@ case "$1" in
 				USB_ROLE_SWITCH="Y"
 			fi
 			;;
+		*qrb5165* )
+			echo "Issue reset to internal usb hub"
+			if [ -f /sys/bus/usb/devices/2-1/authorized ]; then
+				echo 0 > /sys/bus/usb/devices/2-1/authorized
+				sleep 1
+				echo 1 > /sys/bus/usb/devices/2-1/authorized
+			fi
+			;;
 	esac
 
 	#

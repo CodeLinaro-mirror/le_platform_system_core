@@ -150,7 +150,7 @@ run_configfs() {
 		ln -s functions/diag.diag configs/c.1/f1
 	fi
 	ln -s functions/cser.dun.0 configs/c.1/f2
-	ln -s functions/gsi.rmnet configs/c.1/f3
+	ln -s functions/$2 configs/c.1/f3
 	ln -s functions/ffs.adb configs/c.1/f4
 	echo 0x80 > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
@@ -164,7 +164,9 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport="rmnet_bam.rmnet_bam_dmux"
+		run_configfs  $udcname $xport & 
 		;;
 	*8909* )
 		run_9607 &
@@ -183,7 +185,8 @@ case `source /sbin/usb/target` in
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport="gsi.rmnet"
+		run_configfs $udcname $xport &
 		;;
 	* )
 		run_9x35 &

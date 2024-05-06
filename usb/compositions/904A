@@ -101,7 +101,9 @@ case $target in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9x35 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		qdss_func="qdss.qdss_mdm"
+		run_configfs  $udcname &
 		;;
 	*8909* )
 		run_9x35 &

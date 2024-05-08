@@ -177,7 +177,7 @@ case `source /sbin/usb/target` in
 	*9607* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		xport_rndis="rndis.rndis"
-		xprot_ecm="ecm.ecm"
+		xport_ecm="ecm.ecm"
 		xport_mbim="mbim.mbim"
 		run_configfs $udcname $xport_rndis $xport_ecm $xport_mbim &
 		;;
@@ -193,7 +193,7 @@ case `source /sbin/usb/target` in
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		xport_rndis="gsi.rndis"
-		xprot_ecm="gsi.ecm"
+		xport_ecm="gsi.ecm"
 		xport_mbim="gsi.mbim"
 		run_configfs $udcname $xport_rndis $xport_ecm $xport_mbim &
 		;;

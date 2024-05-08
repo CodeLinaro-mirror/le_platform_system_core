@@ -230,7 +230,7 @@ run_configfs() {
 	ln -s functions/cser.dun.0 configs/c.1/f3
 	ln -s functions/$2 configs/c.1/f4
 	ln -s functions/$3 configs/c.2/f1
-	ln -s functions$4 configs/c.3/f1
+	ln -s functions/$4 configs/c.3/f1
 	ln -s configs/c.3 os_desc
 	echo 1 > os_desc/use
 	echo 0xA5 > os_desc/b_vendor_code

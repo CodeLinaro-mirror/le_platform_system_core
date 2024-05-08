@@ -60,6 +60,11 @@ libcutils_la_CPPFLAGS += -D_GNU_SOURCE
 if LE_PROPERTIES
 libcutils_la_CPPFLAGS += -DLE_PROPERTIES
 endif
+
+if ENABLE_VSOCK
+libcutils_la_CPPFLAGS += -DWITH_VSOCK
+endif
+
 libcutils_la_LDFLAGS  = -lpthread @LIBLOG_LIBS@
 
 if BUILD_HOST

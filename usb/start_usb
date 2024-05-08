@@ -452,6 +452,7 @@ case "$1" in
 	#Initialize NCM configuration
 	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
 		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
+		echo 8000 > max_segment_size
 		echo WINNCM > os_desc/interface.ncm/compatible_id
 	fi
 

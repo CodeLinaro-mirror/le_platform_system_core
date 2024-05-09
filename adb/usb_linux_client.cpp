@@ -412,7 +412,8 @@ static void *usb_ffs_open_thread(void *x)
     struct usb_handle *usb = (struct usb_handle *)x;
     char value[PROPERTY_VALUE_MAX];
     DIR *udcdir;
-    struct dirent *file, **filelist;
+    struct dirent *file = NULL;
+    struct dirent **filelist;
     int fd, n, i;
 
     while (true) {

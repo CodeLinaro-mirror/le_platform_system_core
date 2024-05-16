@@ -39,7 +39,7 @@ autoreconf -if
 
 %files
 %license NOTICE
-/sbin/adbd
+%{_sbindir}/adbd
 %{_unitdir}/adbd.service
 %{_unitdir}/multi-user.target.wants/adbd.service
 %{_libdir}/libadbd.so.0.0.0

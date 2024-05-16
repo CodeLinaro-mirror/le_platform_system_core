@@ -46,8 +46,7 @@ libadbd_la_CPPFLAGS += -DSELINUX_IS_ENABLE
 endif
 
 # Build adb daemon
-# Prefer adbd to be located in /sbin for historical reasons
-root_sbindir       := "/sbin"
+root_sbindir       := "/usr/sbin"
 root_sbin_PROGRAMS := adbd
 
 adbd_SOURCES  := adb_main.cpp

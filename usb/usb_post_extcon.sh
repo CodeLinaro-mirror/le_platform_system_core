@@ -8,29 +8,32 @@
 
 count=0
 
-while [ $count -lt 70 ] ; do
+while [ $count -lt 50 ] ; do
     PID=`cat /sys/kernel/config/usb_gadget/g1/idProduct`
     UDC=`cat /sys/kernel/config/usb_gadget/g1/UDC`
     connection_state=`cat /sys/class/android_usb/android0/state`
 
-    if [ "$connection_state" ==  "CONFIGURED" ]; then
-       if [ "$PID" == "0x908c" ]; then
-            if [ "$UDC" == "a600000.dwc3" ]; then
-                 ifconfig usb0 192.168.1.20 netmask 255.255.255.0
-                 echo "USB Configured"
-            else
-                 echo "UDC not set to a600000.dwc3"
-            fi
-           else
-           echo "PID is not 0x908c"
+    if [ $1 == "usb1" ]; then
+        if [ "$connection_state" ==  "CONFIGURED" ] && [ "$PID" == "0x908c" ] && [ "$UDC" == "a600000.dwc3" ]; then
+                    ifconfig usb0 192.168.1.20 netmask 255.255.255.0
+                    echo "USB Configured"
+                    break
+        else
+            /bin/sleep 0.1
+            count=`expr $count + 1`
+            continue
         fi
-        break
     else
-        /bin/sleep 0.1
-        continue
+        if [ "$connection_state" ==  "DISCONNECTED" ] && [ "$PID" == "0x908c" ] && [ "$UDC" == "a600000.dwc3" ]; then
+                    ifconfig usb0 0.0.0.0
+                    echo "USB Configured"
+                    break
+        else
+            /bin/sleep 0.1
+            count=`expr $count + 1`
+            continue
+        fi
     fi
-
-    count=`expr $count + 1`
 done
 
 exit 0

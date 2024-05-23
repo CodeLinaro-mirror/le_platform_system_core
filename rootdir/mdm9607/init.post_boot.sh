@@ -28,3 +28,14 @@
 #
 
 # Empty file
+
+soc_id=`cat /sys/devices/soc0/soc_id`
+case "$soc_id" in
+	"299" | "572")
+		echo -n "Starting powerconfig for mdm9607: "
+		# enable ondemand on bootup
+		echo "ondemand" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+		echo 400000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+		echo "done"
+		;;
+esac

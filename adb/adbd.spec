@@ -27,7 +27,7 @@ This package contains an unversioned shared library.
 %prep
 %setup -n %{name}
 
-%define EXTRA_OECONF --with-glib --with-mkbootimg-includes=%{_builddir}/mkbootimg --with-systemd --enable-adb-root --disable-system-properties
+%define EXTRA_OECONF --with-glib --with-mkbootimg-includes=%{_builddir}/mkbootimg/include/bootimg --with-systemd --enable-adb-root --disable-system-properties
 
 %build
 autoreconf -if

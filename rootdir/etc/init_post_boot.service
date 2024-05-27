@@ -34,7 +34,7 @@ After=multi-user.target
 
 [Service]
 Type=oneshot
-NoNewPrivileges=ture
+NoNewPrivileges=true
 RemainAfterExit=yes
 ExecStart= /bin/sh -c '/etc/initscripts/init_post_boot start'
 

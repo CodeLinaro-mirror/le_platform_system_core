@@ -464,6 +464,14 @@ case "$1" in
 		echo WINNCM > os_desc/interface.ncm/compatible_id
 	fi
 
+	#Initialize RNDIS SW path configuration
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/rndis.rndis ]; then
+		cd /sys/kernel/config/usb_gadget/g1/functions/rndis.rndis
+		echo ef > class
+		echo 4 > subclass
+		echo 1 > protocol
+	fi
+
 	# enable adaptive for capture path
 	if [ -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
 		echo adaptive > /sys/kernel/config/usb_gadget/g1/functions/uac2.0/c_sync

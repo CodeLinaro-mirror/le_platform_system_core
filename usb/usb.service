@@ -40,6 +40,6 @@ Environment="adbd_params=0 y"
 RemainAfterExit=yes
 ExecStartPre=/sbin/mount-copybind /systemrw/adb_devid  /etc/adb_devid
 ExecStartPre=/sbin/mount-copybind /systemrw/boot_hsusb_comp /etc/usb/boot_hsusb_comp
-NoNewPrivileges=ture
+NoNewPrivileges=true
 ExecStart=/etc/initscripts/usb start
 Nice=-5

@@ -331,6 +331,17 @@ case "$1" in
 			echo 1  > /sys/devices/virtual/android_usb/android0/f_serial/dun_w_softap_enable
 		fi
 	fi
+
+	# 4EE7 for auto target 8775, 8650, 8255, 7255, 8620:
+	if [ -f /sys/devices/soc0/machine ]; then
+		target=`cat /sys/devices/soc0/machine`
+	else
+		target=`getprop ro.board.platform`
+	fi
+	if [ "$(echo $target | grep "8775\|7255\|8620")" != "" ]; then
+		usb_composition 4EE7
+		echo "usb_composition 4EE7 done!"
+	fi
 	;;
 
   stop)

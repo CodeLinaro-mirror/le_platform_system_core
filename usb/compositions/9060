@@ -123,7 +123,9 @@ case $target in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9x35 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		qdss_func="qdss.qdss_mdm"
+		run_configfs $udcname &
 		;;
 	*8909* )
 		run_9x35 &
@@ -135,7 +137,7 @@ case $target in
 		run_9x35 &
 		;;
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
-		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* )
+		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* | *sa525m* )
 		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || \
 		   [ $target == "cinder" ] || [ $target == "sm8450p" ] || [ $target == "sdxpinn" ]; then
 			qdss_func="qdss.qdss_mdm"

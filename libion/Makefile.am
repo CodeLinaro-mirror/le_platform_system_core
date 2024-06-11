@@ -27,7 +27,7 @@ libion_la_CFLAGS += -include ion_new.h
 endif
 libion_la_LDFLAGS := -llog
 
-bindir       := "/bin"
+bindir       := "/usr/bin"
 bin_PROGRAMS := iontest
 
 iontest_SOURCES := $(ion_sources)

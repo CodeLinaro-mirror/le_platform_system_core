@@ -124,7 +124,7 @@ case "$1" in
 		fi
 
 		# correct SELinux labels on new /dev nodes
-		if [ -x /sbin/restorecon ]
+		if [ -x /sbin/restorecon ] && [ -f /dev/at_usb0 || -f /dev/at_usb1 ]
 		then
 			/sbin/restorecon /dev/at_usb0 /dev/at_usb1
 		fi

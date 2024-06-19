@@ -197,8 +197,17 @@ run_configfs() {
 		ln -s functions/diag.diag configs/c.1/f1
 	fi
 	ln -s functions/ffs.adb configs/c.1/f2
-	ln -s functions/cser.dun.0 configs/c.1/f3
-	ln -s functions/gsi.rmnet configs/c.1/f4
+	if [ -f /etc/data/usb/softap_w_dun ]
+	then
+		SOFTAP_W_DUN=`cat /etc/data/usb/softap_w_dun`
+	fi
+	if [ "$SOFTAP_W_DUN" == "Y" ]
+	then
+		ln -s functions/gser.0 configs/c.1/f3
+	else
+		ln -s functions/cser.dun.0 configs/c.1/f3
+	fi
+	ln -s functions/$2 configs/c.1/f4
 	ln -s functions/mass_storage.0 configs/c.1/f5
 	ln -s functions/$qdss_func configs/c.1/f6
 	echo 1 > functions/$qdss_func/enable_debug_inface
@@ -231,7 +240,10 @@ case $target in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		qdss_func="qdss.qdss_mdm"
+		xport="rmnet_bam.rmnet_bam_dmux"
+		run_configfs  $udcname $xport &
 		;;
 	*8909* )
 		echo "This composition can't be supported on 8909"
@@ -245,7 +257,7 @@ case $target in
 	*sdx20* )
 		run_sdx20 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* )
 		if [ $target == "sdxlemur" ] || [ $target == "sdxpinn" ]
 		then
 			qdss_func="qdss.qdss_mdm"
@@ -253,7 +265,8 @@ case $target in
 			qdss_func="qdss.qdss"
 		fi
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport="gsi.rmnet"
+		run_configfs $udcname $xport &
 		;;
 	* )
 		run_9650 &

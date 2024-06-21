@@ -27,6 +27,9 @@ common_sources += socket_loopback_client.c
 common_sources += socket_loopback_server.c
 common_sources += socket_network_client.c
 common_sources += sockets.c
+if BUILD_HOST
+common_sources += klog.c
+endif
 endif
 
 target_sources  = android_reboot.c

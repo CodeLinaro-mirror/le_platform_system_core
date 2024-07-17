@@ -191,6 +191,9 @@ static const struct fs_path_config android_files[] = {
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/udev/scripts/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/share/udhcpc/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/initscripts/*" },
+    { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/migration_to_psm.sh" },
+    { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/udhcpc.script" },
+    { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/utopia/utopia_init.sh" },
     { 00644, AID_ROOT,      AID_ROOT,      0, "system/etc/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/depmod.d/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/etc/modprobe.d/*" },
@@ -244,6 +247,7 @@ static const struct fs_path_config android_files[] = {
     { 04755, AID_ROOT,      AID_ROOT,      0, "system/usr/sbin/pppd" },
 
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/usr/bin/*" },
+    { 00755, AID_ROOT,      AID_ROOT,      0, "system/usr/ccsp/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/usr/sbin/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/usr/lib/*" },
     { 00755, AID_ROOT,      AID_ROOT,      0, "system/usr/libexec/*" },

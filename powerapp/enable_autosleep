@@ -44,7 +44,7 @@ case "$1" in
 
 		echo mem > /sys/power/autosleep
 		# Enable Low Power modes
-		echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
+		echo N > /sys/module/lpm_levels_legacy/parameters/sleep_disabled
 		;;
 	esac
 

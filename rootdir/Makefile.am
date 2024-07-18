@@ -22,10 +22,10 @@ postboot_systemd_DATA = init_post_boot.service
 endif
 
 install-data-hook:
-	chmod  go-x $(DESTDIR)$(root_etcdir)/init.post_boot.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/init.post_boot.sh
 if LOG_RESTRICT
-	chmod  go-x $(DESTDIR)$(root_etcdir)/logging-restrictions.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/logging-restrictions.sh
 endif
 if ENABLE_DEBUG
-	chmod  go-x $(DESTDIR)$(root_etcdir)/init.qti.debug.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/init.qti.debug.sh
 endif

@@ -58,3 +58,5 @@ autoreconf -if
 %{_includedir}/base/strings.h
 %{_includedir}/base/stringprintf.h
 %{_includedir}/base/macros.h
+%{_includedir}/base/parseint.h
+%{_includedir}/base/unique_fd.h

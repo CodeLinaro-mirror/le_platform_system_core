@@ -142,7 +142,7 @@ static int set_verity_enabled_state(int fd, const char *block_device,
         goto errout;
     }
     /*Find the offset of cmdline member in boot_img_hdr structure */
-    offset = offsetof(struct boot_img_hdr, cmdline);
+    offset = offsetof(boot_img_hdr, cmdline);
     if (lseek64(device, offset, SEEK_SET) < 0) {
         WriteFdFmt(fd, "Could not seek to start of verity metadata block.\n");
         goto errout;
@@ -275,7 +275,10 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
         match = match + strlen("androidboot.slot_suffix=");
         slot = strtok_r(match, " \t\n\r", &save_ptr);
 
-        if (slot == NULL)  goto errout;
+        if (slot == NULL) {
+            WriteFdFmt(fd, "Failed to get slot\n");
+            goto errout;
+        }
 
         if (strcmp(slot, "_a") == 0) {
             device = adb_open(VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
@@ -323,6 +326,12 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
         else {
             match = match + strlen("androidboot.slot_suffix=");
             slot = strtok_r(match, " \t\n\r", &save_ptr);
+
+            if (slot == NULL) {
+                WriteFdFmt(fd, "Failed to get slot\n");
+                goto errout;
+            }
+
             if (strcmp(slot, "_a") == 0) {
                 device = adb_open(DPK_VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
                 if (device < 0) {

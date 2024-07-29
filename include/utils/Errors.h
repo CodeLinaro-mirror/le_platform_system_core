@@ -65,14 +65,15 @@ enum {
     WOULD_BLOCK         = -EWOULDBLOCK, 
     TIMED_OUT           = -ETIMEDOUT,
     UNKNOWN_TRANSACTION = -EBADMSG,
-#else    
+#else
     BAD_INDEX           = -E2BIG,
     NOT_ENOUGH_DATA     = (UNKNOWN_ERROR + 3),
     WOULD_BLOCK         = (UNKNOWN_ERROR + 4),
     TIMED_OUT           = (UNKNOWN_ERROR + 5),
     UNKNOWN_TRANSACTION = (UNKNOWN_ERROR + 6),
-#endif    
+#endif
     FDS_NOT_ALLOWED     = (UNKNOWN_ERROR + 7),
+    UNEXPECTED_NULL     = (UNKNOWN_ERROR + 8),
 };
 
 // Restore define; enumeration is in "android" namespace, so the value defined
@@ -82,7 +83,7 @@ enum {
 #endif
 
 }; // namespace android
-    
+
 // ---------------------------------------------------------------------------
     
 #endif // ANDROID_ERRORS_H

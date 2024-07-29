@@ -228,15 +228,15 @@ run_configfs() {
 	fi
 	ln -s functions/ffs.adb configs/c.1/f2
 	ln -s functions/cser.dun.0 configs/c.1/f3
-	ln -s functions/gsi.rmnet configs/c.1/f4
-	ln -s functions/gsi.ecm configs/c.2/f1
-	ln -s functions/gsi.mbim configs/c.3/f1
+	ln -s functions/$2 configs/c.1/f4
+	ln -s functions/$3 configs/c.2/f1
+	ln -s functions/$4 configs/c.3/f1
 	ln -s configs/c.3 os_desc
 	echo 1 > os_desc/use
 	echo 0xA5 > os_desc/b_vendor_code
 	echo MSFT100 > os_desc/qw_sign
-	echo ALTRCFG > functions/gsi.mbim/os_desc/interface.MBIM/compatible_id
-	echo 3 > functions/gsi.mbim/os_desc/interface.MBIM/sub_compatible_id
+	echo ALTRCFG > functions/$4/os_desc/interface.MBIM/compatible_id
+	echo 3 > functions/$4/os_desc/interface.MBIM/sub_compatible_id
 	echo 0xA0 > configs/c.1/bmAttributes
 	echo 0xA0 > configs/c.2/bmAttributes
 	echo 0xA0 > configs/c.3/bmAttributes
@@ -267,7 +267,11 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport_rmnet="rmnet_bam.rmnet_bam_dmux"
+		xport_ecm="ecm.ecm"
+		xport_mbim="mbim.mbim"
+		run_configfs $udcname $xport_rmnet $xport_ecm $xport_mbim &
 		;;
 	*8909* )
 		run_9607 &
@@ -281,9 +285,12 @@ case `source /sbin/usb/target` in
 	*sdx20* )
 		run_sdx20 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sa525m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport_rmnet="gsi.rmnet"
+		xport_ecm="gsi.ecm"
+		xport_mbim="gsi.mbim"
+		run_configfs $udcname $xport_rmnet $xport_ecm $xport_mbim &
 		;;
 	* )
 		run_9650 &

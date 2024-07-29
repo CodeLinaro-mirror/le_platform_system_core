@@ -186,9 +186,9 @@ run_configfs() {
 	fi
 	ln -s functions/ffs.adb configs/c.1/f2
 	ln -s functions/cser.dun.0 configs/c.1/f3
-	ln -s functions/gsi.rmnet configs/c.1/f4
+	ln -s functions/$2 configs/c.1/f4
 	ln -s functions/mass_storage.0 configs/c.1/f5
-	ln -s functions/uac1.uac1 configs/c.1/f6
+	ln -s functions/$3 configs/c.1/f6
 	echo 0x80 > configs/c.1/bmAttributes
 	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
@@ -217,7 +217,10 @@ case `source /sbin/usb/target` in
 		run_9x35 &
 		;;
 	*9607* )
-		run_9607 &
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		xport_rmnet="rmnet_bam.rmnet_bam_dmux"
+		xport_uac="uac1_legacy.uac1_legacy1"
+		run_configfs $udcname $xport_rmnet $xport_uac &
 		;;
 	*8909* )
 		echo "This composition can't be supported on 8909"
@@ -231,9 +234,11 @@ case `source /sbin/usb/target` in
 	*sdx20* )
 		run_sdx20 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
-		run_configfs $udcname &
+		xport_rmnet="gsi.rmnet"
+		xport_uac="uac1.uac1"
+		run_configfs $udcname $xport_rmnet $xport_uac &
 		;;
 	* )
 		run_9650 &

@@ -108,6 +108,9 @@ case $TARGET in
 	*sa410m* )
 		res="sa410m";
 		;;
+	*sa525m* )
+		res="sa525m";
+		;;
 	*cinder* )
 		res="cinder"
 		;;
@@ -119,6 +122,9 @@ case $TARGET in
 		;;
 	*sdxpinn* )
 		res="sdxpinn"
+		;;
+	*qrb5165* )
+		res="qrb5165"
 		;;
 	* )
 		res="none"

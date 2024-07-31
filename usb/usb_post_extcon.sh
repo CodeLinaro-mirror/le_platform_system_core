@@ -14,7 +14,7 @@ while [ $count -lt 50 ] ; do
     connection_state=`cat /sys/class/android_usb/android0/state`
 
     if [ $1 == "usb1" ]; then
-        if [ "$connection_state" ==  "CONFIGURED" ] && [ "$PID" == "0x908c" ] && [ "$UDC" == "a600000.dwc3" ]; then
+        if [ "$connection_state" ==  "CONFIGURED" ] && [ "$PID" == "0x9131" ] && [ "$UDC" == "a600000.dwc3" ]; then
                     ifconfig usb0 192.168.1.20 netmask 255.255.255.0
                     echo "USB Configured"
                     break
@@ -24,7 +24,7 @@ while [ $count -lt 50 ] ; do
             continue
         fi
     else
-        if [ "$connection_state" ==  "DISCONNECTED" ] && [ "$PID" == "0x908c" ] && [ "$UDC" == "a600000.dwc3" ]; then
+        if [ "$connection_state" ==  "DISCONNECTED" ] && [ "$PID" == "0x9131" ] && [ "$UDC" == "a600000.dwc3" ]; then
                     ifconfig usb0 0.0.0.0
                     echo "USB Configured"
                     break

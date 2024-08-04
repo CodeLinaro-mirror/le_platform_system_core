@@ -199,6 +199,7 @@ typedef enum android_pixel_format {
     HAL_PIXEL_FORMAT_RAW16 = 0x20,
     HAL_PIXEL_FORMAT_RAW32 = 0x50,
     HAL_PIXEL_FORMAT_RAW_PLAIN16_12 = 0x42,
+    HAL_PIXEL_FORMAT_RAW_PLAIN16_16 = 0x52,
 
     /*
      * Android RAW10 format:

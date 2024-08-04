@@ -1,5 +1,4 @@
 [Unit]
-SourcePath=/sbin/leprop-service
 Description=leprop Service for LE property service
 Before=persist-prop.service
 Requires=persist-prop.service
@@ -11,7 +10,7 @@ Group=leprop
 Restart=always
 NoNewPrivileges=true
 ExecStartPre=+/bin/mkdir -p -m 777 /dev/socket
-ExecStart=/sbin/leprop-service
+ExecStart=/usr/sbin/leprop-service
 
 [Install]
 WantedBy=sysinit.target

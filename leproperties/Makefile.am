@@ -1,4 +1,4 @@
-root_sbindir       := "/sbin"
+root_sbindir       := "/usr/sbin"
 root_sbin_PROGRAMS := leprop-service
 
 leprop_service_SOURCES  = property_service.c

@@ -338,7 +338,7 @@ case "$1" in
 	else
 		target=`getprop ro.board.platform`
 	fi
-	if [ "$(echo $target | grep "8775\|7255\|8620")" != "" ]; then
+	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650")" != "" ]; then
 		usb_composition 4EE7
 		echo "usb_composition 4EE7 done!"
 	fi

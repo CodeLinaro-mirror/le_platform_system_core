@@ -147,6 +147,7 @@ case "$1" in
 		mkdir functions/qdss.qdss
 		mkdir functions/qdss.qdss_mdm
 		mkdir functions/qdss.qdss_sw
+		mkdir functions/uac1_legacy.uac1_legacy1
 		mkdir functions/uac1.uac1
 		mkdir functions/uac2.0
 		mkdir functions/uvc.0
@@ -156,6 +157,8 @@ case "$1" in
 		mkdir functions/ncm.0
 		mdkir functions/hid.usb0
 		mkdir functions/ccid.ccid
+		mkdir functions/rmnet_bam.rmnet_bam_dmux
+		mkdir functions/mbim.mbim
 
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
@@ -261,6 +264,8 @@ case "$1" in
 		        ;;
 		*kalama* )
 			echo device > /sys/class/usb_role/a600000.ssusb-role-switch/role
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
+			echo 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
 		*sm8450p* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
@@ -276,6 +281,14 @@ case "$1" in
 			adbd_params="0 y"
 			if [ -d /sys/class/usb_role/a600000.ssusb-role-switch ]; then
 				USB_ROLE_SWITCH="Y"
+			fi
+			;;
+		*qrb5165* )
+			echo "Issue reset to internal usb hub"
+			if [ -f /sys/bus/usb/devices/2-1/authorized ]; then
+				echo 0 > /sys/bus/usb/devices/2-1/authorized
+				sleep 1
+				echo 1 > /sys/bus/usb/devices/2-1/authorized
 			fi
 			;;
 	esac
@@ -447,6 +460,7 @@ case "$1" in
 	#Initialize NCM configuration
 	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
 		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
+		echo 8000 > max_segment_size
 		echo WINNCM > os_desc/interface.ncm/compatible_id
 	fi
 

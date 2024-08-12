@@ -23,6 +23,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "cutils/properties.h"
 
@@ -326,10 +327,19 @@ void set_verity_enabled_state_service_le(int fd, void* cookie)
             }
         }
         else {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot", "/",
+            char filename[]="/dev/block/bootdevice/by-name/vendor_boot";
+ 	    if (access(filename, F_OK) != -1)
+            { 
+               if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot", "/",
                                               enable)) {
                     any_changed = true;
+                }
             }
+            else
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot", "/",
+                                              enable)) {
+                    any_changed = true;
+               }
         }
         if (any_changed) {
             WriteFdFmt(fd, "Now reboot your device for settings to take effect\n");

@@ -142,11 +142,12 @@ static uint64_t atrace_get_property()
 
     // Only set the "app" tag if this process was selected for app-level debug
     // tracing.
-    if (atrace_is_app_tracing_enabled()) {
-        tags |= ATRACE_TAG_APP;
-    } else {
-        tags &= ~ATRACE_TAG_APP;
-    }
+    tags |= ATRACE_TAG_APP;
+    // if (atrace_is_app_tracing_enabled()) {
+    //     tags |= ATRACE_TAG_APP;
+    // } else {
+    //     tags &= ~ATRACE_TAG_APP;
+    // }
 
     return (tags | ATRACE_TAG_ALWAYS) & ATRACE_TAG_VALID_MASK;
 }

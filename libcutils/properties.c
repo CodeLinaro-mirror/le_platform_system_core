@@ -119,7 +119,10 @@ void read_shm_atags_property(const char *key __unused, char *value)
         atrace_shmid = shm_open(ATRACE_SHMEM_DEV, O_RDONLY, 0);
         if (atrace_shmid < 0)
         {
-            ALOGE("read shm atag, error open property_value, errno (%d)",errno);
+            if (errno != 2)
+            {
+                ALOGE("read shm atag, error open property_value, errno (%d)",errno);
+            }
             return;
         }
     }

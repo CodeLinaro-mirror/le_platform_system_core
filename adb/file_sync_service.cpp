@@ -154,7 +154,15 @@ static bool handle_send_file(int s, const char* path, uid_t uid,
         fd = adb_open_mode(path, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode);
     }
     if (fd < 0 && errno == EEXIST) {
-        fd = adb_open_mode(path, O_WRONLY | O_CLOEXEC, mode);
+        if (do_unlink) {
+            // File still exists even though it should have been unlinked.
+            // Unlink can fail in some cases such as a bind mount to a file on a read-only
+            // filesystem. In such case, add O_TRUNC option so that file starts with zero size
+            // as expected.
+            fd = adb_open_mode(path, O_WRONLY | O_CLOEXEC | O_TRUNC, mode);
+        } else {
+            fd = adb_open_mode(path, O_WRONLY | O_CLOEXEC, mode);
+        }
     }
     if (fd < 0) {
         SendSyncFailErrno(s, "couldn't create file");

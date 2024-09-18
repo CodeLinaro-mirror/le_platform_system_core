@@ -64,6 +64,13 @@ AC_ARG_ENABLE(leproperties,
 
 AM_CONDITIONAL(LE_PROPERTIES, [test "x$leprop" = "xyes"])
 
+AC_ARG_ENABLE(vsock,
+      AC_HELP_STRING([--enable-vsock], [Enable VSOCK foradbd]),
+         [vsock="yes"], [vsock="no"])
+
+AM_CONDITIONAL(ENABLE_VSOCK, [test "x$vsock" = "xyes"])
+
+
 AC_CONFIG_FILES([ \
     Makefile \
     libcutils.pc

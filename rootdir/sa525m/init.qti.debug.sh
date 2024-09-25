@@ -1784,10 +1784,8 @@ enable_SA525M_debug()
 	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_prepare_trb/enable
 	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_ep_dequeue/enable
 	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_gadget_ep_disable/enable
-	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_readl/enable
 	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_ep_queue/enable
 	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_gadget_ep_enable/enable
-	echo 1 > /sys/kernel/debug/tracing/events/dwc3/dwc3_writel/enable
 
 	echo 1 > /sys/kernel/debug/tracing/events/gadget/usb_ep_alloc_request/enable
 	echo 1 > /sys/kernel/debug/tracing/events/gadget/usb_ep_clear_halt/enable

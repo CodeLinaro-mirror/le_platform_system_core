@@ -20,16 +20,16 @@ echo -n "Watermark boost is disabled" > /dev/kmsg
 tracefs=/sys/kernel/debug/tracing
 
 #SPI
-mkdir $tracefs/instances/spi_qup
-echo 2 > $tracefs/instances/spi_qup/buffer_size_kb
-echo 1 > $tracefs/instances/spi_qup/events/qup_spi_trace/enable
-echo 1 > $tracefs/instances/spi_qup/tracing_on
+#mkdir $tracefs/instances/spi_qup
+#echo 2 > $tracefs/instances/spi_qup/buffer_size_kb
+#echo 1 > $tracefs/instances/spi_qup/events/qup_spi_trace/enable
+#echo 1 > $tracefs/instances/spi_qup/tracing_on
 
 #I2C
-mkdir $tracefs/instances/i2c_qup
-echo 2 > $tracefs/instances/i2c_qup/buffer_size_kb
-echo 1 > $tracefs/instances/i2c_qup/events/qup_i2c_trace/enable
-echo 1 > $tracefs/instances/i2c_qup/tracing_on
+#mkdir $tracefs/instances/i2c_qup
+#echo 2 > $tracefs/instances/i2c_qup/buffer_size_kb
+#echo 1 > $tracefs/instances/i2c_qup/events/qup_i2c_trace/enable
+#echo 1 > $tracefs/instances/i2c_qup/tracing_on
 
 #GENI_COMMON
 #mkdir $tracefs/instances/qupv3_common

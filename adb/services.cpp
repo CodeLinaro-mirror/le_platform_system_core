@@ -114,7 +114,7 @@ void restart_unroot_service(int fd, void *cookie) {
         if (f > 0) {
             char buf[ROOT_MAGIC_SIZE];
             if (unix_read(f, buf, sizeof(buf)) != -1) {
-                if (strcmp(buf, ROOT_MAGIC) == 0) {
+                if (strncmp(buf, ROOT_MAGIC,ROOT_MAGIC_SIZE) == 0) {
                    adb_lseek(f, 0 , SEEK_SET);
                    if (unix_write(f, "#NOROOT#", 8) == -1) {
                        D("failed to update /tmp/.adb.root");

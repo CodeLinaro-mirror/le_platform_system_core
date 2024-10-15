@@ -12,6 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
 #ifndef _LIBS_LOG_LOG_READ_H
@@ -30,11 +34,11 @@
 // efficient behavior. Also, pass-by-reference breaks C/C++ ABI.
 struct log_time {
 public:
-    uint32_t tv_sec; // good to Feb 5 2106
-    uint32_t tv_nsec;
+    uint64_t tv_sec;
+    uint64_t tv_nsec;
 
-    static const uint32_t tv_sec_max = 0xFFFFFFFFUL;
-    static const uint32_t tv_nsec_max = 999999999UL;
+    static const uint64_t tv_sec_max = 0xFFFFFFFFFFFFFFFFUL;
+    static const uint64_t tv_nsec_max = 99999999999999999UL;
 
     log_time(const timespec &T)
     {
@@ -163,8 +167,8 @@ public:
 #else
 
 typedef struct log_time {
-    uint32_t tv_sec;
-    uint32_t tv_nsec;
+    uint64_t tv_sec;
+    uint64_t tv_nsec;
 } __attribute__((__packed__)) log_time;
 
 #endif

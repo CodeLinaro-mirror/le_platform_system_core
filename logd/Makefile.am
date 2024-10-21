@@ -1,9 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
-root_sbindir       = "/sbin"
+root_sbindir       = "@rootprefix@/sbin"
 root_sbin_PROGRAMS = logd
 
-root_libdir = "/lib"
+root_libdir = "@rootprefix@/lib"
 
 logd_SOURCES = main.cpp \
     LogCommand.cpp \

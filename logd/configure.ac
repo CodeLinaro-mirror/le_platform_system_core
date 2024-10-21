@@ -35,6 +35,12 @@ PKG_CHECK_MODULES([LIBBASE], [libbase])
 AC_SUBST([LIBBASE_CFLAGS])
 AC_SUBST([LIBBASE_LIBS])
 
+AC_ARG_WITH([rootprefix],
+    [AS_HELP_STRING([--with-rootprefix=DIR], [Set the root prefix directory])],
+    [rootprefix=$withval],
+    [rootprefix=""])
+AC_SUBST([rootprefix])
+
 AC_ARG_WITH([glib],
       AS_HELP_STRING([--with-glib],
          [enable glib, building HLOS systems which use glib]))

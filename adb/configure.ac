@@ -81,6 +81,12 @@ fi
 
 AM_CONDITIONAL([HOST_OS_LINUX], [test "x$HOST_OS" = "xlinux"])
 
+AC_ARG_WITH([rootprefix],
+    [AS_HELP_STRING([--with-rootprefix=DIR], [Set the root prefix directory])],
+    [rootprefix=$withval],
+    [rootprefix=""])
+AC_SUBST([rootprefix])
+
 AC_ARG_WITH([glib],
       AC_HELP_STRING([--with-glib],
          [enable glib, building HLOS systems which use glib]))
@@ -128,6 +134,10 @@ AC_ARG_WITH(bootver,
        [BOOT_HDR_VER="$withval"], [BOOT_HDR_VER="0"])
 
 AC_SUBST(BOOT_HDR_VER)
+
+AC_CHECK_FUNCS([strlcpy])
+AM_CONDITIONAL(USE_G_STRLCPY, [test  "$ac_cv_func_strlcpy" = "no"])
+
 
 AC_CONFIG_FILES([ \
     Makefile \

@@ -12,8 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
-
 /*
  * Implementation of the user-space ashmem API for devices, which have our
  * ashmem-enabled kernel. See ashmem-sim.c for the "fake" tmp-based version,
@@ -34,6 +37,8 @@
 #include <cutils/ashmem.h>
 
 #define ASHMEM_DEVICE	"/dev/ashmem"
+
+size_t strlcpy(char *dst, const char *src, size_t size);
 
 /*
  * ashmem_create_region - creates a new ashmem region and returns the file

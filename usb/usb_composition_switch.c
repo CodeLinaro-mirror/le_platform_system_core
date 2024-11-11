@@ -82,5 +82,5 @@ int main(int argc, char **argv) {
             system(command);
             exit(EXIT_SUCCESS);
     }
-
+    return 0;
 }

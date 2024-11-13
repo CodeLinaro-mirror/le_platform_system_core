@@ -5,6 +5,10 @@
 ** This file is dual licensed.  It may be redistributed and/or modified
 ** under the terms of the Apache 2.0 License OR version 2 of the GNU
 ** General Public License.
+**
+** Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+** Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+** SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #ifndef _LIBS_LOG_LOGGER_H
@@ -28,8 +32,8 @@ struct logger_entry {
     uint16_t    __pad;  /* no matter what, we get 2 bytes of padding */
     int32_t     pid;    /* generating process's pid */
     int32_t     tid;    /* generating process's tid */
-    int32_t     sec;    /* seconds since Epoch */
-    int32_t     nsec;   /* nanoseconds */
+    int64_t     sec;    /* seconds since Epoch */
+    int64_t     nsec;   /* nanoseconds */
     char        msg[0]; /* the entry's payload */
 } __attribute__((__packed__));
 
@@ -43,8 +47,8 @@ struct logger_entry_v2 {
     uint16_t    hdr_size;  /* sizeof(struct logger_entry_v2) */
     int32_t     pid;       /* generating process's pid */
     int32_t     tid;       /* generating process's tid */
-    int32_t     sec;       /* seconds since Epoch */
-    int32_t     nsec;      /* nanoseconds */
+    int64_t     sec;       /* seconds since Epoch */
+    int64_t     nsec;      /* nanoseconds */
     uint32_t    euid;      /* effective UID of logger */
     char        msg[0];    /* the entry's payload */
 } __attribute__((__packed__));
@@ -54,8 +58,8 @@ struct logger_entry_v3 {
     uint16_t    hdr_size;  /* sizeof(struct logger_entry_v3) */
     int32_t     pid;       /* generating process's pid */
     int32_t     tid;       /* generating process's tid */
-    int32_t     sec;       /* seconds since Epoch */
-    int32_t     nsec;      /* nanoseconds */
+    int64_t     sec;       /* seconds since Epoch */
+    int64_t     nsec;      /* nanoseconds */
     uint32_t    lid;       /* log id of the payload */
     char        msg[0];    /* the entry's payload */
 } __attribute__((__packed__));

@@ -381,7 +381,7 @@ void* VectorImpl::_grow(size_t where, size_t amount)
             "[%p] _grow: where=%d, amount=%d, count=%d",
             this, (int)where, (int)amount, (int)mCount); // caller already checked
 
-    size_t new_size;
+    size_t new_size = 0;
     LOG_ALWAYS_FATAL_IF(!safe_add(&new_size, mCount, amount), "new_size overflow");
 
     if (capacity() < new_size) {
@@ -459,7 +459,7 @@ void VectorImpl::_shrink(size_t where, size_t amount)
             "[%p] _shrink: where=%d, amount=%d, count=%d",
             this, (int)where, (int)amount, (int)mCount); // caller already checked
 
-    size_t new_size;
+    size_t new_size = 0;
     LOG_ALWAYS_FATAL_IF(!safe_sub(&new_size, mCount, amount));
 
     if (new_size < (capacity() / 2)) {

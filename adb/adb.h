@@ -214,6 +214,8 @@ public:
         transport_fde = {};
         protocol_version = A_VERSION;
         max_payload = MAX_PAYLOAD;
+        close = default_close;
+        kick = default_kick;
     }
 
     virtual ~atransport() {}
@@ -260,6 +262,14 @@ public:
     size_t get_max_payload() const;
 
 private:
+    static void default_close(atransport* t) {
+        (void) t;
+        return;
+    }
+    static void default_kick(atransport* t) {
+        (void) t;
+        return;
+    }
     int protocol_version;
     size_t max_payload;
 

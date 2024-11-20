@@ -167,7 +167,7 @@ if [ -f /sys/devices/soc0/soc_id ]; then
 fi
 
 case "$platformid" in
-    "603")
+    "603"|"668")
     # Disable Core control on silver/gold/gold_plus
     echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
     echo 0 > /sys/devices/system/cpu/cpu3/core_ctl/enable
@@ -182,7 +182,7 @@ case "$platformid" in
 esac
 
 case "$platformid" in
-    "519"|"536"|"600"|"601"|"603")
+    "519"|"536"|"600"|"601"|"603"|"668")
     rev=`cat /sys/devices/soc0/revision`
     ddr_type=`od -An -tx /proc/device-tree/memory/ddr_device_type`
     ddr_type4="07"

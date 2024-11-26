@@ -6,7 +6,6 @@
 get_num_logical_cores_in_physical_cluster()
 {
 	i=0
-	logical_cores=(0 0 0 0 0 0)
 	if [ -f /sys/devices/system/cpu/cpu0/topology/cluster_id ] ; then
 		physical_cluster="cluster_id"
 	else
@@ -18,20 +17,18 @@ get_num_logical_cores_in_physical_cluster()
 			num_cores=$(cat $i/related_cpus | wc -w)
 			first_cpu=$(echo "$i" | sed 's/[^0-9]*//g')
 			cluster_id=$(cat /sys/devices/system/cpu/cpu$first_cpu/topology/$physical_cluster)
-			logical_cores[cluster_id]=$num_cores
+			if [ $cluster_id -eq 0 ]; then
+				logical_cores0=$num_cores
+			elif [ $cluster_id -eq 1  ]; then
+				logical_cores1=$num_cores
+			elif [ $cluster_id -eq 2 ]; then
+				logical_cores2=$num_cores
+			elif [ $cluster_id -eq 3 ]; then
+				logical_cores3=$num_cores
+			fi
 		fi
 	done
-	cpu_topology=""
-	j=0
-	physical_cluster_count=$1
-	while [[ $j -lt $physical_cluster_count ]]; do
-		cpu_topology+=${logical_cores[$j]}
-		if [ $j -lt $physical_cluster_count-1 ]; then
-			cpu_topology+="_"
-		fi
-		j=$((j+1))
-	done
-	echo $cpu_topology
+	echo $logical_cores0"_"$logical_cores1"_"$logical_cores2"_"$logical_cores3
 }
 
 #Implementing this mechanism to jump to powersave governor if the script is not running

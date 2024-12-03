@@ -126,6 +126,9 @@ case $TARGET in
 	*qrb5165* )
 		res="qrb5165"
 		;;
+	*pineapple* )
+		res="pineapple"
+		;;
 	* )
 		res="none"
 		;;

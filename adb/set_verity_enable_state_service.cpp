@@ -308,46 +308,60 @@ void set_verity_enabled_state_service_le(int fd, void* cookie)
         if (fgets(slot, sizeof(slot), fp) != NULL) {
             WriteFdFmt(fd, "slot is %s\n", slot);
         }
+
+#if defined(BOOT_HEADER_VERSION) && BOOT_HEADER_VERSION < 3
         if (strcmp(slot, "_a") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_a", "/",
-                                              enable)) {
-                    any_changed = true;
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_a", "/", enable)) {
+                any_changed = true;
             }
-        }
-        else if (strcmp(slot, "_b") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_b", "/",
-                                              enable)) {
-                    any_changed = true;
+        } else if (strcmp(slot, "_b") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_b", "/", enable)) {
+                any_changed = true;
             }
-        }
-        else if (strcmp(slot, "_c") == 0) {
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_c", "/",
-                                              enable)) {
-                    any_changed = true;
+        } else if (strcmp(slot, "_c") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot_c", "/", enable)) {
+                any_changed = true;
             }
-        }
-        else {
-            char filename[]="/dev/block/bootdevice/by-name/vendor_boot";
- 	    if (access(filename, F_OK) != -1)
-            { 
-               if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot", "/",
-                                              enable)) {
+        } else {
+            char filename[] = "/dev/block/bootdevice/by-name/boot";
+            if (access(filename, F_OK) != -1) {
+                if (!set_verity_enabled_state(fd, filename, "/", enable)) {
                     any_changed = true;
                 }
             }
-            else
-            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot", "/",
-                                              enable)) {
-                    any_changed = true;
-               }
         }
+#else
+        if (strcmp(slot, "_a") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_a", "/", enable)) {
+                any_changed = true;
+            }
+        } else if (strcmp(slot, "_b") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_b", "/", enable)) {
+                any_changed = true;
+            }
+        } else if (strcmp(slot, "_c") == 0) {
+            if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/vendor_boot_c", "/", enable)) {
+                any_changed = true;
+            }
+        } else {
+            char filename[] = "/dev/block/bootdevice/by-name/vendor_boot";
+            if (access(filename, F_OK) != -1) {
+                if (!set_verity_enabled_state(fd, filename, "/", enable)) {
+                    any_changed = true;
+                }
+            } else {
+                if (!set_verity_enabled_state(fd, "/dev/block/bootdevice/by-name/boot", "/", enable)) {
+                    any_changed = true;
+                }
+            }
+        }
+#endif
+
         if (any_changed) {
             WriteFdFmt(fd, "Now reboot your device for settings to take effect\n");
         }
-    }
-    else {
-        WriteFdFmt(fd, "%s-verity only works for userdebug builds\n",
-                   enable ? "enable" : "disable");
+    } else {
+        WriteFdFmt(fd, "%s-verity only works for userdebug builds\n", enable ? "enable" : "disable");
     }
     adb_close(fd);
 }

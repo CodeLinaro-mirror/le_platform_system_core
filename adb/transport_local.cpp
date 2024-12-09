@@ -312,7 +312,7 @@ void local_init(int port)
         fatal_errno("cannot create local socket %s thread", debug_name);
     }
 }
-#ifdef ADB_QEMU
+
 static void remote_kick(atransport *t)
 {
     int fd = t->sfd;
@@ -332,14 +332,11 @@ static void remote_kick(atransport *t)
     adb_mutex_unlock( &local_transports_lock );
 #endif
 }
-#endif
 
-#ifdef ADB_QEMU
 static void remote_close(atransport *t)
 {
     adb_close(t->fd);
 }
-#endif
 
 #if ADB_HOST
 /* Only call this function if you already hold local_transports_lock. */
@@ -386,10 +383,8 @@ int get_available_local_transport_index()
 int init_socket_transport(atransport *t, int s, int adb_port, int local)
 {
     int  fail = 0;
-#ifdef ADB_QEMU
     t->kick = remote_kick;
     t->close = remote_close;
-#endif
     t->read_from_remote = remote_read;
     t->write_to_remote = remote_write;
     t->sfd = s;

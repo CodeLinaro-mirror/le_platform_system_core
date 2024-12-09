@@ -1741,6 +1741,15 @@ case "$target" in
 ;;
 esac
 
+case "$target" in
+  "sa8775p")
+    case "$(uname -a)" in
+    *"debug"*)
+        echo 1 > /sys/kernel/tracing/events/safelinux/enable
+        ;;
+    esac
+    ;;
+esac
 
 echo "init_qcom_post_boot completed"
 ;;

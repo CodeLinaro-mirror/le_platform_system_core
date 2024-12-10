@@ -14,7 +14,7 @@ if ENABLE_DEBUG
 root_etc_SCRIPTS += $(MACHINE_ENABLED)/init.qti.debug.sh
 endif
 
-root_libdir = "/lib"
+root_libdir = "@rootprefix@/lib"
 
 if USE_SYSTEMD
 postboot_systemddir   = $(root_libdir)/systemd/system
@@ -22,10 +22,10 @@ postboot_systemd_DATA = init_post_boot.service
 endif
 
 install-data-hook:
-	chmod  go-x $(DESTDIR)$(root_etcdir)/init.post_boot.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/init.post_boot.sh
 if LOG_RESTRICT
-	chmod  go-x $(DESTDIR)$(root_etcdir)/logging-restrictions.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/logging-restrictions.sh
 endif
 if ENABLE_DEBUG
-	chmod  go-x $(DESTDIR)$(root_etcdir)/init.qti.debug.sh
+	chmod  u-w,go-x $(DESTDIR)$(root_etcdir)/init.qti.debug.sh
 endif

@@ -29,11 +29,12 @@
 [Unit]
 SourcePath=/etc/init.post_boot.sh
 Description=QTI Post Boot Service
-After=multi-user.target
+After=basic.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=sleep 10
 ExecStart=/etc/init.post_boot.sh
 
 [Install]

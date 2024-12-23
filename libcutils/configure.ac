@@ -45,6 +45,9 @@ AM_CONDITIONAL(X86_64, [test "x$X86_64" = "xyes"])
 AM_CONDITIONAL(BUILD_HOST, [test "x$X86_64" = "xyes"])
 AM_CONDITIONAL(BUILD_DEVICE, [test "x$ARM$ARM64" != "xnono"])
 
+AC_CHECK_FUNCS([strlcpy],[STRLCPY=yes],[STRLCPY=no])
+AM_CONDITIONAL([HAVE_STRLCPY],[test "x$STRLCPY" = "xyes"])
+
 AC_ARG_WITH([host-os],
         [AS_HELP_STRING([--with-host-os=HOST_OS],[Host OS to build adb host.(default: linux)])],
         [HOST_OS="$withval"],

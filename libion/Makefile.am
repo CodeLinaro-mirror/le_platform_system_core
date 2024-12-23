@@ -21,7 +21,7 @@ libion_la_CFLAGS += -DTARGET_ION_ABI_VERSION=2
 
 libion_la_LDFLAGS = @LIBLOG_LIBS@
 
-bindir       = "/bin"
+bindir       = "@rootprefix@/bin"
 bin_PROGRAMS = iontest
 
 iontest_SOURCES  = $(ion_sources)

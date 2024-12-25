@@ -1,9 +1,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
-root_sbindir       = "/sbin"
+root_sbindir       = "@rootprefix@/sbin"
 root_sbin_PROGRAMS = logd
 
-root_libdir = "/lib"
+root_libdir = "@rootprefix@/lib"
 
 logd_SOURCES = main.cpp \
     LogCommand.cpp \
@@ -30,6 +30,10 @@ logd_CPPFLAGS += -DHAVE_ANDROID_OS
 logd_LDFLAGS  = -lpthread -lsysutils
 logd_LDFLAGS += @LIBBASE_LIBS@ @LIBLOG_LIBS@
 logd_LDFLAGS += @LIBUTILS_LIBS@ @LIBCUTILS_LIBS@
+
+if HAVE_STRLCPY
+logd_CPPFLAGS += -DHAVE_STRLCPY
+endif
 
 if USE_SYSTEMD
 logddir    = $(root_libdir)/systemd/system

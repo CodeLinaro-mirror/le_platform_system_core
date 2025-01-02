@@ -31,6 +31,12 @@ PKG_CHECK_MODULES([LIBLOG], [liblog])
 AC_SUBST([LIBLOG_CFLAGS])
 AC_SUBST([LIBLOG_LIBS])
 
+AC_ARG_WITH([rootprefix],
+    [AS_HELP_STRING([--with-rootprefix=DIR], [Set the root prefix directory])],
+    [rootprefix=$withval],
+    [rootprefix=""])
+AC_SUBST([rootprefix])
+
 AC_ARG_ENABLE(prop-trig,
       AS_HELP_STRING([--enable-property-triggers], [Enable property trigger scripts]),
          [prop_trig="yes"], [prop_trig="no"])

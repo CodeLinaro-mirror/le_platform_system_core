@@ -103,7 +103,7 @@ function configure_memory_parameters() {
     # Set allocstall_threshold to 0 for all targets.
     #
 
-if [ "$target" == "neo-le" ] ; then
+if [ "$target" == "neo-le" ] || [ "$target" == "neo-la-v2" ]; then
     configure_read_ahead_kb_values
     echo 0 > /proc/sys/vm/page-cluster
     echo 100 > /proc/sys/vm/swappiness
@@ -115,7 +115,7 @@ fi
 }
 
 case "$target" in
-    "neo-le")
+    "neo-le" | "neo-la-v2")
 
     # Make unbound workqueue not run on cpu0, since all irqs are
     # handled by cpu0 as default, it will preempt the workqueue if

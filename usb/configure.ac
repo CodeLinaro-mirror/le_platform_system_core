@@ -26,6 +26,12 @@ PKG_CHECK_MODULES([LIBUTILS], [libutils])
 AC_SUBST([LIBUTILS_CFLAGS])
 AC_SUBST([LIBUTILS_LIBS])
 
+AC_ARG_WITH([rootprefix],
+    [AS_HELP_STRING([--with-rootprefix=DIR], [Set the root prefix directory])],
+    [rootprefix=$withval],
+    [rootprefix=""])
+AC_SUBST([rootprefix])
+
 AC_ARG_WITH(sanitized-headers,
       AS_HELP_STRING([--with-sanitized-headers=DIR],
          [Specify the location of the sanitized Linux headers]),

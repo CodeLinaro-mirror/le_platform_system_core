@@ -77,3 +77,11 @@ echo "++++ $0 -> done sched settings" > /dev/kmsg
 # Disabling proactive compaction since there is no benefit of higher order
 # pages here hence proactive compaction activity would be wasteful.
 echo 0 > /proc/sys/vm/compaction_proactiveness
+
+# set the io-scheduler default to bfq on all mq support devices
+echo "bfq" > /sys/class/block/mmcblk0/queue/scheduler
+echo "bfq" > /sys/class/block/mmcblk1/queue/scheduler
+
+# update io-scheduler tunables
+echo 0 > /sys/class/block/mmcblk0/queue/iosched/slice_idle
+echo 0 > /sys/class/block/mmcblk1/queue/iosched/slice_idle

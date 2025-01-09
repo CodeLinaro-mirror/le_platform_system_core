@@ -85,3 +85,7 @@ echo "bfq" > /sys/class/block/mmcblk1/queue/scheduler
 # update io-scheduler tunables
 echo 0 > /sys/class/block/mmcblk0/queue/iosched/slice_idle
 echo 0 > /sys/class/block/mmcblk1/queue/iosched/slice_idle
+
+# enable CPUidle and auto suspend
+echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
+echo mem > /sys/power/autosleep

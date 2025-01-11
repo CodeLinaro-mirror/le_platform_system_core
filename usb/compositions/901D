@@ -115,7 +115,7 @@ case $target in
 		if [ $configfs_supported = "y" ]; then
 			if [ $target != "sdxpinn" ]; then
 				i=1
-				while [ $i -lt 60 ]
+				while [ $i -lt 5 ]
 				do
 					udcname=`ls -1 /sys/class/udc | grep -v dummy_udc | head -n 1`
 					if [ -n "$udcname" ]; then
@@ -124,7 +124,7 @@ case $target in
 
 					echo "UDC not found sleep for 1 sec\n"
 					sleep 1
-					((i=i+1))
+					let i+=1
 				done
 
 				if [ -z "$udcname" ]; then

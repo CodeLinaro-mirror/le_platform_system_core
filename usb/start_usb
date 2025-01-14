@@ -24,6 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
 # Starts the USB Android Gadget.
 export KERNEL=`uname -r`
 export SOFTAP_W_DUN="N"
@@ -284,6 +289,12 @@ case "$1" in
 		ln -s streaming/header/h streaming/class/hs/
 		ln -s streaming/header/h streaming/class/ss/
 		cd /
+	fi
+
+	# Initialize NCM configuration
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
+		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
+		echo WINNCM > os_desc/interface.ncm/compatible_id
 	fi
 
 	# enable debug message

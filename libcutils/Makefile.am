@@ -88,6 +88,10 @@ if ARM64
 libcutils_la_SOURCES  += arch-arm64/android_memset.S
 endif
 
+if HAVE_STRLCPY
+libcutils_la_CPPFLAGS += -DHAVE_STRLCPY
+endif
+
 # Export headers
 incdir = $(srcdir)/../include
 cutils_includedir       = $(includedir)/cutils

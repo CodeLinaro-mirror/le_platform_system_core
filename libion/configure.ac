@@ -23,6 +23,13 @@ PKG_CHECK_MODULES([LIBLOG], [liblog])
 AC_SUBST([LIBLOG_CFLAGS])
 AC_SUBST([LIBLOG_LIBS])
 
+
+AC_ARG_WITH([rootprefix],
+    [AS_HELP_STRING([--with-rootprefix=DIR], [Set the root prefix directory])],
+    [rootprefix=$withval],
+    [rootprefix=""])
+AC_SUBST([rootprefix])
+
 AC_ARG_WITH([core_includes],
     AC_HELP_STRING([--with-core-includes=@<:@dir@:>@],
        [Specify the location of the core headers]),

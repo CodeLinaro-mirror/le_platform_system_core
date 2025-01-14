@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 
-root_sbindir       = "/sbin"
-root_libdir        = "/lib"
+root_sbindir       = "@rootprefix@/sbin"
+root_libdir        = "@rootprefix@/lib"
 root_etcdir        = "/etc"
 root_sbin_PROGRAMS = leprop-service
 

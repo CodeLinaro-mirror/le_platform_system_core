@@ -14,7 +14,7 @@ if ENABLE_DEBUG
 root_etc_SCRIPTS += $(MACHINE_ENABLED)/init.qti.debug.sh
 endif
 
-root_libdir = "/lib"
+root_libdir = "@rootprefix@/lib"
 
 if USE_SYSTEMD
 postboot_systemddir   = $(root_libdir)/systemd/system

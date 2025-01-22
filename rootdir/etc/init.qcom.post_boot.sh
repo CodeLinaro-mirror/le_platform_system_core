@@ -1700,6 +1700,14 @@ case "$target" in
 esac
 
 case "$target" in
+    "sa8255p" | "sa8775p" | "sa8650p")
+        # Tune pm_freeze_timeout smaller than wdt_time_out/2 to avoid wdt when
+        # kernel hung in freezing userspace process.
+        echo 4000 > /sys/power/pm_freeze_timeout
+;;
+esac
+
+case "$target" in
         "sa_monacoau_ivi" | "sa_monacoau_adas" | "sa_monacoau_srv1l" | "sa_monacoau_srv1l_ffc")
 
         configure_memory_parameters_auto

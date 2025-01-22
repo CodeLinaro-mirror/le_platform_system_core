@@ -1794,7 +1794,7 @@ case "$target" in
 esac
 
 case "$target" in
-  "sa8775p")
+  "sa8775p"| "sa8255p" | "sa8650p" | "sa7255p" | "sa8620p")
     echo 1 > /sys/kernel/tracing/events/safelinux/enable
     enable_debug_tracing_events
     set_total_trace_buffer_size 21288

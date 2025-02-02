@@ -132,6 +132,9 @@ case $TARGET in
 	*pineapple* )
 		res="pineapple"
 		;;
+	*scuba* | *qcm2290* )
+		res="scuba"
+		;;
 	* )
 		res="none"
 		;;

@@ -442,15 +442,53 @@ case "$1" in
 		${LOCAL_ECHO} 333333 > streaming/h264/h/2160p/dwDefaultFrameInterval
 		${LOCAL_ECHO} -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/h264/h/2160p/dwFrameInterval
 
+		mkdir -p streaming/framebased/h/360p
+		${LOCAL_ECHO} 640 > streaming/framebased/h/360p/wWidth
+		${LOCAL_ECHO} 360 > streaming/framebased/h/360p/wHeight
+		${LOCAL_ECHO} 12288000 > streaming/framebased/h/360p/dwMinBitRate
+		${LOCAL_ECHO} 36864000 > streaming/framebased/h/360p/dwMaxBitRate
+		${LOCAL_ECHO} 4147200 > streaming/framebased/h/360p/dwMaxVideoFrameBufferSize
+		${LOCAL_ECHO} 333333 > streaming/framebased/h/360p/dwDefaultFrameInterval
+		${LOCAL_ECHO} -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/framebased/h/360p/dwFrameInterval
+
+		mkdir -p streaming/framebased/h/720p
+		${LOCAL_ECHO} 1280 > streaming/framebased/h/720p/wWidth
+		${LOCAL_ECHO} 720 > streaming/framebased/h/720p/wHeight
+		${LOCAL_ECHO} 49152000 > streaming/framebased/h/720p/dwMinBitRate
+		${LOCAL_ECHO} 147456000 > streaming/framebased/h/720p/dwMaxBitRate
+		${LOCAL_ECHO} 4147200 > streaming/framebased/h/720p/dwMaxVideoFrameBufferSize
+		${LOCAL_ECHO} 333333 > streaming/framebased/h/720p/dwDefaultFrameInterval
+		${LOCAL_ECHO} -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/framebased/h/720p/dwFrameInterval
+
+		mkdir -p streaming/framebased/h/1080p
+		${LOCAL_ECHO} 1920 > streaming/framebased/h/1080p/wWidth
+		${LOCAL_ECHO} 1080 > streaming/framebased/h/1080p/wHeight
+		${LOCAL_ECHO} 110592000 > streaming/framebased/h/1080p/dwMinBitRate
+		${LOCAL_ECHO} 331776000 > streaming/framebased/h/1080p/dwMaxBitRate
+		${LOCAL_ECHO} 4147200 > streaming/framebased/h/1080p/dwMaxVideoFrameBufferSize
+		${LOCAL_ECHO} 333333 > streaming/framebased/h/1080p/dwDefaultFrameInterval
+		${LOCAL_ECHO} -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/framebased/h/1080p/dwFrameInterval
+
+		mkdir -p streaming/framebased/h/2160p
+		${LOCAL_ECHO} 3840 > streaming/framebased/h/2160p/wWidth
+		${LOCAL_ECHO} 2160 > streaming/framebased/h/2160p/wHeight
+		${LOCAL_ECHO} 265420800 > streaming/framebased/h/2160p/dwMinBitRate
+		${LOCAL_ECHO} 3981312000 > streaming/framebased/h/2160p/dwMaxBitRate
+		${LOCAL_ECHO} 16588800 > streaming/framebased/h/2160p/dwMaxVideoFrameBufferSize
+		${LOCAL_ECHO} 333333 > streaming/framebased/h/2160p/dwDefaultFrameInterval
+		${LOCAL_ECHO} -e "166666\n333333\n666666\n1000000\n5000000\n" > streaming/framebased/h/2160p/dwFrameInterval
+
 		mkdir streaming/header/h
 		mkdir streaming/header/h1
 		ln -s streaming/uncompressed/u1 streaming/header/h1
 		ln -s streaming/mjpeg/m1 streaming/header/h1/m1
 		ln -s streaming/h264/h streaming/header/h1/h1
+		ln -s streaming/framebased/h streaming/header/h1/h1
 
 		ln -s streaming/uncompressed/u streaming/header/h
 		ln -s streaming/mjpeg/m streaming/header/h
 		ln -s streaming/h264/h streaming/header/h
+		ln -s streaming/framebased/h streaming/header/h
 		ln -s streaming/header/h1 streaming/class/fs/
 		ln -s streaming/header/h1 streaming/class/hs/
 		ln -s streaming/header/h streaming/class/ss/

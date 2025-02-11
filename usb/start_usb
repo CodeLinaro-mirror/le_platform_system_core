@@ -24,6 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+
+# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
 # Starts the USB Android Gadget.
 export KERNEL=`uname -r`
 export SOFTAP_W_DUN="N"
@@ -286,6 +291,12 @@ case "$1" in
 		cd /
 	fi
 
+	# Initialize NCM configuration
+	if [ -d /sys/kernel/config/usb_gadget/g1/functions/ncm.0 ]; then
+		cd /sys/kernel/config/usb_gadget/g1/functions/ncm.0
+		echo WINNCM > os_desc/interface.ncm/compatible_id
+	fi
+
 	# enable debug message
 	if [ -f /sbin/usb/debuger/default_debug ];
 	then
@@ -332,13 +343,13 @@ case "$1" in
 		fi
 	fi
 
-	# 4EE7 for auto target 8775, 8650, 8255, 7255, 8620:
+	# 4EE7 for auto target 8775, 8650, 8255, 7255, 8620, 8797, 8397:
 	if [ -f /sys/devices/soc0/machine ]; then
 		target=`cat /sys/devices/soc0/machine`
 	else
 		target=`getprop ro.board.platform`
 	fi
-	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650")" != "" ]; then
+	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650\|8797\|8397")" != "" ]; then
 		usb_composition 4EE7
 		echo "usb_composition 4EE7 done!"
 	fi

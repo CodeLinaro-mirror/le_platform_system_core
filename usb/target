@@ -135,6 +135,9 @@ case $TARGET in
 	*scuba* | *qcm2290* )
 		res="scuba"
 		;;
+	*khaje* | *qcm4325* )
+		res="khaje"
+		;;
 	* )
 		res="none"
 		;;

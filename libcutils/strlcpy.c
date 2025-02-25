@@ -22,7 +22,7 @@
 
 #include <cutils/memory.h>
 
-#if !HAVE_STRLCPY
+#ifndef HAVE_STRLCPY
 
 /* Implementation of strlcpy() for platforms that don't already have it. */
 

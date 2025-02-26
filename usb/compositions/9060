@@ -122,7 +122,7 @@ case `. /sbin/usb/target` in
 	*9x25* )
 		run_9x25 &
 		;;
-	*lemans* | *monaco* )
+	*lemans* | *monaco* | *direwolf* )
 		udcname=a600000.dwc3
 		qdss_func="qdss.qdss_sw"
 		run_configfs $udcname &

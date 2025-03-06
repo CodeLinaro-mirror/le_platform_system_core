@@ -53,7 +53,7 @@ struct chunk_data {
   int (*write)(void* priv, const void* data, size_t len, unsigned int block, unsigned int nr_blocks);
 };
 
-static int foreach_chunk_write(void* priv, const void* data, size_t len) {
+static int foreach_chunk_write(void* priv, const void* data, int len) {
   struct chunk_data* chk = (struct chunk_data*)priv;
 
   return chk->write(chk->priv, data, len, chk->block, chk->nr_blocks);

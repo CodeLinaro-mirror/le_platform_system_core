@@ -9,6 +9,7 @@ libfs_mgr_la_SOURCES  = $(fs_mgr_c_sources)
 libfs_mgr_la_CFLAGS   = -I$(top_srcdir)/include
 libfs_mgr_la_CFLAGS  += -DUSE_GLIB -Dstrlcat=g_strlcat @GLIB_CFLAGS@
 libfs_mgr_la_CFLAGS  += @EXT4UTILS_CFLAGS@
+libfs_mgr_la_CFLAGS  += -D_LARGEFILE64_SOURCE
 libfs_mgr_la_LDFLAGS  = -lm -lpthread
 libfs_mgr_la_LDFLAGS += @LOGWRAP_LIBS@ @GLIB_LIBS@
 libfs_mgr_la_LDFLAGS += @EXT4UTILS_LIBS@ @LIBCUTILS_LIBS@

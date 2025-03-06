@@ -5,6 +5,7 @@ lib_LTLIBRARIES = liblogwrap.la
 
 liblogwrap_la_SOURCES = logwrap.c
 liblogwrap_la_CFLAGS  = -I$(top_srcdir)/include
+liblogwrap_la_CFLAGS += -D_GNU_SOURCE
 liblogwrap_la_LDFLAGS = @LIBLOG_LIBS@ @LIBCUTILS_LIBS@
 
 # Build logwrapper daemon

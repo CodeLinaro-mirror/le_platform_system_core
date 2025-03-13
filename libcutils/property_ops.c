@@ -156,7 +156,7 @@ bool set_property_value(const char* prop_name, unsigned char *prop_val)
     snprintf(msg, MAX_ALLOWED_LINE_LEN+1, "%c%s=%s",
              PROP_MSG_SETPROP, prop_name, prop_val);
 
-    const int err = send_setprop_msg(&msg);
+    const int err = send_setprop_msg(msg);
     if (err < 0) {
        ALOGE("Failed to send message to Set %s", prop_name);
        return false;
@@ -176,7 +176,7 @@ bool get_property_value(const char* prop_name, unsigned char *prop_val)
     snprintf(msg, sizeof msg, "%c%s=",
             PROP_MSG_GETPROP, prop_name);
 
-    const int err = send_getprop_msg(&msg, &resp);
+    const int err = send_getprop_msg(msg, resp);
     if (err < 0) {
        LOG("Failed to send message to Get %s", prop_name);
        return false;

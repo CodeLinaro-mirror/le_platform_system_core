@@ -96,8 +96,8 @@ case `cat ${TARGET_DIR}` in
 	*LEMANS* )
 		res="lemans";
 		;;
-	*SA_MONACOAU_IVI* )
-		res="sa_monacoau_ivi";
+	*MONACO* | *SA7255P* | *SA8620P* )
+		res="monaco";
 		;;
 	* )
 		res="none"

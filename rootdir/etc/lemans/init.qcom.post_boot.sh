@@ -12,6 +12,9 @@ case "$target" in
     # kernel hung in freezing userspace process.
     echo 4000 > /sys/power/pm_freeze_timeout
     if ! uname -r | grep -q perf; then
+      # Lemans refined systemd-modules-load, gunyah driver may not be ready
+      # after this moment, so need to install the modules explicitly.
+      modprobe gunyah hvc_gunyah
       # Set total buffer size as 160M, 20M for each CPU
       set_total_trace_buffer_size 160000
       enable_debug_tracing_events

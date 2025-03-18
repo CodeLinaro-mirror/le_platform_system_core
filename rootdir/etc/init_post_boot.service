@@ -33,7 +33,7 @@
 SourcePath=/etc/initscripts/init_post_boot
 Description=QTI Post Boot Service
 ConditionVirtualization=!container
-Before=systemd-modules-load.service
+After=systemd-modules-load.service
 
 [Service]
 Type=oneshot

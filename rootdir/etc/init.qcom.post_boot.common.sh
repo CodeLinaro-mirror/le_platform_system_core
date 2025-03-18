@@ -43,17 +43,26 @@ enable_debug_tracing_events() {
         workqueue \
         ipi \
         sched \
-        safelinux \
         gunyah \
         iommu \
         oom \
-        rwmmio \
-        scmi \
-        secure_buffer \
     "
 
     for event in $events; do
         echo 1 > "$tracing_events_dir/$event/enable"
+    done
+
+     #Enable for seperate events tracing
+
+    tracing_events_instance_dir="/sys/kernel/debug/tracing/instances/"
+    specific_events="safelinux rwmmio secure_buffer scmi"
+
+    for event in $specific_events; do
+        instance="$tracing_events_instance_dir/$event"
+        mkdir -p $instance
+        cd $instance
+        echo $event > set_event
+        echo 1 > "$instance/events/$event/enable"
     done
 }
 

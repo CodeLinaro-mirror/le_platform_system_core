@@ -30,7 +30,10 @@
 #include "base/stringprintf.h"
 #include "cutils/properties.h"
 #include "private/android_filesystem_config.h"
+
+#ifdef SELINUX_IS_ENABLE
 #include "selinux/selinux.h"
+#endif
 
 #include "adb.h"
 #include "adb_auth.h"
@@ -159,11 +162,13 @@ int adbd_main(int server_port) {
 
         D("Local port disabled");
     } else {
+	#ifdef SELINUX_IS_ENABLE
         if ((root_seclabel != nullptr) && (is_selinux_enabled() > 0)) {
             if (setcon(root_seclabel) < 0) {
                 LOG(FATAL) << "Could not set SELinux context";
             }
         }
+	#endif
         std::string local_name =
             android::base::StringPrintf("tcp:%d", server_port);
         if (install_listener(local_name, "*smartsocket*", nullptr, 0)) {

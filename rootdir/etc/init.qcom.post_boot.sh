@@ -31,6 +31,50 @@ if [ -z "$boot_core" ]; then
     boot_core=0
 fi
 
+# This function lets you configure the total trace buffer size, splitting
+# buffer size evenly per cpu
+set_total_trace_buffer_size() {
+        # $1 arg is the desired buffer_total_size_kb
+        if [ -z "$1" ]; then
+                echo "Error: missing arg for desired total trace buffer size"
+                echo "Usage: set_total_trace_buffer_size <buffer_total_size_kb>"
+                exit 1
+        fi
+
+        desired_buffer_total_size_kb=$1
+        num_cpus=$(ls /sys/kernel/tracing/per_cpu | wc -l)
+        buffer_size_kb=$((desired_buffer_total_size_kb / num_cpus))
+        echo $buffer_size_kb > /sys/kernel/tracing/buffer_size_kb
+}
+
+# These trace events will be enabled for easier performance debugging
+enable_debug_tracing_events() {
+    tracing_events_dir="/sys/kernel/tracing/events"
+    # includes timer, irq, workqueue, sched events
+    events=" \
+        timer/timer_expire_entry \
+        timer/timer_expire_exit \
+        timer/hrtimer_cancel \
+        timer/hrtimer_expire_entry \
+        timer/hrtimer_expire_exit \
+        timer/hrtimer_init \
+        timer/hrtimer_start \
+        irq \
+        workqueue \
+        workqueue/workqueue_execute_start \
+        sched/sched_migrate_task \
+        sched/sched_pi_setprio \
+        sched/sched_switch \
+        sched/sched_wakeup \
+        sched/sched_wakeup_new \
+    "
+
+    for event in $events; do
+        echo 1 > "$tracing_events_dir/$event/enable"
+    done
+}
+
+
 configure_memory_parameters () {
     # Set Memory paremeters.
     #
@@ -361,8 +405,6 @@ configure_memory_parameters_auto() {
         echo 100 > /proc/sys/vm/swappiness
 }
 
-case "$1" in
-start)
 if [ -f /sys/devices/soc0/machine ]; then
     target=`cat /sys/devices/soc0/machine | tr [:upper:] [:lower:]`
 elif [ -f /sys/devices/soc0/soc_id ]; then
@@ -1750,27 +1792,12 @@ case "$target" in
 esac
 
 case "$target" in
-  "sa8775p")
-    case "$(uname -a)" in
-    *"debug"*)
-        echo 1 > /sys/kernel/tracing/events/safelinux/enable
-        ;;
-    esac
-    ;;
+  "sa8775p"| "sa8255p" | "sa8650p" | "sa7255p" | "sa8620p")
+    echo 1 > /sys/kernel/tracing/events/safelinux/enable
+    enable_debug_tracing_events
+    set_total_trace_buffer_size 21288
+    echo "4 6 1 7" > /proc/sys/kernel/printk
+;;
 esac
 
 echo "init_qcom_post_boot completed"
-;;
-stop)
-    echo -n "Stopping init_qcom_post_boot: "
-    echo "done"
-;;
-restart)
-    $0 stop
-    $0 start
-;;
-*)
-    echo "Incorrect option specified"
-    exit 1
-;;
-esac

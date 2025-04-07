@@ -19,9 +19,18 @@ AC_PROG_MAKE_SET
 PKG_PROG_PKG_CONFIG
 
 # Checks for libraries.
+
+AC_ARG_ENABLE(selinux,
+      AC_HELP_STRING([--enable-selinux], [DISTRO enable selinux feature.]),
+      [selinux_enable=${enableval}], [selinux_enable="no"])
+
+AM_CONDITIONAL(SELINUX_ENABLE, [test "x${selinux_enable}" = "xyes"])
+
+if test "x$selinux_enable" = "xyes"; then
 PKG_CHECK_MODULES([LIBSELINUX], [libselinux])
 AC_SUBST([LIBSELINUX_CFLAGS])
 AC_SUBST([LIBSELINUX_LIBS])
+fi
 
 PKG_CHECK_MODULES([LIBCUTILS], [libcutils])
 AC_SUBST([LIBCUTILS_CFLAGS])

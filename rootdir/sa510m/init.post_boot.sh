@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 ddr_type=`od -An -tx /proc/device-tree/memory/ddr_device_type`
@@ -43,4 +43,28 @@ echo mem > /sys/power/autosleep
 echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
 echo "++++ $0 -> done sched settings" > /dev/kmsg
+
+echo "++++ $0 -> Starting init post boot settings " > /dev/kmsg
+
+if [ -f /sys/devices/soc0/soc_id ]; then
+    soc_id=`cat /sys/devices/soc0/soc_id`
+fi
+
+if [ -f /etc/init.qti.debug.sh ]; then
+    source /etc/init.qti.debug.sh
+fi
+
+case "$soc_id" in
+     "697")
+
+     echo "++++ $0 -> Debug SA510M - START" > /dev/kmsg
+     enable_sa510m_debug
+     echo "++++ $0 -> Debug SA510M - END" > /dev/kmsg
+    ;;
+esac
+
+echo "++++ $0 -> init post boot settings completed" > /dev/kmsg
+
+
+
 

@@ -263,6 +263,7 @@ case "$1" in
 			fi
 		        ;;
 		*kalama* )
+			${LOCAL_ECHO} 90DB > /etc/usb/boot_hsusb_comp
 			${LOCAL_ECHO} device > /sys/class/usb_role/a600000.ssusb-role-switch/role
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua

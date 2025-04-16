@@ -85,10 +85,12 @@ run_configfs() {
 
 target=`source /sbin/usb/target`
 case $target in
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *sdxpinn* | *sa525m* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *sdxpinn* | *sa525m* | *kalama* )
 		if [ $target == "sdxlemur" ] || [ $target == "sdxpinn" ] || [ $target == "sa525m" ]
 		then
 			qdss_func="qdss.qdss_mdm"
+		elif [ $target == "kalama" ]; then
+			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"
 		fi

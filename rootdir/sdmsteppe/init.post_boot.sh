@@ -27,145 +27,157 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-configure_memory_parameters () {
-    # Set Memory paremeters.
-    #
-    # Set per_process_reclaim tuning parameters
-    # 2GB 64-bit will have aggressive settings when compared to 1GB 32-bit
-    # 1GB and less will use vmpressure range 50-70, 2GB will use 10-70
-    # 1GB and less will use 512 pages swap size, 2GB will use 1024
-    #
-    # Set Low memory killer minfree parameters
-    # 32 bit all memory configurations will use 15K series
-    # 64 bit up to 2GB with use 14K, and above 2GB will use 18K
-    #
-    # Set ALMK parameters (usually above the highest minfree values)
-    # 32 bit will have 53K & 64 bit will have 81K
-    #
-    # Set ZCache parameters
-    # max_pool_percent is the percentage of memory that the compressed pool
-    # can occupy.
-    # clear_percent is the percentage of memory at which zcache starts
-    # evicting compressed pages. This should be slighlty above adj0 value.
-    # clear_percent = (adj0 * 100 / avalible memory in pages)+1
-    #
-    arch_type=`uname -m`
-    MemTotalStr=`cat /proc/meminfo | grep MemTotal`
-    MemTotal=${MemTotalStr:16:8}
-    MemTotalPg=$((MemTotal / 4))
-    adjZeroMinFree=18432
-    # Read adj series and set adj threshold for PPR and ALMK.
-    # This is required since adj values change from framework to framework.
-    adj_series=`cat /sys/module/lowmemorykiller/parameters/adj`
-    adj_1="${adj_series#*,}"
-    set_almk_ppr_adj="${adj_1%%,*}"
-    # PPR and ALMK should not act on HOME adj and below.
-    # Normalized ADJ for HOME is 6. Hence multiply by 6
-    # ADJ score represented as INT in LMK params, actual score can be in decimal
-    # Hence add 6 considering a worst case of 0.9 conversion to INT (0.9*6).
-    set_almk_ppr_adj=$(((set_almk_ppr_adj * 6) + 6))
-    echo $set_almk_ppr_adj > /sys/module/lowmemorykiller/parameters/adj_max_shift
-    echo $set_almk_ppr_adj > /sys/module/process_reclaim/parameters/min_score_adj
-    echo 1 > /sys/module/process_reclaim/parameters/enable_process_reclaim
-    echo 70 > /sys/module/process_reclaim/parameters/pressure_max
-    echo 30 > /sys/module/process_reclaim/parameters/swap_opt_eff
-    echo 1 > /sys/module/lowmemorykiller/parameters/enable_adaptive_lmk
-    if [ "$arch_type" == "aarch64" ] && [ $MemTotal -gt 2097152 ]; then
-        echo 10 > /sys/module/process_reclaim/parameters/pressure_min
-        echo 1024 > /sys/module/process_reclaim/parameters/per_swap_size
-        echo "18432,23040,27648,32256,55296,80640" > /sys/module/lowmemorykiller/parameters/minfree
-        echo 81250 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
-        adjZeroMinFree=18432
-    elif [ "$arch_type" == "aarch64" ] && [ $MemTotal -gt 1048576 ]; then
-        echo 10 > /sys/module/process_reclaim/parameters/pressure_min
-        echo 1024 > /sys/module/process_reclaim/parameters/per_swap_size
-        echo "14746,18432,22118,25805,40000,55000" > /sys/module/lowmemorykiller/parameters/minfree
-        echo 81250 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
-        adjZeroMinFree=14746
-    elif [ "$arch_type" == "aarch64" ]; then
-        echo 50 > /sys/module/process_reclaim/parameters/pressure_min
-        echo 512 > /sys/module/process_reclaim/parameters/per_swap_size
-        echo "14746,18432,22118,25805,40000,55000" > /sys/module/lowmemorykiller/parameters/minfree
-        echo 81250 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
-        adjZeroMinFree=14746
-    else
-        echo 50 > /sys/module/process_reclaim/parameters/pressure_min
-        echo 512 > /sys/module/process_reclaim/parameters/per_swap_size
-        echo "15360,19200,23040,26880,34415,43737" > /sys/module/lowmemorykiller/parameters/minfree
-        echo 53059 > /sys/module/lowmemorykiller/parameters/vmpressure_file_min
-        adjZeroMinFree=15360
-    fi
-    clearPercent=$((((adjZeroMinFree * 100) / MemTotalPg) + 1))
-    echo $clearPercent > /sys/module/zcache/parameters/clear_percent
-    echo 30 >  /sys/module/zcache/parameters/max_pool_percent
+# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+# Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+#=============================================================================
 
-    # Zram disk - 512MB size
-    zram_enable=`getprop ro.config.zram`
-    if [ "$zram_enable" == "true" ] && [ -f /dev/block/zram0 ]; then
-        echo 536870912 > /sys/block/zram0/disksize
-        mkswap /dev/block/zram0
-        swapon /dev/block/zram0 -p 32758
-    fi
+function configure_zram_parameters() {
+	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+	MemTotal=${MemTotalStr:16:8}
 
-    SWAP_ENABLE_THRESHOLD=1048576
-    swap_enable=`getprop ro.config.swap`
+	low_ram=`getprop ro.config.low_ram`
 
-    if [ -f /sys/devices/soc0/soc_id ]; then
-        soc_id=`cat /sys/devices/soc0/soc_id`
-    else
-        soc_id=`cat /sys/devices/system/soc/soc0/id`
-    fi
+	# Zram disk - 75% for Go and < 2GB devices .
+	# For >2GB Non-Go devices, size = 50% of RAM size. Limit the size to 4GB.
+	# And enable lz4 zram compression for Go targets.
 
-    # Enable swap initially only for 1 GB targets
-    if [ "$MemTotal" -le "$SWAP_ENABLE_THRESHOLD" ] && [ "$swap_enable" == "true" ]; then
-        # Static swiftness
-        echo 1 > /proc/sys/vm/swap_ratio_enable
-        echo 70 > /proc/sys/vm/swap_ratio
+	let RamSizeGB="( $MemTotal / 1048576 ) + 1"
+	diskSizeUnit=M
+	if [ $RamSizeGB -le 2 ]; then
+		let zRamSizeMB="( $RamSizeGB * 1024 ) * 3 / 4"
+	else
+		let zRamSizeMB="( $RamSizeGB * 1024 ) / 2"
+	fi
 
-        # Swap disk - 200MB size
-        if [ ! -f /data/system/swap/swapfile ]; then
-            dd if=/dev/zero of=/data/system/swap/swapfile bs=1m count=200
-        fi
-        mkswap /data/system/swap/swapfile
-        swapon /data/system/swap/swapfile -p 32758
-    fi
+	# use MB avoid 32 bit overflow
+	if [ $zRamSizeMB -gt 4096 ]; then
+		let zRamSizeMB=4096
+	fi
+
+	# And enable lz4 zram compression for Go targets.
+	if [ "$low_ram" == "true" ]; then
+		echo lz4 > /sys/block/zram0/comp_algorithm
+	fi
+
+	if [ -f /sys/block/zram0/disksize ]; then
+		if [ -f /sys/block/zram0/use_dedup ]; then
+			echo 1 > /sys/block/zram0/use_dedup
+		fi
+		echo "$zRamSizeMB""$diskSizeUnit" > /sys/block/zram0/disksize
+
+		# ZRAM may use more memory than it saves if SLAB_STORE_USER
+		# debug option is enabled.
+		if [ -e /sys/kernel/slab/zs_handle ]; then
+			echo 0 > /sys/kernel/slab/zs_handle/store_user
+		fi
+		if [ -e /sys/kernel/slab/zspage ]; then
+			echo 0 > /sys/kernel/slab/zspage/store_user
+		fi
+
+		mkswap /dev/zram0
+		swapon /dev/zram0 -p 32758
+	fi
 }
 
-echo -n "Starting post boot settings "
-echo "++++ $0 -> Starting post boot settings " > /dev/kmsg
+function configure_read_ahead_kb_values() {
+	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+	MemTotal=${MemTotalStr:16:8}
 
-emmc_boot=`getprop ro.boot.emmc`
-case "$emmc_boot"
-    in "true")
-        chown -h system /sys/devices/platform/rs300000a7.65536/force_sync
-        chown -h system /sys/devices/platform/rs300000a7.65536/sync_sts
-        chown -h system /sys/devices/platform/rs300100a7.65536/force_sync
-        chown -h system /sys/devices/platform/rs300100a7.65536/sync_sts
-    ;;
-esac
+	dmpts=$(ls /sys/block/*/queue/read_ahead_kb | grep -e dm -e mmc -e sd)
+	# dmpts holds below read_ahead_kb nodes if exists:
+	# /sys/block/dm-0/queue/read_ahead_kb to /sys/block/dm-10/queue/read_ahead_kb
+	# /sys/block/sda/queue/read_ahead_kb to /sys/block/sdh/queue/read_ahead_kb
 
-if [ -f /sys/devices/soc0/machine ]; then
-    target=`cat /sys/devices/soc0/machine | tr [:upper:] [:lower:]`
-else
-    target=`getprop ro.board.platform`
-fi
+	# Set 128 for <= 4GB &
+	# set 512 for >= 5GB targets.
+	if [ $MemTotal -le 4194304 ]; then
+		ra_kb=128
+	else
+		ra_kb=512
+	fi
+	if [ -f /sys/block/mmcblk0/bdi/read_ahead_kb ]; then
+		echo $ra_kb > /sys/block/mmcblk0/bdi/read_ahead_kb
+	fi
+	if [ -f /sys/block/mmcblk0rpmb/bdi/read_ahead_kb ]; then
+		echo $ra_kb > /sys/block/mmcblk0rpmb/bdi/read_ahead_kb
+	fi
+	for dm in $dmpts; do
+		if [ `cat $(dirname $dm)/../removable` -eq 0 ]; then
+			echo $ra_kb > $dm
+		fi
+	done
+}
 
-case "$target" in
-    "sm6150" | "qcs610" | "qcs410")
+function configure_memory_parameters() {
+	# Set Memory parameters.
+	#
+	# Set per_process_reclaim tuning parameters
+	# All targets will use vmpressure range 50-70,
+	# All targets will use 512 pages swap size.
+	#
+	# Set Low memory killer minfree parameters
+	# 32 bit Non-Go, all memory configurations will use 15K series
+	# 32 bit Go, all memory configurations will use uLMK + Memcg
+	# 64 bit will use Google default LMK series.
+	#
+	# Set ALMK parameters (usually above the highest minfree values)
+	# vmpressure_file_min threshold is always set slightly higher
+	# than LMK minfree's last bin value for all targets. It is calculated as
+	# vmpressure_file_min = (last bin - second last bin ) + last bin
+	#
+	# Set allocstall_threshold to 0 for all targets.
+	#
 
-    # Set the default IRQ affinity to the silver cluster. When a
-    # CPU is isolated/hotplugged, the IRQ affinity is adjusted
-    # to one of the CPU from the default IRQ affinity mask.
-    echo 3f > /proc/irq/default_smp_affinity
+	configure_zram_parameters
+	configure_read_ahead_kb_values
+	echo 100 > /proc/sys/vm/swappiness
 
-    if [ -f /sys/devices/soc0/soc_id ]; then
-            soc_id=`cat /sys/devices/soc0/soc_id`
-    else
-            soc_id=`cat /sys/devices/system/soc/soc0/id`
-    fi
+	# Disable periodic kcompactd wakeups. We do not use THP, so having many
+	# huge pages is not as necessary.
+	echo 0 > /proc/sys/vm/compaction_proactiveness
 
-    case "$soc_id" in
-        "355" | "369" | "401")
+	# With THP enabled, the kernel greatly increases min_free_kbytes over its
+	# default value. Disable THP to prevent resetting of min_free_kbytes
+	# value during online/offline pages.
+	if [ -f /sys/kernel/mm/transparent_hugepage/enabled ]; then
+		echo never > /sys/kernel/mm/transparent_hugepage/enabled
+	fi
+
+	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+	MemTotal=${MemTotalStr:16:8}
+	let RamSizeGB="( $MemTotal / 1048576 ) + 1"
+
+	# Set the min_free_kbytes to standard kernel value
+	if [ $RamSizeGB -ge 8 ]; then
+		echo 11584 > /proc/sys/vm/min_free_kbytes
+	elif [ $RamSizeGB -ge 4 ]; then
+		echo 8192 > /proc/sys/vm/min_free_kbytes
+	elif [ $RamSizeGB -ge 2 ]; then
+		echo 5792 > /proc/sys/vm/min_free_kbytes
+	else
+		echo 4096 > /proc/sys/vm/min_free_kbytes
+	fi
+}
+
+configure_memory_parameters
+
+rev=`cat /sys/devices/soc0/revision`
+
+# Configure RT parameters:
+# Long running RT task detection is confined to consolidated builds.
+# Set RT throttle runtime to 50ms more than long running RT
+# task detection time.
+# Set RT throttle period to 100ms more than RT throttle runtime.
+long_running_rt_task_ms=1200
+sched_rt_runtime_ms=`expr $long_running_rt_task_ms + 50`
+sched_rt_runtime_us=`expr $sched_rt_runtime_ms \* 1000`
+sched_rt_period_ms=`expr $sched_rt_runtime_ms + 100`
+sched_rt_period_us=`expr $sched_rt_period_ms \* 1000`
+echo $sched_rt_period_us > /proc/sys/kernel/sched_rt_period_us
+echo $sched_rt_runtime_us > /proc/sys/kernel/sched_rt_runtime_us
+
+if [ -d /proc/sys/walt ]; then
 
         # Core control parameters on silver
         echo 0 0 0 0 1 1 > /sys/devices/system/cpu/cpu0/core_ctl/not_preferred
@@ -173,131 +185,146 @@ case "$target" in
         echo 60 > /sys/devices/system/cpu/cpu0/core_ctl/busy_up_thres
         echo 40 > /sys/devices/system/cpu/cpu0/core_ctl/busy_down_thres
         echo 100 > /sys/devices/system/cpu/cpu0/core_ctl/offline_delay_ms
-        echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/is_big_cluster
         echo 8 > /sys/devices/system/cpu/cpu0/core_ctl/task_thres
-        echo 0 > /sys/devices/system/cpu/cpu6/core_ctl/enable
 
-        # Disabling Core control parameters on silver
+	# Disable Core Control Paramters for Silvers
         echo 6 > /sys/devices/system/cpu/cpu0/core_ctl/min_cpus
-        echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
+	echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
 
-        # configure governor settings for big cluster
-        echo "schedutil" > /sys/devices/system/cpu/cpu6/cpufreq/scaling_governor
-        echo 0 > /sys/devices/system/cpu/cpu6/cpufreq/schedutil/rate_limit_us
-        echo 1209600 > /sys/devices/system/cpu/cpu6/cpufreq/schedutil/hispeed_freq
-        echo 768000 > /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
+	# Disable Core control parameters for gold
+	echo 0 > /sys/devices/system/cpu/cpu6/core_ctl/enable
 
-        # sched_load_boost as -6 is equivalent to target load as 85. It is per cpu tunable.
-        echo -6 >  /sys/devices/system/cpu/cpu6/sched_load_boost
-        echo -6 >  /sys/devices/system/cpu/cpu7/sched_load_boost
-        echo 85 > /sys/devices/system/cpu/cpu6/cpufreq/schedutil/hispeed_load
+	# Setting b.L scheduler parameters
+	echo 71 > /proc/sys/walt/sched_upmigrate
+	echo 65 > /proc/sys/walt/sched_downmigrate
+	echo 85 > /proc/sys/walt/sched_group_downmigrate
+	echo 100 > /proc/sys/walt/sched_group_upmigrate
+	echo 1 > /proc/sys/walt/sched_walt_rotate_big_tasks
+	echo 400000000 > /proc/sys/walt/sched_coloc_downmigrate_ns
+	echo 39000000 39000000 39000000 39000000 39000000 39000000 39000000 39000000 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_ns
+	echo 248 > /proc/sys/walt/sched_coloc_busy_hysteresis_enable_cpus
+	echo 10 10 10 10 10 10 10 10 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_busy_pct
+	echo 8500000 8500000 8500000 8500000 8500000 8500000 8500000 8500000 > /proc/sys/walt/sched_util_busy_hyst_cpu_ns
+	echo 255 > /proc/sys/walt/sched_util_busy_hysteresis_enable_cpus
+	echo 1 1 1 1 1 1 1 1 > /proc/sys/walt/sched_util_busy_hyst_cpu_util
+	echo 40 > /proc/sys/walt/sched_cluster_util_thres_pct
+	echo 30 > /proc/sys/walt/sched_idle_enough
+	echo 10 > /proc/sys/walt/sched_ed_boost
 
-        # cpuset parameters
-        echo 0-5 > /dev/cpuset/background/cpus
-        echo 0-5 > /dev/cpuset/system-background/cpus
-        ;;
-    esac
+	#Set early upmigrate tunables
+	freq_to_migrate=1228800
+	silver_fmax=`cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq`
+	silver_early_upmigrate=`expr 1024 \* $silver_fmax / $freq_to_migrate`
+	silver_early_downmigrate=`expr \( 1024 \* $silver_fmax \) / \( \( \( 10 \* $freq_to_migrate \) - $silver_fmax \) \/ 10 \)`
+	sched_upmigrate=`cat /proc/sys/walt/sched_upmigrate`
+	sched_downmigrate=`cat /proc/sys/walt/sched_downmigrate`
+	sched_upmigrate=${sched_upmigrate:0:2}
+	sched_downmigrate=${sched_downmigrate:0:2}
+	gold_early_upmigrate=`expr \( 1024 \* 100 \) \/ $sched_upmigrate`
+	gold_early_downmigrate=`expr \( 1024 \* 100 \) \/ $sched_downmigrate`
+	echo $silver_early_downmigrate $gold_early_downmigrate $gold_early_downmigrate > /proc/sys/walt/sched_early_downmigrate
+	echo $silver_early_upmigrate $gold_early_upmigrate $gold_early_upmigrate > /proc/sys/walt/sched_early_upmigrate
 
-    case "$soc_id" in
-        "406")
-        # QCS410
-        # configure governor settings for big cluster
-        echo "schedutil" > /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor
-        echo 0 > /sys/devices/system/cpu/cpu2/cpufreq/schedutil/rate_limit_us
-        echo 1209600 > /sys/devices/system/cpu/cpu2/cpufreq/schedutil/hispeed_freq
-        echo 768000 > /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq
+	# set the threshold for low latency task boost feature which prioritize
+	# binder activity tasks
+	echo 325 > /proc/sys/walt/walt_low_latency_task_threshold
 
-        # sched_load_boost as -6 is equivalent to target load as 85. It is per cpu tunable.
-        echo -6 >  /sys/devices/system/cpu/cpu2/sched_load_boost
-        echo -6 >  /sys/devices/system/cpu/cpu3/sched_load_boost
-        echo 85 > /sys/devices/system/cpu/cpu2/cpufreq/schedutil/hispeed_load
+	# Turn off scheduler boost at the end
+	echo 0 > /proc/sys/walt/sched_boost
 
-        ;;
-    esac
+	# configure input boost settings
+	echo 1209600 0 0 0 0 0 0 0 > /proc/sys/walt/input_boost/input_boost_freq
+	echo 40 > /proc/sys/walt/input_boost/input_boost_ms
 
-    # Setting b.L scheduler parameters
-    # default sched up and down migrate values are 90 and 85
-    echo 65 > /proc/sys/kernel/sched_downmigrate
-    echo 71 > /proc/sys/kernel/sched_upmigrate
-    # default sched up and down migrate values are 100 and 95
-    echo 85 > /proc/sys/kernel/sched_group_downmigrate
-    echo 100 > /proc/sys/kernel/sched_group_upmigrate
-    echo 1 > /proc/sys/kernel/sched_walt_rotate_big_tasks
+	echo "walt" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+	echo "walt" > /sys/devices/system/cpu/cpufreq/policy6/scaling_governor
 
-    # configure governor settings for little cluster
-    echo "schedutil" > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-    echo 0 > /sys/devices/system/cpu/cpu0/cpufreq/schedutil/rate_limit_us
-    echo 1209600 > /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_freq
-    echo 90 > /sys/devices/system/cpu/cpu0/cpufreq/schedutil/hispeed_load
-    echo 576000 > /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+	echo 0 > /sys/devices/system/cpu/cpufreq/policy0/walt/down_rate_limit_us
+	echo 0 > /sys/devices/system/cpu/cpufreq/policy0/walt/up_rate_limit_us
+	echo 0 > /sys/devices/system/cpu/cpufreq/policy6/walt/down_rate_limit_us
+	echo 0 > /sys/devices/system/cpu/cpufreq/policy6/walt/up_rate_limit_us
 
-    # sched_load_boost as -10 is equivalent to target load as 90. It is per cpu tunable.
-    echo -10 >  /sys/devices/system/cpu/cpu0/sched_load_boost
-    echo -10 >  /sys/devices/system/cpu/cpu1/sched_load_boost
-    echo -10 >  /sys/devices/system/cpu/cpu2/sched_load_boost
-    echo -10 >  /sys/devices/system/cpu/cpu3/sched_load_boost
-    echo -10 >  /sys/devices/system/cpu/cpu4/sched_load_boost
-    echo -10 >  /sys/devices/system/cpu/cpu5/sched_load_boost
+	echo 1 > /sys/devices/system/cpu/cpufreq/policy0/walt/pl
+	echo 1 > /sys/devices/system/cpu/cpufreq/policy6/walt/pl
 
-    echo "0:1209600" > /sys/module/cpu_boost/parameters/input_boost_freq
-    echo 40 > /sys/module/cpu_boost/parameters/input_boost_ms
+	echo 680000 > /sys/devices/system/cpu/cpufreq/policy0/walt/rtg_boost_freq
+	echo 0 > /sys/devices/system/cpu/cpufreq/policy6/walt/rtg_boost_freq
 
-    # Set Memory parameters
-    configure_memory_parameters
+	echo 1209600 > /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq
+	echo 1209600 > /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq
 
-    # Enable bus-dcvs
-    for device in /sys/devices/platform/soc
-    do
-        for cpubw in $device/*cpu-cpu-llcc-bw/devfreq/*cpu-cpu-llcc-bw
-        do
-            echo "bw_hwmon" > $cpubw/governor
-            echo 50 > $cpubw/polling_interval
-            echo "2288 4577 7110 9155 12298 14236" > $cpubw/bw_hwmon/mbps_zones
-            echo 20 > $cpubw/bw_hwmon/sample_ms
-            echo 68 > $cpubw/bw_hwmon/io_percent
-            echo 20 > $cpubw/bw_hwmon/hist_memory
-            echo 0 > $cpubw/bw_hwmon/hyst_length
-            echo 80 > $cpubw/bw_hwmon/down_thres
-            echo 0 > $cpubw/bw_hwmon/guard_band_mbps
-            echo 250 > $cpubw/bw_hwmon/up_scale
-            echo 1600 > $cpubw/bw_hwmon/idle_mbps
-        done
-        for llccbw in $device/*cpu-llcc-ddr-bw/devfreq/*cpu-llcc-ddr-bw
-        do
-            echo "bw_hwmon" > $llccbw/governor
-            echo 40 > $llccbw/polling_interval
-            echo "1144 1720 2086 2929 3879 5931 6881" > $llccbw/bw_hwmon/mbps_zones
-            echo 20 > $llccbw/bw_hwmon/sample_ms
-            echo 68 > $llccbw/bw_hwmon/io_percent
-            echo 20 > $llccbw/bw_hwmon/hist_memory
-            echo 0 > $llccbw/bw_hwmon/hyst_length
-            echo 80 > $llccbw/bw_hwmon/down_thres
-            echo 0 > $llccbw/bw_hwmon/guard_band_mbps
-            echo 250 > $llccbw/bw_hwmon/up_scale
-            echo 1600 > $llccbw/bw_hwmon/idle_mbps
-        done
+else
+	echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+	echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy6/scaling_governor
+	echo 1 > /proc/sys/kernel/sched_pelt_multiplier
+fi
 
-        #Enable mem_latency governor for L3, LLCC, and DDR scaling
-        for memlat in $device/*cpu*-lat/devfreq/*cpu*-lat
-        do
-            echo "mem_latency" > $memlat/governor
-            echo 10 > $memlat/polling_interval
-            echo 400 > $memlat/mem_latency/ratio_ceil
-        done
+echo 576000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
+echo 768000 > /sys/devices/system/cpu/cpufreq/policy6/scaling_min_freq
 
-        #Enable compute governor for gold latfloor
-        for latfloor in $device/*cpu*-ddr-latfloor*/devfreq/*cpu-ddr-latfloor*
-        do
-            echo "compute" > $latfloor/governor
-            echo 10 > $latfloor/polling_interval
-        done
-    done
-    # Turn off scheduler boost at the end
-    echo 0 > /proc/sys/kernel/sched_boost
-    # Turn on sleep modes.
-    echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled
-    ;;
+# Reset the RT boost, which is 1024 (max) by default.
+echo 0 > /proc/sys/kernel/sched_util_clamp_min_rt_default
+
+# configure bus-dcvs
+bus_dcvs="/sys/devices/system/cpu/bus_dcvs"
+
+for device in $bus_dcvs/*
+do
+	cat $device/hw_min_freq > $device/boost_freq
+done
+
+for llccbw in $bus_dcvs/LLCC/*bwmon-llcc
+do
+	echo "2288 4577 7110 9155 12298 14236" > $llccbw/mbps_zones
+	echo 20 > $llccbw/sample_ms
+	echo 68 > $llccbw/io_percent
+	echo 20 > $llccbw/hist_memory
+	echo 0 > $llccbw/hyst_length
+	echo 1 > $llccbw/idle_length
+	echo 80 > $llccbw/down_thres
+	echo 0 > $llccbw/guard_band_mbps
+	echo 250 > $llccbw/up_scale
+	echo 1600 > $llccbw/idle_mbps
+	echo 600000 > $llccbw/max_freq
+	echo 40 > $llccbw/window_ms
+done
+
+for ddrbw in $bus_dcvs/DDR/*bwmon-ddr
+do
+	echo "1144 1720 2086 2929 3879 5931 6881" > $ddrbw/mbps_zones
+	echo 20 > $ddrbw/sample_ms
+	echo 20 > $ddrbw/io_percent
+	echo 68 > $ddrbw/hist_memory
+	echo 0 > $ddrbw/hyst_length
+	echo 1 > $ddrbw/idle_length
+	echo 80 > $ddrbw/down_thres
+	echo 0 > $ddrbw/guard_band_mbps
+	echo 250 > $ddrbw/up_scale
+	echo 1600 > $ddrbw/idle_mbps
+	echo 1017000 > $ddrbw/max_freq
+	echo 40 > $ddrbw/window_ms
+done
+
+for l3gold in $bus_dcvs/L3/*gold
+do
+	echo 400 > $l3gold/ipm_ceil
+done
+
+echo s2idle > /sys/power/mem_sleep
+echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
+
+echo 4 > /proc/sys/kernel/printk
+
+# Change console log level as per console config property
+console_config=`getprop persist.vendor.console.silent.config`
+case "$console_config" in
+	"1")
+		echo "Enable console config to $console_config"
+		echo 0 > /proc/sys/kernel/printk
+		;;
+	*)
+		echo "Enable console config to $console_config"
+		;;
 esac
 
-echo "post boot settings completed"
-echo "++++ $0 -> post boot settings completed" > /dev/kmsg
+setprop vendor.post_boot.parsed 1

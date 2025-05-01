@@ -36,10 +36,8 @@ enable_debug_tracing_events() {
     events=" \
         timer/timer_expire_entry \
         timer/timer_expire_exit \
-        timer/hrtimer_cancel \
         timer/hrtimer_expire_entry \
         timer/hrtimer_expire_exit \
-        timer/hrtimer_init \
         timer/hrtimer_start \
         irq \
         workqueue \

@@ -192,7 +192,7 @@ case `source /sbin/usb/target` in
 	*9650* )
 		run_9650 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* )
+	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* | *sa510m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		xport_rndis="gsi.rndis"
 		xport_ecm="gsi.ecm"

@@ -2,6 +2,22 @@
 # Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+create_sa510m_stm_stp_policy()
+{
+    echo "++++ $0 -> create_stp_policy START" > /dev/kmsg
+    mkdir /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy
+    chmod 660 /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy
+    mkdir /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy/default
+    chmod 660 /sys/kernel/config/stp-policy/coresight-stm:p_ost.policy/default
+    echo "++++ $0 -> create_stp_policy END" > /dev/kmsg
+}
+
+configure_coresight()
+{
+    chmod 660 /dev/byte-cntr
+    chown diag:root /dev/byte-cntr
+}
+
 config_sa510m_dcc_thermal()
 {
     #Tsense
@@ -1476,6 +1492,27 @@ enable_sa510m_debug()
 {
     echo "++++ $0 -> enable_sa510m_debug START" > /dev/kmsg
     enable_sa510m_dcc
+
+    configure_coresight
+
+    create_sa510m_stm_stp_policy
+
+    # bail out if coresight isn't present
+    if [ ! -d /sys/bus/coresight ] ; then
+        echo "++++ $0 -> Not a debug build. No Coresight" > /dev/kmsg
+        return
+    fi
+
+    echo 0x200000 > /sys/bus/coresight/devices/coresight-tmc-etr/buffer_size
+    echo 1 > /sys/bus/coresight/devices/coresight-tmc-etr/enable_sink
+    echo coresight-stm > /sys/class/stm_source/ftrace/stm_source_link
+    echo 1 > /sys/bus/coresight/devices/coresight-stm/enable_source
+    echo 0 > /sys/bus/coresight/devices/coresight-stm/hwevent_enable
+
+    echo 1 >/sys/bus/coresight/devices/coresight-cti-swao_cti/enable
+    echo 0 24 >/sys/bus/coresight/devices/coresight-cti-swao_cti/channels/trigin_attach
+    echo 0 1 >/sys/bus/coresight/devices/coresight-cti-swao_cti/channels/trigout_attach
+
     enable_sa510m_ftrace_event_tracing
     echo "++++ $0 -> enable_sa510m_debug END" > /dev/kmsg
 }

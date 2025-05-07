@@ -36,7 +36,6 @@ enable_debug_tracing_events() {
         sched \
         safelinux \
         gunyah \
-        iommu \
         oom \
         rwmmio \
         scmi \

@@ -59,6 +59,16 @@ AC_ARG_WITH(systemd,
 
 AM_CONDITIONAL([USE_SYSTEMD], [test "x${SYSTEMD}" != "xno"])
 
+AC_ARG_WITH([tmpfilesdir],
+        AC_HELP_STRING([--with-tmpfilesdir=DIR],
+        [path to systemd tmpfiles.d directory]), [path_tmpfiles=${withval}],
+                [path_tmpfiles="`$PKG_CONFIG --variable=tmpfilesdir systemd`"])
+
+if (test -n "${path_tmpfiles}"); then
+        SYSTEMD_TMPFILESDIR="${path_tmpfiles}"
+        AC_SUBST(SYSTEMD_TMPFILESDIR)
+fi
+
 AC_CONFIG_FILES([ \
     Makefile \
 ])

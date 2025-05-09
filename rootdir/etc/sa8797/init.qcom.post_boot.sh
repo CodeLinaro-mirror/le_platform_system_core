@@ -29,7 +29,7 @@ init_dynamic_mem_dump()
 }
 
 case "$target" in
-  "sa8797p" )
+  "qam8797p" )
     # Tune pm_freeze_timeout smaller than wdt_time_out/2 to avoid wdt when
     # kernel hung in freezing userspace process.
     echo 4000 > /sys/power/pm_freeze_timeout

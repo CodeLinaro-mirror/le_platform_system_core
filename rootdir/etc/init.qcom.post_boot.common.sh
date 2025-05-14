@@ -44,7 +44,6 @@ enable_debug_tracing_events() {
         ipi \
         sched \
         gunyah \
-        iommu \
         oom \
     "
 

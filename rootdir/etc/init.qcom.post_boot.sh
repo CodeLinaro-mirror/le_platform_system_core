@@ -405,8 +405,6 @@ configure_memory_parameters_auto() {
         echo 100 > /proc/sys/vm/swappiness
 }
 
-case "$1" in
-start)
 if [ -f /sys/devices/soc0/machine ]; then
     target=`cat /sys/devices/soc0/machine | tr [:upper:] [:lower:]`
 elif [ -f /sys/devices/soc0/soc_id ]; then
@@ -1794,7 +1792,7 @@ case "$target" in
 esac
 
 case "$target" in
-  "sa8775p")
+  "sa8775p"| "sa8255p" | "sa8650p" | "sa7255p" | "sa8620p")
     echo 1 > /sys/kernel/tracing/events/safelinux/enable
     enable_debug_tracing_events
     set_total_trace_buffer_size 21288
@@ -1803,17 +1801,3 @@ case "$target" in
 esac
 
 echo "init_qcom_post_boot completed"
-;;
-stop)
-    echo -n "Stopping init_qcom_post_boot: "
-    echo "done"
-;;
-restart)
-    $0 stop
-    $0 start
-;;
-*)
-    echo "Incorrect option specified"
-    exit 1
-;;
-esac

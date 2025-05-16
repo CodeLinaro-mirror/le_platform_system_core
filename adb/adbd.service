@@ -27,6 +27,8 @@
 
 [Unit]
 Description=Adb Daemon Starter
+Conflicts=shutdown.target
+Before=shutdown.target
 Requires=usb.service
 After=usb.service
 DefaultDependencies=no

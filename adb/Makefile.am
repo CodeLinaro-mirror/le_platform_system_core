@@ -42,7 +42,13 @@ libadbd_la_CPPFLAGS += -DADB_HOST=0 -D__ANDROID__
 libadbd_la_CPPFLAGS += -DADB_REVISION='"$(adb_version)"'
 libadbd_la_CPPFLAGS += -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
-libadbd_la_LDFLAGS  := -lpthread -lselinux -lresolv
+libadbd_la_LDFLAGS  := -lpthread -lresolv
+
+if SELINUX_ENABLE
+libadbd_la_LDFLAGS  += -lselinux
+libadbd_la_CPPFLAGS += -DSELINUX_IS_ENABLE
+endif
+
 libadbd_la_LDFLAGS  += @GLIB_LIBS@ @LIBCUTILS_LIBS@ @FSMGR_LIBS@
 libadbd_la_LDFLAGS  += @LIBBASE_LIBS@ @MINCRYPT_LIBS@ @EXT4UTILS_LIBS@
 
@@ -88,7 +94,13 @@ endif
 adbd_CPPFLAGS += @EXT4UTILS_CFLAGS@
 
 adbd_LDADD   := libadbd.la
-adbd_LDFLAGS := -lpthread -lresolv -lselinux -lutil
+adbd_LDFLAGS := -lpthread -lresolv -lutil
+
+if SELINUX_ENABLE
+adbd_LDFLAGS += -lselinux
+adbd_CPPFLAGS += -DSELINUX_IS_ENABLE
+endif
+
 adbd_LDFLAGS += @LIBLOG_LIBS@ @GLIB_LIBS@ @LIBCUTILS_LIBS@
 adbd_LDFLAGS += @LIBBASE_LIBS@ @FSMGR_LIBS@ @MINCRYPT_LIBS@
 endif

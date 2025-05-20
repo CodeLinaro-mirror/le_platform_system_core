@@ -164,6 +164,7 @@ case "$1" in
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
 			mkdir functions/ffs.diag
+			mkdir functions/ffs.ffs-diag_mdm
 		fi
 
 		if [ ! -s "/etc/adb_devid" ]
@@ -203,6 +204,11 @@ case "$1" in
 	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.diag ]; then
 		mkdir -p /dev/ffs-diag
 		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
+	fi
+
+	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.ffs-diag_mdm ]; then
+		mkdir -p /dev/ffs-diag-1
+		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
 	fi
 
 	mount -o remount,gid=5,mode=620 /dev/pts
@@ -248,9 +254,12 @@ case "$1" in
 				${LOCAL_ECHO} 901F > /etc/usb/boot_hsusb_comp
 			fi
 			;;
-		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* | *sa2150p* | *qcs610* | *sa510m* )
+		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* | *sa2150p* | *qcs610* )
 			${LOCAL_ECHO} 901D > /etc/usb/boot_hsusb_comp
 		        ;;
+		*sa510m* )
+			${LOCAL_ECHO} 90B8 > /etc/usb/boot_hsusb_comp
+			;;
 		*sm8150* )
 			${LOCAL_ECHO} 901D > /etc/usb/boot_hsusb_comp
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then

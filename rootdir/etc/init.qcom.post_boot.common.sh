@@ -2,6 +2,17 @@
 # Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
+# This function tries to find the debug build type from the linux build banner.
+find_build_type()
+{
+	linux_banner=$(cat /proc/version)
+	if echo "$linux_banner" | grep -q "-debug"; then
+		debug_build=true
+	else
+		debug_build=false
+	fi
+}
+
 # This function lets you configure the total trace buffer size, splitting
 # buffer size evenly per cpu
 set_total_trace_buffer_size() {

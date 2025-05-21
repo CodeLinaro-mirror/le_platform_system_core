@@ -327,4 +327,6 @@ case "$console_config" in
 		;;
 esac
 
+echo 0 > /sys/devices/platform/soc/17c10000.qcom,wdt/wakeup_enable
+
 setprop vendor.post_boot.parsed 1

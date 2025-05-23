@@ -137,6 +137,9 @@ case $TARGET in
 		;;
 	*khaje* | *qcm4325* )
 		res="khaje"
+	    ;;
+    *kera* )
+		res="kera"
 		;;
 	* )
 		res="none"

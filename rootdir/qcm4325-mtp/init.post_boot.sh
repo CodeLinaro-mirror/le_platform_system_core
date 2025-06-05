@@ -214,7 +214,7 @@ echo $sched_rt_period_us > /proc/sys/kernel/sched_rt_period_us
 echo $sched_rt_runtime_us > /proc/sys/kernel/sched_rt_runtime_us
 
 case "$soc_id" in
-	"586")
+	"586" | "518")
 		# Disable Core control on silver
 		echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
 
@@ -448,7 +448,7 @@ case "$soc_id" in
 esac
 
 echo s2idle > /sys/power/mem_sleep
-echo N > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
+echo Y > /sys/devices/system/cpu/qcom_lpm/parameters/sleep_disabled
 
 # Let kernel know our image version/variant/crm_version
 if [ -f /sys/devices/soc0/select_image ]; then

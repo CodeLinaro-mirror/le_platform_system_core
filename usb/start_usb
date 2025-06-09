@@ -257,9 +257,6 @@ case "$1" in
 		*8909* | *8053* | *8017* | *qcs605* | *qcs40x* | *sa2150p* | *qcs610* )
 			${LOCAL_ECHO} 901D > /etc/usb/boot_hsusb_comp
 		        ;;
-		*sa510m* )
-			${LOCAL_ECHO} 90B8 > /etc/usb/boot_hsusb_comp
-			;;
 		*sm8150* )
 			${LOCAL_ECHO} 901D > /etc/usb/boot_hsusb_comp
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then

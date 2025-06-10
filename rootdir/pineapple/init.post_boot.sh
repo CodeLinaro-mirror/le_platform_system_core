@@ -195,7 +195,7 @@ if [ -f /sys/devices/soc0/soc_id ]; then
 fi
 
 case "$platformid" in
-	"557"|"577")
+	"557"|"577"|"702")
 		#Pass as an argument the max number of clusters supported on the SOC
 		/bin/sh /etc/init.kernel.post_boot-pineapple.sh 4
 		;;

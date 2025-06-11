@@ -6810,15 +6810,6 @@ enable_cpuss_register()
     echo 0x17d98030 2 > $MEM_DUMP_PATH/register_config
 }
 
-find_build_type()
-{
-    linux_banner=`cat /proc/version`
-    if [[ "$linux_banner" == *"-debug"* ]]
-    then
-        debug_build=true
-    fi
-}
-
 enable_dcc()
 {
     DCC_PATH="/sys/bus/platform/devices/100ff000.dcc_v2"
@@ -6875,9 +6866,8 @@ enable_neo_ftrace_event_tracing()
     echo "++++ $0 -> ENABLE-FTRACE START" > /dev/kmsg
     #Enable FTRACE_ENABLE on NEO
     #bail out if its perf config
-    if [ "$debug_build" = false ]
+    if [ ! -d /sys/module/msm_rtb ]
     then
-        echo "++++ $0 -> Perf build bailing out ftrace" > /dev/kmsg
         return
     fi
 
@@ -6929,7 +6919,7 @@ enable_cti_flush_for_etf()
 {
     echo "++++ $0 -> enable_cti_flush_for_etf START" > /dev/kmsg
     # bail out if its perf config
-    if [ "$debug_build" = false ]
+    if [ ! -d /sys/module/msm_rtb ]
     then
         return
     fi
@@ -6965,7 +6955,7 @@ enable_stm_events()
 {
     echo "++++ $0 -> enable_stm_events START" > /dev/kmsg
     # bail out if its perf config
-    if [ "$debug_build" = false ]
+    if [ ! -d /sys/module/msm_rtb ]
     then
         return
     fi
@@ -6988,11 +6978,11 @@ enable_stm_events()
 	echo "++++ $0 -> enable_stm_events END" > /dev/kmsg
 }
 
-debug_build=false
+
 enable_neo_debug()
 {
     echo "++++ $0 -> enable_neo_debug START" > /dev/kmsg
-    find_build_type
+
     etr_size="0x2000000"
     srcenable="enable_source"
     sinkenable="enable_sink"

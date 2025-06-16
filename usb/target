@@ -84,7 +84,7 @@ case $TARGET in
 	*sxr2130* )
 		res="sxr2130";
 		;;
-	*neo-le* | *sxrneo* | *sxrneo-ar-sg1* )
+	*neo-le* | *sxrneo* | *sxrneo-ar-sg1* | *ar-sg1* )
 		res="sxrneo";
 		;;
 	*sdxnightjar* )
@@ -108,6 +108,9 @@ case $TARGET in
 	*sa410m* )
 		res="sa410m";
 		;;
+	*sa510m* )
+		res="sa510m";
+		;;
 	*sa525m* )
 		res="sa525m";
 		;;
@@ -128,6 +131,15 @@ case $TARGET in
 		;;
 	*pineapple* )
 		res="pineapple"
+		;;
+	*scuba* | *qcm2290* )
+		res="scuba"
+		;;
+	*khaje* | *qcm4325* )
+		res="khaje"
+	    ;;
+    *kera* )
+		res="kera"
 		;;
 	* )
 		res="none"

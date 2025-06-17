@@ -6987,7 +6987,7 @@ case "$1" in
         soc_id=`cat /sys/devices/soc0/soc_id`
 
          case "$soc_id" in
-         "525" | "554" )
+         "525" | "554"|"579" )
                 echo -n "Starting powerconfig for neo: "
 
                 enable_neo_debug

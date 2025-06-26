@@ -28,8 +28,8 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Changes from Qualcomm Innovation Center are provided under the following license:
-# Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# Changes from Qualcomm Technologies, Inc. are provided under the following license:
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 #=============================================================================
 get_num_logical_cores_in_physical_cluster()
@@ -46,7 +46,6 @@ get_num_logical_cores_in_physical_cluster()
 			num_cores=$(cat $i/related_cpus | wc -w)
 			first_cpu=$(echo "$i" | sed 's/[^0-9]*//g')
 			cluster_id=$(cat /sys/devices/system/cpu/cpu$first_cpu/topology/$physical_cluster)
-			logical_cores[$cluster_id]=$num_cores
 			if [ $cluster_id -eq 0 ]; then
 				logical_cores0=$num_cores
 			elif [ $cluster_id -eq 1  ]; then
@@ -56,7 +55,7 @@ get_num_logical_cores_in_physical_cluster()
 			fi
 		fi
 	done
-	echo $logical_cores0"_"$logical_cores1"_"$logical_cores2
+	echo ${logical_cores0:-0}"_"${logical_cores1:-0}"_"${logical_cores2:-0}
 }
 
 #Implementing this mechanism to jump to powersave governor if the script is not running
@@ -74,16 +73,11 @@ fallback_setting()
 
 variant=$(get_num_logical_cores_in_physical_cluster)
 echo "CPU topology: ${variant}"
-case "$variant" in
-	"3_4_1")
-	/bin/sh /etc/init.post_boot_default_3_4_1.sh
-	;;
-	"3_2_1")
-	/bin/sh /etc/init.post_boot_3_2_1.sh
-	;;
-	*)
+if [ -e "/etc/init.post_boot_$variant.sh" ]; then
+	/bin/sh "/etc/init.post_boot_$variant.sh"
+elif [ -e "/etc/init.post_boot_default_$variant.sh" ]; then
+	/bin/sh "/etc/init.post_boot_default_$variant.sh"
+else
 	echo "***WARNING***: Postboot script not present for the variant ${variant}"
 	fallback_setting
-	;;
-esac
-
+fi

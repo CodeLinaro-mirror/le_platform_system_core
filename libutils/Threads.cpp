@@ -781,6 +781,7 @@ int Thread::_threadLoop(void* user)
         strong = weak.promote();
     } while(strong != 0);
 
+    weak = nullptr;
     return 0;
 }
 

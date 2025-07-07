@@ -201,12 +201,12 @@ if [ -d /proc/sys/walt ]; then
 	echo 100 > /proc/sys/walt/sched_group_upmigrate
 	echo 1 > /proc/sys/walt/sched_walt_rotate_big_tasks
 	echo 400000000 > /proc/sys/walt/sched_coloc_downmigrate_ns
-	echo 39000000 39000000 39000000 39000000 39000000 39000000 39000000 39000000 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_ns
-	echo 248 > /proc/sys/walt/sched_coloc_busy_hysteresis_enable_cpus
-	echo 10 10 10 10 10 10 10 10 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_busy_pct
-	echo 8500000 8500000 8500000 8500000 8500000 8500000 8500000 8500000 > /proc/sys/walt/sched_util_busy_hyst_cpu_ns
+	echo 8500000 1000000 1000000 1000000 1000000 1000000 2000000 2000000 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_ns
+	echo 255 > /proc/sys/walt/sched_coloc_busy_hysteresis_enable_cpus
+	echo 10 10 10 10 10 10 95 95 > /proc/sys/walt/sched_coloc_busy_hyst_cpu_busy_pct
+	echo 8500000 1000000 1000000 1000000 1000000 1000000 2000000 2000000 > /proc/sys/walt/sched_util_busy_hyst_cpu_ns
 	echo 255 > /proc/sys/walt/sched_util_busy_hysteresis_enable_cpus
-	echo 1 1 1 1 1 1 1 1 > /proc/sys/walt/sched_util_busy_hyst_cpu_util
+	echo 30 30 30 30 30 30 15 15 > /proc/sys/walt/sched_util_busy_hyst_cpu_util
 	echo 40 > /proc/sys/walt/sched_cluster_util_thres_pct
 	echo 30 > /proc/sys/walt/sched_idle_enough
 	echo 10 > /proc/sys/walt/sched_ed_boost
@@ -214,16 +214,16 @@ if [ -d /proc/sys/walt ]; then
 	#Set early upmigrate tunables
 	freq_to_migrate=1228800
 	silver_fmax=`cat /sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq`
-	silver_early_upmigrate=`expr 1024 \* $silver_fmax / $freq_to_migrate`
-	silver_early_downmigrate=`expr \( 1024 \* $silver_fmax \) / \( \( \( 10 \* $freq_to_migrate \) - $silver_fmax \) \/ 10 \)`
+	silver_early_upmigrate="$((1024 * $silver_fmax / $freq_to_migrate))"
+	silver_early_downmigrate="$((((1024 * $silver_fmax) / (((10*$freq_to_migrate) - $silver_fmax) / 10))))"
 	sched_upmigrate=`cat /proc/sys/walt/sched_upmigrate`
 	sched_downmigrate=`cat /proc/sys/walt/sched_downmigrate`
 	sched_upmigrate=${sched_upmigrate:0:2}
 	sched_downmigrate=${sched_downmigrate:0:2}
-	gold_early_upmigrate=`expr \( 1024 \* 100 \) \/ $sched_upmigrate`
-	gold_early_downmigrate=`expr \( 1024 \* 100 \) \/ $sched_downmigrate`
-	echo $silver_early_downmigrate $gold_early_downmigrate $gold_early_downmigrate > /proc/sys/walt/sched_early_downmigrate
-	echo $silver_early_upmigrate $gold_early_upmigrate $gold_early_upmigrate > /proc/sys/walt/sched_early_upmigrate
+	gold_early_upmigrate="$((1024 * 100 / $sched_upmigrate))"
+	gold_early_downmigrate="$((1024 * 100 / $sched_downmigrate))"
+	echo $silver_early_downmigrate $gold_early_downmigrate > /proc/sys/walt/sched_early_downmigrate
+	echo $silver_early_upmigrate $gold_early_upmigrate > /proc/sys/walt/sched_early_upmigrate
 
 	# set the threshold for low latency task boost feature which prioritize
 	# binder activity tasks
@@ -247,8 +247,8 @@ if [ -d /proc/sys/walt ]; then
 	echo 1 > /sys/devices/system/cpu/cpufreq/policy0/walt/pl
 	echo 1 > /sys/devices/system/cpu/cpufreq/policy6/walt/pl
 
-	echo 680000 > /sys/devices/system/cpu/cpufreq/policy0/walt/rtg_boost_freq
-	echo 0 > /sys/devices/system/cpu/cpufreq/policy6/walt/rtg_boost_freq
+	echo 787200 > /sys/devices/system/cpu/cpufreq/policy0/walt/rtg_boost_freq
+	echo 902400 > /sys/devices/system/cpu/cpufreq/policy6/walt/rtg_boost_freq
 
 	echo 1209600 > /sys/devices/system/cpu/cpufreq/policy0/walt/hispeed_freq
 	echo 1209600 > /sys/devices/system/cpu/cpufreq/policy6/walt/hispeed_freq
@@ -326,7 +326,5 @@ case "$console_config" in
 		echo "Enable console config to $console_config"
 		;;
 esac
-
-echo 0 > /sys/devices/platform/soc/17c10000.qcom,wdt/wakeup_enable
 
 setprop vendor.post_boot.parsed 1

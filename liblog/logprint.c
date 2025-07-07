@@ -929,9 +929,9 @@ char *android_log_formatLogLine (
     if (p_format->colored_output) {
         prefixLen = (size_t)snprintf(prefixBuf, sizeof(prefixBuf), "\x1B[38;5;%dm",
                              colorFromPri(entry->priority));
-        prefixLen = MIN(prefixLen, sizeof(prefixBuf));
+        prefixLen = MIN(prefixLen, sizeof(prefixBuf) - 1);
         suffixLen = (size_t)snprintf(suffixBuf, sizeof(suffixBuf), "\x1B[0m");
-        suffixLen = MIN(suffixLen, sizeof(suffixBuf));
+        suffixLen = MIN(suffixLen, sizeof(suffixBuf) - 1);
     }
 
     switch (p_format->format) {

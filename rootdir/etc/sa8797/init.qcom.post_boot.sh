@@ -40,13 +40,13 @@ set_cpu_governor_policy()
     # 0x2 - Safe-IVI
     # 0x3 - Flex"
     if [ $sku_variant -ne 0 ]; then
-       return
+        return
     fi
 
-    # schedutil cpufreq governor should be set only to Nonsafe variant
-    for dir in $CPUFREQ_POLICY/*; do
-        echo schedutil > $dir/scaling_governor
-    done
+    # schedutil cpufreq governor should be set only to Nonsafe variant
+    for dir in $CPUFREQ_POLICY/*; do
+        echo schedutil > $dir/scaling_governor
+    done
 }
 
 case "$target" in

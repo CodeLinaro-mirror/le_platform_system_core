@@ -28,6 +28,27 @@ init_dynamic_mem_dump()
     echo 1 >/sys/kernel/debug/dynamic_mem_dump/spr/enable
 }
 
+set_cpu_governor_policy()
+{
+    CPUFREQ_POLICY="/sys/devices/system/cpu/cpufreq"
+    reg_val=`cat /sys/devices/platform/soc@0/1f97070.qfprom/qfprom0/nvmem | od -An -tx1`
+    sku_variant=$(echo $reg_val | awk '{print $2}' | cut -c1)
+
+    # SKU Config
+    # 0x0 - NonSafe-IVI
+    # 0x1 - ADAS
+    # 0x2 - Safe-IVI
+    # 0x3 - Flex"
+    if [ $sku_variant -ne 0 ]; then
+        return
+    fi
+
+    # schedutil cpufreq governor should be set only to Nonsafe variant
+    for dir in $CPUFREQ_POLICY/*; do
+        echo schedutil > $dir/scaling_governor
+    done
+}
+
 case "$target" in
   "qam8797p" )
     # Tune pm_freeze_timeout smaller than wdt_time_out/2 to avoid wdt when
@@ -39,6 +60,7 @@ case "$target" in
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type
     init_dynamic_mem_dum
+    set_cpu_governor_policy
 ;;
 esac
 

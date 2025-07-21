@@ -121,6 +121,7 @@ run_9650() {
 }
 
 run_configfs() {
+	echo start > /tmp/usb_bind_in_progress
 	if [ $from_adb = "n" ]
 	then
 		pkill adbd
@@ -144,6 +145,7 @@ run_configfs() {
 	fi
 	ln -s functions/$2 configs/c.1/f2
 	echo 0xA0 > configs/c.1/bmAttributes
+	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
 	cd /

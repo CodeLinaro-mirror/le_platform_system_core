@@ -24,9 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+# Changes from Qualcomm Technologies, Inc. are provided under the following license:
 
-# Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # Starts the USB Android Gadget.
@@ -343,15 +343,15 @@ case "$1" in
 		fi
 	fi
 
-	# 4EE7 for auto target 8775, 8650, 8255, 7255, 8620, 8797, 8397:
+	# 4E11 for auto target 8775, 8650, 8255, 7255, 8620, 8797, 8397:
 	if [ -f /sys/devices/soc0/machine ]; then
 		target=`cat /sys/devices/soc0/machine`
 	else
 		target=`getprop ro.board.platform`
 	fi
 	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650\|8797\|8397")" != "" ]; then
-		usb_composition 4EE7
-		echo "usb_composition 4EE7 done!"
+		usb_composition 4E11
+		echo "usb_composition 4E11 done!"
 	fi
 	;;
 

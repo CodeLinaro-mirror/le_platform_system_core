@@ -50,6 +50,26 @@ AM_CONDITIONAL(X86_64, [test "x$X86_64" = "xyes"])
 AM_CONDITIONAL(BUILD_HOST, [test "x$X86_64" = "xyes"])
 AM_CONDITIONAL(BUILD_DEVICE, [test "x$ARM$ARM64" != "xnono"])
 
+AC_CHECK_FUNCS([strlcat],[STRLCAT=yes],[STRLCAT=no])
+
+if (test "x${STRLCAT}" = "xno"); then
+        AC_ARG_WITH([glib],
+                    AC_HELP_STRING([--with-glib],
+                                   [enable glib, building HLOS systems which use glib]))
+        if (test "x${with_glib}" = "xyes"); then
+                AC_DEFINE(ENABLE_USEGLIB, 1, [Define if HLOS systems uses glib])
+                PKG_CHECK_MODULES(GTHREAD, gthread-2.0 >= 2.16, dummy=yes,
+                                  AC_MSG_ERROR(GThread >= 2.16 is required))
+                PKG_CHECK_MODULES(GLIB, glib-2.0 >= 2.16, dummy=yes,
+                                  AC_MSG_ERROR(GLib >= 2.16 is required))
+                GLIB_CFLAGS="$GLIB_CFLAGS $GTHREAD_CFLAGS"
+                GLIB_LIBS="$GLIB_LIBS $GTHREAD_LIBS"
+                AC_SUBST(GLIB_CFLAGS)
+                AC_SUBST(GLIB_LIBS)
+        fi
+fi
+AM_CONDITIONAL(USE_GLIB, [test "x${with_glib}" = "xyes"  && test "x${STRLCAT}" = "xno"])
+
 AC_ARG_WITH([host-os],
         [AS_HELP_STRING([--with-host-os=HOST_OS],[Host OS to build adb host.(default: linux)])],
         [HOST_OS="$withval"],

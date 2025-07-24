@@ -471,6 +471,10 @@ typedef enum android_pixel_format {
     HAL_PIXEL_FORMAT_P01208LSB          = 0x45, // P01208LSB
     HAL_PIXEL_FORMAT_Y10                = 0x46, // Y10
     HAL_PIXEL_FORMAT_Y10LSB             = 0x47, // Y10LSB
+    HAL_PIXEL_FORMAT_P016               = 0x48, // P016
+    HAL_PIXEL_FORMAT_P016LSB            = 0x49, // P016LSB
+    HAL_PIXEL_FORMAT_TP10               = 0x4A, // TP10
+    HAL_PIXEL_FORMAT_YCbCr_444_101010   = 0x4B, // YUV444_101010
 #endif
     HAL_PIXEL_FORMAT_JPEG = 256, // 0x100
 } android_pixel_format_t;

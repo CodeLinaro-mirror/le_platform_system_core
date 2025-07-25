@@ -127,7 +127,7 @@ static LogState *createLogState()
 {
     size_t i;
 
-    for (i = 0; i < sizeof(openLogTable); i++) {
+    for (i = 0; i < MAX_OPEN_LOGS; i++) {
         if (openLogTable[i] == NULL) {
             openLogTable[i] = calloc(1, sizeof(LogState));
             openLogTable[i]->fakeFd = FAKE_FD_BASE + i;
@@ -383,7 +383,8 @@ static void showLog(LogState *state,
     ptm = localtime(&when);
 #endif
     //strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", ptm);
-    strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
+    if (ptm != NULL)
+        strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
 
     /*
      * Construct a buffer containing the log header and log message.

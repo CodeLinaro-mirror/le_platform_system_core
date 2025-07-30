@@ -47,16 +47,16 @@ fallback_setting()
 variant=$(get_num_logical_cores_in_physical_cluster "$1")
 echo "CPU topology: ${variant}"
 case "$variant" in
-	"3_4_1")
+	"3_4_1_")
 		/bin/sh /etc/init.kernel.post_boot-kera_default_3_4_1.sh
 		;;
-	"2_3_1")
+	"2_3_1_")
 		/bin/sh /etc/init.kernel.post_boot-kera_2_3_1.sh
 		;;
-	"2_4_0")
+	"2_4_0_")
 		/bin/sh /etc/init.kernel.post_boot-kera_2_4_0.sh
 		;;
-	"3_2_1")
+	"3_2_1_")
 		/bin/sh /etc/init.kernel.post_boot-kera_3_2_1.sh
 		;;
 	*)

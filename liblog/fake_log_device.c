@@ -97,12 +97,12 @@ typedef struct LogState {
  */
 static pthread_mutex_t fakeLogDeviceLock = PTHREAD_MUTEX_INITIALIZER;
 
-static void lock()
+static void lock(void)
 {
     pthread_mutex_lock(&fakeLogDeviceLock);
 }
 
-static void unlock()
+static void unlock(void)
 {
     pthread_mutex_unlock(&fakeLogDeviceLock);
 }
@@ -123,7 +123,7 @@ static LogState *openLogTable[MAX_OPEN_LOGS];
  * Allocate an fd and associate a new LogState with it.
  * The fd is available via the fakeFd field of the return value.
  */
-static LogState *createLogState()
+static LogState *createLogState(void)
 {
     size_t i;
 
@@ -649,7 +649,7 @@ static int (*redirectClose)(int fd) = NULL;
 static ssize_t (*redirectWritev)(int fd, const struct iovec* vector, int count)
         = NULL;
 
-static void setRedirects()
+static void setRedirects(void)
 {
     const char *ws;
 

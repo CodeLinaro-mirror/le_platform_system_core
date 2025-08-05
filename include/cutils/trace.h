@@ -88,7 +88,7 @@ extern "C" {
  * This function should not be explicitly called, the first call to any normal
  * trace function will cause it to be run safely.
  */
-void atrace_setup();
+void atrace_setup(void);
 
 /**
  * If tracing is ready, set atrace_enabled_tags to the system property
@@ -136,7 +136,7 @@ extern int atrace_marker_fd;
  * This can be explicitly run to avoid setup delay on first trace function.
  */
 #define ATRACE_INIT() atrace_init()
-static inline void atrace_init()
+static inline void atrace_init(void)
 {
     if (CC_UNLIKELY(!atomic_load_explicit(&atrace_is_ready, memory_order_acquire))) {
         atrace_setup();

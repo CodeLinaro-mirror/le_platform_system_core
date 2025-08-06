@@ -156,7 +156,7 @@ int fs_mkdirs(const char* path, mode_t mode) {
     struct stat sb;
     char* buf = strdup(path);
 
-    if (*buf != '/') {
+    if (buf != NULL && *buf != '/') {
         ALOGE("Relative paths are not allowed: %s", buf);
         res = -EINVAL;
         goto done;

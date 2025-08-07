@@ -88,7 +88,7 @@ int fs_read_atomic_int(const char* path, int* out_value) {
         return -1;
     }
 
-    char buf[BUF_SIZE];
+    char buf[BUF_SIZE] = {0};
     if (TEMP_FAILURE_RETRY(read(fd, buf, BUF_SIZE)) == -1) {
         ALOGE("Failed to read %s: %s", path, strerror(errno));
         goto fail;

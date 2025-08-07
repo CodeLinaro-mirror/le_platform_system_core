@@ -187,7 +187,7 @@ done:
     atomic_store_explicit(&atrace_is_ready, true, memory_order_release);
 }
 
-void atrace_setup()
+void atrace_setup(void)
 {
     pthread_once(&atrace_once_control, atrace_init_once);
 }

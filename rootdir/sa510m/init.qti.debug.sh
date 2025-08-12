@@ -1468,6 +1468,12 @@ enable_sa510m_ftrace_event_tracing()
     echo 1 > /sys/kernel/debug/tracing/events/regulator/enable
     echo 1 > /sys/kernel/debug/tracing/events/rpmh/enable
 
+    #rwmmio
+    echo 1 > /sys/kernel/debug/tracing/events/rwmmio/rwmmio_read/enable
+    echo 1 > /sys/kernel/debug/tracing/events/rwmmio/rwmmio_write/enable
+    echo 1 > /sys/kernel/debug/tracing/events/rwmmio/rwmmio_post_read/enable
+    echo 1 > /sys/kernel/debug/tracing/events/rwmmio/rwmmio_post_write/enable
+
     echo 1 > /sys/kernel/debug/tracing/tracing_on
     echo "++++ $0 -> ENABLE-FTRACE END" > /dev/kmsg
 }

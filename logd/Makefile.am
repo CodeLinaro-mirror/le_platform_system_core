@@ -31,6 +31,10 @@ logd_LDFLAGS  = -lpthread -lsysutils
 logd_LDFLAGS += @LIBBASE_LIBS@ @LIBLOG_LIBS@
 logd_LDFLAGS += @LIBUTILS_LIBS@ @LIBCUTILS_LIBS@
 
+if HAVE_STRLCPY
+logd_CPPFLAGS += -DHAVE_STRLCPY
+endif
+
 if USE_SYSTEMD
 logddir    = $(root_libdir)/systemd/system
 logd_DATA  = logd.path

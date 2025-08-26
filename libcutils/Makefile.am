@@ -77,6 +77,11 @@ if ARM64
 libcutils_la_SOURCES  += arch-arm64/android_memset.S
 endif
 
+if USE_GLIB
+libcutils_la_CFLAGS := -Dstrlcat=g_strlcat
+libcutils_la_CFLAGS  += -DUSE_GLIB @GLIB_CFLAGS@
+libcutils_la_LDFLAGS += @GLIB_LIBS@
+endif
 
 # Export headers
 cutils_includedir=$(includedir)/cutils

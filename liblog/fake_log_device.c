@@ -261,7 +261,7 @@ static void configureInitialState(const char* pathName, LogState* logState)
                 TRACE("+++ global min prio %d\n", logState->globalMinPriority);
             } else {
                 logState->tagSet[entry].minPriority = minPrio;
-                strcpy(logState->tagSet[entry].tag, tagName);
+                strlcpy(logState->tagSet[entry].tag, tagName, kMaxTagLen);
                 TRACE("+++ entry %d: %s:%d\n",
                     entry,
                     logState->tagSet[entry].tag,
@@ -395,7 +395,7 @@ static void showLog(LogState *state,
     case FORMAT_TAG:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c/%-8s: ", priChar, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_PROCESS:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
@@ -406,32 +406,32 @@ static void showLog(LogState *state,
     case FORMAT_THREAD:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c(%5d:%5d) ", priChar, pid, tid);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_RAW:
         prefixBuf[0] = 0; prefixLen = 0;
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_TIME:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%s %-8s\n\t", timeBuf, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_THREADTIME:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%s %5d %5d %c %-8s \n\t", timeBuf, pid, tid, priChar, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_LONG:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "[ %s %5d:%5d %c/%-8s ]\n",
             timeBuf, pid, tid, priChar, tag);
-        strcpy(suffixBuf, "\n\n"); suffixLen = 2;
+        strlcpy(suffixBuf, "\n\n", sizeof(suffixBuf)); suffixLen = 2;
         break;
     default:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c/%-8s(%5d): ", priChar, tag, pid);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
      }
 

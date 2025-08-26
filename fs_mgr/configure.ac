@@ -58,6 +58,9 @@ if (test "x${with_glib}" = "xyes"); then
 fi
 AM_CONDITIONAL(USE_GLIB, test "x${with_glib}" = "xyes")
 
+AC_CHECK_FUNCS([strlcat])
+AM_CONDITIONAL(USE_G_STRLCAT, ! test "x$ac_cv_func_strlcat" = "xyes")
+
 AC_CONFIG_FILES([ \
     Makefile \
     fs_mgr.pc \

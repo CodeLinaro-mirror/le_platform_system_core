@@ -60,7 +60,8 @@ case "$target" in
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type
     init_dynamic_mem_dump
-    set_cpu_governor_policy
+    # Disabling the schedutil governor temporarily
+    #set_cpu_governor_policy
 ;;
 esac
 

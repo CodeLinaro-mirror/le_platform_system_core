@@ -75,6 +75,9 @@ case $TARGET in
 	*sdmsteppe* | *610* )
 		res="qcs610";
                 ;;
+	*vienna* )
+		res="vienna";
+                ;;
         *405* | *403* | *vt* | *nf* )
                 res="qcs40x";
 		;;

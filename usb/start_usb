@@ -283,6 +283,16 @@ case "$1" in
 				esac
 			fi
 		        ;;
+		*vienna* )
+			if [ -f /sys/bus/platform/devices/a600000.hsusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.hsusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.hsusb/mode
+				    ;;
+				esac
+			fi
+		        ;;
 		*sdxpinn* )
 			adbd_params="0 y"
 			if [ -d /sys/class/usb_role/a600000.ssusb-role-switch ]; then

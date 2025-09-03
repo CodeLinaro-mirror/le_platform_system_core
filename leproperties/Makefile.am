@@ -47,4 +47,7 @@ endif
 if USE_SYSTEMD
 leproperties_systemddir   = $(root_libdir)/systemd/system
 leproperties_systemd_DATA = leprop.service
+
+tmpfilesdir = @SYSTEMD_TMPFILESDIR@
+tmpfiles_DATA = leprop.conf
 endif

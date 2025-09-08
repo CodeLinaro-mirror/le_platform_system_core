@@ -77,6 +77,7 @@ case "$1" in
 		mkdir functions/mass_storage.0
 		mkdir functions/mass_storage.1
 		mkdir functions/ffs.adb
+		mkdir functions/ffs.adb-relay
 		mkdir functions/diag.diag
 		mkdir functions/diag.diag_mdm
 		mkdir functions/cser.dun.0
@@ -151,6 +152,9 @@ case "$1" in
 	fi
 
 	mount -o remount,gid=5,mode=620 /dev/pts
+
+	mkdir -p /dev/usb-ffs/adb-relay
+	mount -o uid=2000,gid=2000 -t functionfs adb-relay /dev/usb-ffs/adb-relay
 
 	case `source /sbin/usb/target` in
 		*9x15* )

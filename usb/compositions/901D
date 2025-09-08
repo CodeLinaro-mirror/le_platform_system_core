@@ -76,6 +76,7 @@ run_configfs() {
 	if [ $from_adb = "n" ]
 	then
 		pkill adbd
+		pkill adbd-relay
 		# Give enough time to restart ADBD and open EP0 file node
 		sleep 1
 	fi
@@ -95,6 +96,7 @@ run_configfs() {
 		ln -s functions/diag.diag configs/c.1/f1
 	fi
 	ln -s functions/ffs.adb configs/c.1/f2
+	ln -s functions/ffs.adb-relay configs/c.1/f3
 	rm -f /data/usb_bind_in_progress
 	echo 0x80 > configs/c.1/bmAttributes
 	echo "binding UDC with Gadget..." $1

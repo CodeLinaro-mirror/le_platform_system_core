@@ -297,11 +297,13 @@ case "$1" in
 				${LOCAL_ECHO} 1 > /sys/bus/usb/devices/2-1/authorized
 			fi
 			;;
-		*sunp* )
-			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower ]; then
-				${LOCAL_ECHO} 900 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
+		*sun* )
+			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1 ]; then
+				cd /sys/kernel/config/usb_gadget/g1/configs/c.1
+				${LOCAL_ECHO} 900 > MaxPower
+				cd /
 			fi
-                        ;;
+			;;
 	esac
 
 	#

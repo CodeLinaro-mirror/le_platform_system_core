@@ -13,19 +13,19 @@ init_dynamic_mem_dump()
         return
     fi
 
-    if [ ! -d "/sys/kernel/debug/dynamic_mem_dump" ]
+    if [ ! -d "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump" ]
     then
-        mount -t debugfs none /sys/kernel/debug
+        return
     fi
 
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/apps_scandump/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cluster_cache/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpu_cache/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpucp/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_cluster/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_cpu/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_reg/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/spr/enable
+    echo "cluster_cache" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpu_cache" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpucp" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_cluster" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_cpu" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "spr" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_reg" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "scandump_gpu" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
 }
 
 set_cpu_governor_policy()
@@ -59,8 +59,9 @@ case "$target" in
     enable_debug_tracing_events
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type
-    init_dynamic_mem_dum
-    set_cpu_governor_policy
+    init_dynamic_mem_dump
+    # Disabling the schedutil governor temporarily
+    #set_cpu_governor_policy
 ;;
 esac
 

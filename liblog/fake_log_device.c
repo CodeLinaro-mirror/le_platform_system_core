@@ -97,12 +97,12 @@ typedef struct LogState {
  */
 static pthread_mutex_t fakeLogDeviceLock = PTHREAD_MUTEX_INITIALIZER;
 
-static void lock()
+static void lock(void)
 {
     pthread_mutex_lock(&fakeLogDeviceLock);
 }
 
-static void unlock()
+static void unlock(void)
 {
     pthread_mutex_unlock(&fakeLogDeviceLock);
 }
@@ -123,11 +123,11 @@ static LogState *openLogTable[MAX_OPEN_LOGS];
  * Allocate an fd and associate a new LogState with it.
  * The fd is available via the fakeFd field of the return value.
  */
-static LogState *createLogState()
+static LogState *createLogState(void)
 {
     size_t i;
 
-    for (i = 0; i < sizeof(openLogTable); i++) {
+    for (i = 0; i < MAX_OPEN_LOGS; i++) {
         if (openLogTable[i] == NULL) {
             openLogTable[i] = calloc(1, sizeof(LogState));
             openLogTable[i]->fakeFd = FAKE_FD_BASE + i;
@@ -261,7 +261,7 @@ static void configureInitialState(const char* pathName, LogState* logState)
                 TRACE("+++ global min prio %d\n", logState->globalMinPriority);
             } else {
                 logState->tagSet[entry].minPriority = minPrio;
-                strcpy(logState->tagSet[entry].tag, tagName);
+                strlcpy(logState->tagSet[entry].tag, tagName, kMaxTagLen);
                 TRACE("+++ entry %d: %s:%d\n",
                     entry,
                     logState->tagSet[entry].tag,
@@ -383,6 +383,8 @@ static void showLog(LogState *state,
     ptm = localtime(&when);
 #endif
     //strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", ptm);
+    if (ptm == NULL)
+         return;
     strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
 
     /*
@@ -394,7 +396,7 @@ static void showLog(LogState *state,
     case FORMAT_TAG:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c/%-8s: ", priChar, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_PROCESS:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
@@ -405,32 +407,32 @@ static void showLog(LogState *state,
     case FORMAT_THREAD:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c(%5d:%5d) ", priChar, pid, tid);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_RAW:
         prefixBuf[0] = 0; prefixLen = 0;
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_TIME:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%s %-8s\n\t", timeBuf, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_THREADTIME:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%s %5d %5d %c %-8s \n\t", timeBuf, pid, tid, priChar, tag);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
     case FORMAT_LONG:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "[ %s %5d:%5d %c/%-8s ]\n",
             timeBuf, pid, tid, priChar, tag);
-        strcpy(suffixBuf, "\n\n"); suffixLen = 2;
+        strlcpy(suffixBuf, "\n\n", sizeof(suffixBuf)); suffixLen = 2;
         break;
     default:
         prefixLen = snprintf(prefixBuf, sizeof(prefixBuf),
             "%c/%-8s(%5d): ", priChar, tag, pid);
-        strcpy(suffixBuf, "\n"); suffixLen = 1;
+        strlcpy(suffixBuf, "\n", sizeof(suffixBuf)); suffixLen = 1;
         break;
      }
 
@@ -649,7 +651,7 @@ static int (*redirectClose)(int fd) = NULL;
 static ssize_t (*redirectWritev)(int fd, const struct iovec* vector, int count)
         = NULL;
 
-static void setRedirects()
+static void setRedirects(void)
 {
     const char *ws;
 

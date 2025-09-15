@@ -38,7 +38,7 @@
 #define off64_t off_t
 #endif
 
-void usage()
+void usage(void)
 {
     fprintf(stderr, "Usage: img2simg <raw_image_file> <sparse_image_file> [<block_size>]\n");
 }

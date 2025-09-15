@@ -26,7 +26,7 @@ uint64_t                atrace_enabled_tags  = 0;
 
 void atrace_set_debuggable(bool debuggable __unused) { }
 void atrace_set_tracing_enabled(bool enabled __unused) { }
-void atrace_update_tags() { }
+void atrace_update_tags(void) { }
 void atrace_setup() { }
 void atrace_begin_body(const char* name __unused) { }
 void atrace_async_begin_body(const char* name __unused, int32_t cookie __unused) { }

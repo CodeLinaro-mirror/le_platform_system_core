@@ -31,6 +31,8 @@ cnode* config_node(const char *name, const char *value)
     if(node) {
         node->name = name ? name : "";
         node->value = value ? value : "";
+    } else {
+       return NULL;
     }
 
     return node;
@@ -53,6 +55,9 @@ static cnode* _config_create(cnode *root, const char *name)
     cnode *node;
 
     node = config_node(name, NULL);
+
+    if (node == NULL)
+        return NULL;
 
     if(root->last_child)
         root->last_child->next = node;
@@ -101,7 +106,8 @@ void config_set(cnode *root, const char *name, const char *value)
         node->value = value;
     else {
         node = _config_create(root, name);
-        node->value = value;
+        if (node)
+            node->value = value;
     }
 }
 
@@ -268,6 +274,8 @@ static int parse_expr(cstate *cs, cnode *root)
     if(!node || *node->value)
         node = _config_create(root, cs->text);
 
+    if (node == NULL)
+        return -1;
     for(;;) {
         switch(lex(cs, 1)) {
         case T_DOT:

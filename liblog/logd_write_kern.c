@@ -273,7 +273,7 @@ void __android_log_assert(const char *cond, const char *tag,
         if (cond)
             snprintf(buf, LOG_BUF_SIZE, "Assertion failed: %s", cond);
         else
-            strcpy(buf, "Unspecified assertion failed");
+            strlcpy(buf, "Unspecified assertion failed", LOG_BUF_SIZE);
     }
 
     __android_log_write(ANDROID_LOG_FATAL, tag, buf);

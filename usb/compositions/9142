@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
+# DESCRIPTION:  DIAG + DIAG_MDM + QDSS_MDM + ADB
+
+echo "Switching to composition number 0x9142"
+
+if [ "$1" = "y" ]; then
+	num="1"
+	mode="hsic"
+else
+	num="0"
+	mode="hsusb"
+fi
+
+if [ "$#" -ge 2 ]; then
+	delay=$2
+else
+	delay="0"
+fi
+
+if [ "$#" -ge 3 ]; then
+	from_adb=$3
+else
+	from_adb="n"
+fi
+
+run_configfs() {
+	echo start > /tmp/usb_bind_in_progress
+	if [ $from_adb = "n" ]
+	then
+		pkill adbd
+		sleep 1
+	fi
+	cd /sys/kernel/config/usb_gadget/g1
+	rm os_desc/c* 2> /dev/null
+	rm configs/c*/f* 2> /dev/null
+	rmdir configs/c.2/strings/* configs/c.3/strings/* 2> /dev/null
+	rmdir configs/c.2 configs/c.3 2> /dev/null
+	echo 0x05c6 > idVendor
+	echo 0x9142 > idProduct
+	if [ -e functions/diag.diag/pid ]; then
+		echo 0x9142 > functions/diag.diag/pid
+	fi
+	echo "diag_diag_mdm_qdss_mdm_adb" > configs/c.1/strings/0x409/configuration
+	if [ -e functions/ffs.diag ]; then
+		if [ -e functions/ffs.diag_mdm ]; then
+			ln -s functions/ffs.diag configs/c.1/f1
+			ln -s functions/ffs.diag_mdm configs/c.1/f2
+		fi
+	else
+		ln -s functions/diag.diag configs/c.1/f1
+		ln -s functions/diag.diag_mdm configs/c.1/f2
+	fi
+	ln -s functions/qdss.qdss_mdm configs/c.1/f3
+	ln -s functions/ffs.adb configs/c.1/f4
+	echo 0x80 > configs/c.1/bmAttributes
+	rm -f /tmp/usb_bind_in_progress
+	echo "binding UDC with Gadget..." $1
+	echo $1 > UDC
+	cd /
+}
+
+case `source /sbin/usb/target` in
+	*sa525m* )
+		udcname=`ls -1 /sys/class/udc | head -n 1`
+		run_configfs $udcname &
+		;;
+	* )
+		echo "Composition not supported on this target "
+		;;
+esac

@@ -30,8 +30,10 @@ case "$target" in
 
                 # configure bus-dcvs
                 bus_dcvs="/sys/devices/system/cpu/bus_dcvs"
+                chown system:system /sys/devices/system/cpu/bus_dcvs/DDR/soc:qcom,memlat:ddr:silver/min_freq
+                chown system:system /sys/devices/system/cpu/bus_dcvs/DDR/soc:qcom,memlat:ddr:silver-compute/min_freq
 
-                for device in $bus_dcvs/*
+		for device in $bus_dcvs/*
                 do
                     cat $device/hw_min_freq > $device/boost_freq
 	        done

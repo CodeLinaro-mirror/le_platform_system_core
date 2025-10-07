@@ -83,6 +83,7 @@ run_configfs() {
 	cd /
 }
 
+dun_func="cser.dun.0"
 target=`. /sbin/usb/target`
 case $target in
 	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *sdxpinn* | *sa525m* | *scuba* | *khaje* | *sa535m* )

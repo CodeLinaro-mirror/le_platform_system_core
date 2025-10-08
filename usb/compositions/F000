@@ -62,14 +62,14 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*9x35* )
 		run_9x35 &
 		;;
 	*9640* )
 		run_9x35 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *9607* | *sa525m* | *sa510m* )
+	*sa535m* | *sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sa410m* | *9607* | *sa525m* | *sa510m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		run_configfs $udcname &
 		;;

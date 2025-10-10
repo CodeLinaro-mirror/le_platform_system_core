@@ -88,7 +88,7 @@ extern "C" {
  * This function should not be explicitly called, the first call to any normal
  * trace function will cause it to be run safely.
  */
-void atrace_setup();
+void atrace_setup(void);
 
 /**
  * If tracing is ready, set atrace_enabled_tags to the system property
@@ -136,7 +136,7 @@ extern int atrace_marker_fd;
  * This can be explicitly run to avoid setup delay on first trace function.
  */
 #define ATRACE_INIT() atrace_init()
-static inline void atrace_init()
+static inline void atrace_init(void)
 {
     if (CC_UNLIKELY(!atomic_load_explicit(&atrace_is_ready, memory_order_acquire))) {
         atrace_setup();
@@ -149,7 +149,7 @@ static inline void atrace_init()
  * Every trace function calls this, which ensures atrace_init is run.
  */
 #define ATRACE_GET_ENABLED_TAGS() atrace_get_enabled_tags()
-static inline uint64_t atrace_get_enabled_tags()
+static inline uint64_t atrace_get_enabled_tags(void)
 {
     atrace_init();
     return atrace_enabled_tags;
@@ -176,7 +176,7 @@ static inline void atrace_begin(uint64_t tag, const char* name)
     //update atag by using shmem way, when atrace_begin be called
     atrace_update_tags();
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
-        void atrace_begin_body(const char*);
+        void atrace_begin_body(const char* name);
         atrace_begin_body(name);
     }
 }
@@ -207,7 +207,7 @@ static inline void atrace_async_begin(uint64_t tag, const char* name,
         int32_t cookie)
 {
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
-        void atrace_async_begin_body(const char*, int32_t);
+        void atrace_async_begin_body(const char* name, int32_t cookie);
         atrace_async_begin_body(name, cookie);
     }
 }
@@ -220,7 +220,7 @@ static inline void atrace_async_begin(uint64_t tag, const char* name,
 static inline void atrace_async_end(uint64_t tag, const char* name, int32_t cookie)
 {
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
-        void atrace_async_end_body(const char*, int32_t);
+        void atrace_async_end_body(const char* name, int32_t cookie);
         atrace_async_end_body(name, cookie);
     }
 }
@@ -233,7 +233,7 @@ static inline void atrace_async_end(uint64_t tag, const char* name, int32_t cook
 static inline void atrace_int(uint64_t tag, const char* name, int32_t value)
 {
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
-        void atrace_int_body(const char*, int32_t);
+        void atrace_int_body(const char* name, int32_t value);
         atrace_int_body(name, value);
     }
 }
@@ -246,7 +246,7 @@ static inline void atrace_int(uint64_t tag, const char* name, int32_t value)
 static inline void atrace_int64(uint64_t tag, const char* name, int64_t value)
 {
     if (CC_UNLIKELY(atrace_is_tag_enabled(tag))) {
-        void atrace_int64_body(const char*, int64_t);
+        void atrace_int64_body(const char* name, int64_t value);
         atrace_int64_body(name, value);
     }
 }

@@ -929,16 +929,16 @@ char *android_log_formatLogLine (
     if (p_format->colored_output) {
         prefixLen = (size_t)snprintf(prefixBuf, sizeof(prefixBuf), "\x1B[38;5;%dm",
                              colorFromPri(entry->priority));
-        prefixLen = MIN(prefixLen, sizeof(prefixBuf));
+        prefixLen = MIN(prefixLen, sizeof(prefixBuf) - 1);
         suffixLen = (size_t)snprintf(suffixBuf, sizeof(suffixBuf), "\x1B[0m");
-        suffixLen = MIN(suffixLen, sizeof(suffixBuf));
+        suffixLen = MIN(suffixLen, sizeof(suffixBuf) - 1);
     }
 
     switch (p_format->format) {
         case FORMAT_TAG:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c/%-8s: ", priChar, entry->tag);
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
         case FORMAT_PROCESS:
@@ -951,33 +951,33 @@ char *android_log_formatLogLine (
         case FORMAT_THREAD:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c(%5d:%5d) ", priChar, entry->pid, entry->tid);
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
         case FORMAT_RAW:
             prefixBuf[prefixLen] = 0;
             len = 0;
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
         case FORMAT_TIME:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%s %c/%-8s(%5d): ", timeBuf, priChar, entry->tag, entry->pid);
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
         case FORMAT_THREADTIME:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%s %5d %5d %c %-8s: ", timeBuf,
                 entry->pid, entry->tid, priChar, entry->tag);
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
         case FORMAT_LONG:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "[ %s %5d:%5d %c/%-8s ]\n",
                 timeBuf, entry->pid, entry->tid, priChar, entry->tag);
-            strcpy(suffixBuf + suffixLen, "\n\n");
+            strlcpy(suffixBuf + suffixLen, "\n\n", sizeof(suffixBuf) - suffixLen);
             suffixLen += 2;
             prefixSuffixIsHeaderFooter = 1;
             break;
@@ -985,7 +985,7 @@ char *android_log_formatLogLine (
         default:
             len = (size_t)snprintf(prefixBuf + prefixLen, sizeof(prefixBuf) - prefixLen,
                 "%c/%-8s(%5d): ", priChar, entry->tag, entry->pid);
-            strcpy(suffixBuf + suffixLen, "\n");
+            strlcpy(suffixBuf + suffixLen, "\n", sizeof(suffixBuf) - suffixLen);
             ++suffixLen;
             break;
     }
@@ -1052,15 +1052,15 @@ char *android_log_formatLogLine (
     pm = entry->message;
 
     if (prefixSuffixIsHeaderFooter) {
-        strcat(p, prefixBuf);
+        strlcat(p, prefixBuf, bufferSize - (size_t)(p - ret));
         p += prefixLen;
         if (p_format->printable_output) {
             p += convertPrintable(p, entry->message, entry->messageLen);
         } else {
-            strncat(p, entry->message, entry->messageLen);
+            strlcat(p, entry->message, bufferSize - (size_t)(p - ret));
             p += entry->messageLen;
         }
-        strcat(p, suffixBuf);
+        strlcat(p, suffixBuf, bufferSize - (size_t)(p - ret));
         p += suffixLen;
     } else {
         while(pm < (entry->message + entry->messageLen)) {
@@ -1073,15 +1073,15 @@ char *android_log_formatLogLine (
                     && *pm != '\n') pm++;
             lineLen = (size_t)(pm - lineStart);
 
-            strcat(p, prefixBuf);
+            strlcat(p, prefixBuf, bufferSize - (size_t)(p - ret));
             p += prefixLen;
             if (p_format->printable_output) {
                 p += convertPrintable(p, lineStart, lineLen);
             } else {
-                strncat(p, lineStart, lineLen);
+                strlcat(p, lineStart, bufferSize - (size_t)(p - ret));
                 p += lineLen;
             }
-            strcat(p, suffixBuf);
+            strlcat(p, suffixBuf, bufferSize - (size_t)(p - ret));
             p += suffixLen;
 
             if (*pm == '\n') pm++;

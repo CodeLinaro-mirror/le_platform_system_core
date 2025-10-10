@@ -6,7 +6,7 @@
 find_build_type()
 {
 	linux_banner=$(cat /proc/version)
-	if echo "$linux_banner" | grep -q "-debug"; then
+	if echo "$linux_banner" | grep -q "\-debug"; then
 		debug_build=true
 	else
 		debug_build=false

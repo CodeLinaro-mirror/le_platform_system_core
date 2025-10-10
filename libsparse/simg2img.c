@@ -30,7 +30,7 @@
 #define O_BINARY 0
 #endif
 
-void usage()
+void usage(void)
 {
   fprintf(stderr, "Usage: simg2img <sparse_image_files> <raw_image_file>\n");
 }

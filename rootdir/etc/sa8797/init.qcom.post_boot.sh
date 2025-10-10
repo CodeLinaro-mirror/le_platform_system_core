@@ -13,20 +13,50 @@ init_dynamic_mem_dump()
         return
     fi
 
-    if [ ! -d "/sys/kernel/debug/dynamic_mem_dump" ]
+    if [ ! -d "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump" ]
     then
-        mount -t debugfs none /sys/kernel/debug
+        return
     fi
 
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/apps_scandump/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cluster_cache/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpu_cache/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpucp/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_cluster/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_cpu/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/cpuss_reg/enable
-    echo 1 >/sys/kernel/debug/dynamic_mem_dump/spr/enable
+    echo "cluster_cache" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpu_cache" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpucp" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_cluster" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_cpu" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "spr" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "cpuss_reg" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
+    echo "scandump_gpu" > "/sys/devices/platform/soc@0/soc@0:mem-dump/dynamic_mem_dump/enable"
 }
+
+set_cpu_governor_policy()
+{
+    CPUFREQ_POLICY="/sys/devices/system/cpu/cpufreq"
+    reg_val=`cat /sys/devices/platform/soc@0/1f97070.qfprom/qfprom0/nvmem | od -An -tx1`
+    sku_variant=$(echo $reg_val | awk '{print $2}' | cut -c1)
+
+    # SKU Config
+    # 0x0 - NonSafe-IVI
+    # 0x1 - ADAS
+    # 0x2 - Safe-IVI
+    # 0x3 - Flex"
+    if [ $sku_variant -ne 0 ]; then
+        return
+    fi
+
+    # schedutil cpufreq governor should be set only to Nonsafe variant
+    for dir in $CPUFREQ_POLICY/*; do
+        echo schedutil > $dir/scaling_governor
+    done
+}
+
+set_cpu_idle_state_disable()
+{
+    for cpu in $(seq 0 17); do
+        echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state0/disable
+        echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state1/disable
+    done
+}
+
 
 case "$target" in
   "qam8797p" )
@@ -38,7 +68,10 @@ case "$target" in
     enable_debug_tracing_events
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type
-    init_dynamic_mem_dum
+    init_dynamic_mem_dump
+    # Disabling the schedutil governor temporarily
+    #set_cpu_governor_policy
+    set_cpu_idle_state_disable
 ;;
 esac
 

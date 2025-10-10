@@ -778,9 +778,10 @@ int Thread::_threadLoop(void* user)
         // to die a peaceful death.
         strong.clear();
         // And immediately, re-acquire a strong reference for the next loop
-        strong = weak.promote();
+        if (weak != NULL)strong = weak.promote();
     } while(strong != 0);
 
+    weak = nullptr;
     return 0;
 }
 

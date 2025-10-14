@@ -118,7 +118,7 @@ case "$1" in
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
 	# try to mount configfs, and create instance of USB functions if it goes through
-	mount -t configfs none /sys/kernel/config
+	mount -t configfs -o nosuid,nodev,noexec configfs /sys/kernel/config
 	if [ -d /sys/kernel/config/usb_gadget ]; then
 		${LOCAL_ECHO} "Configuring the USB gadget using ConfigFS..."
 		cd /sys/kernel/config/usb_gadget

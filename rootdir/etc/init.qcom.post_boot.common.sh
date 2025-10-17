@@ -45,6 +45,7 @@ enable_debug_tracing_events() {
         sched \
         gunyah \
         oom \
+        power/suspend_resume \
     "
 
     for event in $events; do

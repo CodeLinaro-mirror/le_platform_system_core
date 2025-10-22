@@ -38,7 +38,7 @@ if [ -f /sys/devices/soc0/soc_id ]; then
 fi
 
 case "$platformid" in
-	"618"|"639")
+	"618"|"639"|"705"|"706")
 		#Pass as an argument the max number of clusters supported on the SOC
 		/bin/sh /etc/init.kernel.post_boot-sun.sh 2
 		;;

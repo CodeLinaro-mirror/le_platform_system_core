@@ -114,6 +114,9 @@ case $TARGET in
 	*sa525m* )
 		res="sa525m";
 		;;
+	*sa535m* )
+		res="sa535m";
+		;;
 	*cinder* )
 		res="cinder"
 		;;
@@ -137,9 +140,12 @@ case $TARGET in
 		;;
 	*khaje* | *qcm4325* )
 		res="khaje"
-	    ;;
-    *kera* )
+		;;
+	*kera* )
 		res="kera"
+		;;
+	*sun* )
+		res="sun"
 		;;
 	* )
 		res="none"

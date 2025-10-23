@@ -148,7 +148,7 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+case `. /sbin/usb/target` in
 	*9x15* )
 		run_9x15 &
 		;;
@@ -172,7 +172,7 @@ case `source /sbin/usb/target` in
 	*9650* )
 		run_9650 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* | *sa510m* )
+	*sa535m* | *sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* | *sa510m* )
 		udcname=`ls -1 /sys/class/udc | head -n 1`
 		xport="gsi.rndis"
 		run_configfs $udcname $xport &

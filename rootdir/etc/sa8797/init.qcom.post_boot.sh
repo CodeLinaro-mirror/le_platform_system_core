@@ -49,6 +49,15 @@ set_cpu_governor_policy()
     done
 }
 
+set_cpu_idle_state_disable()
+{
+    for cpu in $(seq 0 17); do
+        echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state0/disable
+        echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state1/disable
+    done
+}
+
+
 case "$target" in
   "qam8797p" )
     # Tune pm_freeze_timeout smaller than wdt_time_out/2 to avoid wdt when
@@ -60,7 +69,9 @@ case "$target" in
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type
     init_dynamic_mem_dump
-    set_cpu_governor_policy
+    # Disabling the schedutil governor temporarily
+    #set_cpu_governor_policy
+    set_cpu_idle_state_disable
 ;;
 esac
 

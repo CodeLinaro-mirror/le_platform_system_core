@@ -383,8 +383,9 @@ static void showLog(LogState *state,
     ptm = localtime(&when);
 #endif
     //strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M:%S", ptm);
-    if (ptm != NULL)
-        strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
+    if (ptm == NULL)
+         return;
+    strftime(timeBuf, sizeof(timeBuf), "%m-%d %H:%M:%S", ptm);
 
     /*
      * Construct a buffer containing the log header and log message.

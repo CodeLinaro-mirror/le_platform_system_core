@@ -308,10 +308,16 @@ case "$1" in
 			fi
 			;;
 		*sun* )
+			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
 			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1 ]; then
-				cd /sys/kernel/config/usb_gadget/g1/configs/c.1
-				${LOCAL_ECHO} 900 > MaxPower
-				cd /
+				${LOCAL_ECHO} 900 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
 			fi
 			;;
 	esac

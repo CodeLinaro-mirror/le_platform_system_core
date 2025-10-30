@@ -41,9 +41,6 @@
 #define VBMETA_A_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_a"
 #define VBMETA_B_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_b"
 #define VBMETA_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta"
-/* For GVM DPK vbmeta */
-#define DPK_VBMETA_A_DEVICE_PATH "/dev/block/platform/vbmeta_a"
-#define DPK_VBMETA_B_DEVICE_PATH "/dev/block/platform/vbmeta_b"
 #define KERNEL_CMDLINE "/proc/cmdline"
 #define CMDLINE_SIZE 2048
 
@@ -305,49 +302,25 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
             }
         }
 #else
-        /* For GVM enable/disable verity, vdf is used for slot _a/_b vbmeta device by default,
-         * vdn is used by slot _b for DPK GVM.
+        /* For GVM enable/disable verity,
+         * get vbmeta device from androidboot.vbmeta.device.
          */
-        match = (char *)strstr(cmdline, "androidboot.slot_suffix=");
-        if (!match) {
-            WriteFdFmt(fd, "slot_suffix is not present in GVM kernel cmdline!\n");
-            property_get("vbmeta.device", propbuf, "");
-            if (!strcmp(propbuf, "")) {
-                WriteFdFmt(fd, "vbmeta.device property not available.\n");
+        match = (char *)strstr(cmdline, "androidboot.vbmeta.device=");
+        if (match) {
+            match = match + strlen("androidboot.vbmeta.device=");
+            char *end = strpbrk(match, " \t\n\r");
+            if (end) *end = '\0';
+            WriteFdFmt(fd, "Found vbmeta device: %s\n", match);
+
+            device = adb_open(match, O_RDWR | O_CLOEXEC);
+            if (device < 0) {
+                WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                WriteFdFmt(fd, "Maybe run adb root?\n");
                 goto errout;
             }
-
-            device = adb_open(propbuf, O_RDWR | O_CLOEXEC);
-            if (device == -1) {
-                WriteFdFmt(fd, "Could not open block device %s (%s).\n", propbuf, strerror(errno));
-                goto errout;
-            }
-        }
-        else {
-            match = match + strlen("androidboot.slot_suffix=");
-            slot = strtok_r(match, " \t\n\r", &save_ptr);
-
-            if (slot == NULL) {
-                WriteFdFmt(fd, "Failed to get slot\n");
-                goto errout;
-            }
-
-            if (strcmp(slot, "_a") == 0) {
-                device = adb_open(DPK_VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
-                if (device < 0) {
-                    WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
-                    WriteFdFmt(fd, "Maybe run adb root?\n");
-                    goto errout;
-                }
-            }
-            if (strcmp(slot, "_b") == 0) {
-                device = adb_open(DPK_VBMETA_B_DEVICE_PATH, O_RDWR | O_CLOEXEC);
-                if (device < 0) {
-                    WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
-                    WriteFdFmt(fd, "Maybe run adb root?\n");
-                    goto errout;
-                }
-            }
+        } else {
+            WriteFdFmt(fd, "Not found vbmeta device: %s\n", match);
+            goto errout;
         }
 #endif
         if (adb_read(device, &vbmeta_hdr[0], sizeof(vbmeta_hdr)) != sizeof(vbmeta_hdr)) {

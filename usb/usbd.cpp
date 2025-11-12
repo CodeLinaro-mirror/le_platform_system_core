@@ -30,6 +30,7 @@
 #include <sys/timerfd.h>
 #include <syslog.h>
 #include <utils/Errors.h>
+#include <cstring>
 
 #define msg(format, ...)   syslog(LOG_ERR, format, ## __VA_ARGS__)
 #define info(format, ...)   syslog(LOG_INFO, format, ## __VA_ARGS__)

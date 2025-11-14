@@ -41,6 +41,9 @@
 #define VBMETA_A_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_a"
 #define VBMETA_B_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta_b"
 #define VBMETA_DEVICE_PATH "/dev/disk/by-partlabel/vbmeta"
+//For HGY LV GVM
+#define LVGVM_VBMETA_A_DEVICE_PATH "/dev/block/platform/vbmeta_a"
+#define LVGVM_VBMETA_B_DEVICE_PATH "/dev/block/platform/vbmeta_b"
 #define KERNEL_CMDLINE "/proc/cmdline"
 #define CMDLINE_SIZE 2048
 
@@ -242,6 +245,7 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
     char *cmdline = NULL;
     char *slot = NULL;
     char *match = NULL;
+    char *match_suffix = NULL;
     char *save_ptr = NULL;
 
     device = adb_open(KERNEL_CMDLINE, O_RDONLY | O_CLOEXEC);
@@ -306,18 +310,67 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
          * get vbmeta device from androidboot.vbmeta.device.
          */
         match = (char *)strstr(cmdline, "androidboot.vbmeta.device=");
+        match_suffix = (char *)strstr(cmdline, "androidboot.slot_suffix=");
         if (match) {
             match = match + strlen("androidboot.vbmeta.device=");
             char *end = strpbrk(match, " \t\n\r");
             if (end) *end = '\0';
-            WriteFdFmt(fd, "Found vbmeta device: %s\n", match);
 
-            device = adb_open(match, O_RDWR | O_CLOEXEC);
-            if (device < 0) {
-                WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
-                WriteFdFmt(fd, "Maybe run adb root?\n");
-                goto errout;
+            if (strcmp(match, "PARTUUID=00000000-0000-0000-0000-000000000000") == 0) {
+                if (!match_suffix) {
+                    WriteFdFmt(fd, "slot_suffix is not present in GVM kernel cmdline!\n");
+                    property_get("vbmeta.device", propbuf, "");
+                    if (!strcmp(propbuf, "")) {
+                        WriteFdFmt(fd, "vbmeta.device property not available.\n");
+                        goto errout;
+                    }
+
+                    device = adb_open(propbuf, O_RDWR | O_CLOEXEC);
+                    if (device == -1) {
+                        WriteFdFmt(fd, "Could not open block device %s (%s).\n", propbuf, strerror(errno));
+                        goto errout;
+                    }
+                } else {
+                    match_suffix = match_suffix + strlen("androidboot.slot_suffix=");
+                    slot = strtok_r(match_suffix, " \t\n\r", &save_ptr);
+
+                    if (slot == NULL) {
+                        WriteFdFmt(fd, "Failed to get slot\n");
+                        goto errout;
+                    }
+
+                    if (strcmp(slot, "_a") == 0) {
+                        device = adb_open(LVGVM_VBMETA_A_DEVICE_PATH, O_RDWR | O_CLOEXEC);
+                        if (device < 0) {
+                            WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                            WriteFdFmt(fd, "Maybe run adb root?\n");
+                            goto errout;
+                        }
+                    } else if (strcmp(slot, "_b") == 0) {
+                        device = adb_open(LVGVM_VBMETA_B_DEVICE_PATH, O_RDWR | O_CLOEXEC);
+                        if (device < 0) {
+                            WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                            WriteFdFmt(fd, "Maybe run adb root?\n");
+                            goto errout;
+                        }
+                    } else {
+                        WriteFdFmt(fd, "Invalid slot: %s\n", slot);
+                        goto errout;
+                    }
+                }
+
+            } else {
+
+                WriteFdFmt(fd, "Found vbmeta device: %s\n", match);
+
+                device = adb_open(match, O_RDWR | O_CLOEXEC);
+                if (device < 0) {
+                    WriteFdFmt(fd, "Couldn't open vbmeta device!\n");
+                    WriteFdFmt(fd, "Maybe run adb root?\n");
+                    goto errout;
+                }
             }
+
         } else {
             WriteFdFmt(fd, "Not found vbmeta device: %s\n", match);
             goto errout;

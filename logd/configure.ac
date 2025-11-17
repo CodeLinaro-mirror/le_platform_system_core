@@ -66,6 +66,9 @@ AC_ARG_WITH([logd-logging],
 
 AM_CONDITIONAL(USE_LOGD, [test "x${with_logd_logging}" = "xyes"])
 
+AC_CHECK_FUNCS([strlcpy],[STRLCPY=yes],[STRLCPY=no])
+AM_CONDITIONAL([HAVE_STRLCPY],[test "x$STRLCPY" = "xyes"])
+
 AC_CONFIG_FILES([ \
     Makefile
 ])

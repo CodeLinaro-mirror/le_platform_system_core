@@ -118,7 +118,7 @@ case "$1" in
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
 	# try to mount configfs, and create instance of USB functions if it goes through
-	mount -t configfs none /sys/kernel/config
+	mount -t configfs -o nosuid,nodev,noexec configfs /sys/kernel/config
 	if [ -d /sys/kernel/config/usb_gadget ]; then
 		${LOCAL_ECHO} "Configuring the USB gadget using ConfigFS..."
 		cd /sys/kernel/config/usb_gadget
@@ -273,12 +273,22 @@ case "$1" in
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
-		*sm8450p* | *pineapple* | *kera* )
+		*sm8450p* | *pineapple* | *kera* | *alor* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
 				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
 				case "$default_mode" in
 				    "none")
 					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
+		        ;;
+		*vienna* )
+			if [ -f /sys/bus/platform/devices/a600000.hsusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.hsusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.hsusb/mode
 				    ;;
 				esac
 			fi
@@ -295,6 +305,19 @@ case "$1" in
 				${LOCAL_ECHO} 0 > /sys/bus/usb/devices/2-1/authorized
 				sleep 1
 				${LOCAL_ECHO} 1 > /sys/bus/usb/devices/2-1/authorized
+			fi
+			;;
+		*sun* )
+			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
+			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1 ]; then
+				${LOCAL_ECHO} 900 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
 			fi
 			;;
 	esac

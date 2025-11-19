@@ -149,6 +149,9 @@ case $TARGET in
 		;;
 	*sun* )
 		res="sun"
+	        ;;
+	*alor* )
+		res="alor"
 		;;
 	* )
 		res="none"

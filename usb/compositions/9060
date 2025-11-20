@@ -136,12 +136,12 @@ case $target in
 	*9650* )
 		run_9x35 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
-		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* | *sa525m*  | *scuba* | *sa510m* | *qcs610* | *vienna* )
-		if [ $target == "sdxlemur" ] || [ $target == "sxrneo" ] || \
-		   [ $target == "cinder" ] || [ $target == "sm8450p" ] || [ $target == "sdxpinn" ] || [ $target == "scuba" ]; then
+	*sa510m* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
+		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* | *sa525m*  | *scuba* | *sdxpoorwills* | *qcs610* | *vienna* )
+		if [ $target = "sa510m" ] || [ $target = "sxrneo" ] || \
+		   [ $target = "cinder" ] || [ $target = "sm8450p" ] || [ $target = "sdxpinn" ] || [ $target = "scuba" ] || [ $target = "sdxlemur" ]; then
 			qdss_func="qdss.qdss_mdm"
-		elif [ $target == "kalama" ] || [ $target == "sa510m" ] || [ $target == "qcs610" ] || [ $target == "vienna" ]; then
+		elif [ $target = "kalama" ] || [ $target = "qcs610" ] || [ $target = "vienna" ]; then
 			qdss_func="qdss.qdss_sw"
 		else
 			qdss_func="qdss.qdss"

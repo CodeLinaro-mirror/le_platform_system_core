@@ -25,28 +25,11 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+ 
 # Changes from Qualcomm Technologies, Inc. are provided under the following license:
-
 # Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 # SPDX-License-Identifier: BSD-3-Clause-Clear
-#
 #=============================================================================
-
-if [ -f /sys/devices/soc0/soc_id ]; then
-	platformid=`cat /sys/devices/soc0/soc_id`
-fi
-
-case "$platformid" in
-	"618"|"639"|"705"|"706")
-		#Pass as an argument the max number of clusters supported on the SOC
-		/bin/sh /etc/init.kernel.post_boot-sun.sh 2
-		;;
-	*)
-		echo "***WARNING***: Invalid SoC ID\n\t No postboot settings applied!!\n"
-		;;
-esac
-
 
 function configure_zram_parameters() {
 	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
@@ -92,6 +75,12 @@ function configure_zram_parameters() {
 
 function configure_read_ahead_kb_values() {
 	MemTotalStr=`cat /proc/meminfo | grep MemTotal`
+	MemTotal=${MemTotalStr:16:8}
+
+	dmpts=$(ls /sys/block/*/queue/read_ahead_kb | grep -e dm -e mmc -e sd)
+	# dmpts holds below read_ahead_kb nodes if exists:
+	# /sys/block/dm-0/queue/read_ahead_kb to /sys/block/dm-10/queue/read_ahead_kb
+	# /sys/block/sda/queue/read_ahead_kb to /sys/block/sdh/queue/read_ahead_kb
 
 	# Set 128 for <= 4GB &
 	# set 512 for >= 5GB targets.
@@ -191,4 +180,27 @@ function configure_memory_parameters() {
 		echo 51200 > /sys/class/kgsl/kgsl/max_reclaim_limit
 	fi
 }
+
 configure_memory_parameters
+
+if [ -f /sys/devices/soc0/soc_id ]; then
+	platformid=`cat /sys/devices/soc0/soc_id`
+fi
+
+case "$platformid" in
+	"167")
+		#Pass as an argument the max number of clusters supported on the SOC
+		/bin/sh /etc/init.kernel.post_boot-canoe.sh
+		;;
+	"660"|"661"|"704"|"722"|"723")
+		#Pass as an argument the max number of clusters supported on the SOC
+		/bin/sh /etc/init.kernel.post_boot-canoe.sh 2
+		;;
+	"685"|"727")
+		/bin/sh /etc/init.kernel.post_boot-alor.sh 2
+		;;
+	*)
+		echo "***WARNING***: Invalid SoC ID\n\t No postboot settings applied!!\n"
+		;;
+esac
+

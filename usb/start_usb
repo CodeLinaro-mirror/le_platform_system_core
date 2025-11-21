@@ -71,8 +71,8 @@ case "$1" in
 	# bail out from script if qcom_gadget is enabled and
 	# SoftAP with DUN is not enabled
 	enabled=`cat /sys/bus/platform/devices/qcom_gadget/enabled`
-	if [ "$enabled" == "Y" ]; then
-		if [ "$SOFTAP_W_DUN" == "N" ]; then
+	if [ "$enabled" = "Y" ]; then
+		if [ "$SOFTAP_W_DUN" = "N" ]; then
 			exit 0
 		else
 			${LOCAL_ECHO} "SOFTAP + DUN is enabled, disabling qcom_gadget" > /dev/kmsg
@@ -107,7 +107,7 @@ case "$1" in
 
 	# find serialno from cmdline
 	serialno=`cat /proc/cmdline | grep -o "androidboot.serialno=[A-Za-z0-9]*" | cut -d "=" -f2`
-	if [ "$serialno" == "" ]; then
+	if [ -z "$serialno" ]; then
 		${LOCAL_ECHO} "serialno not found with cmdline, use default"
 		serialno="12345678"
 	fi
@@ -118,7 +118,7 @@ case "$1" in
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
 	# try to mount configfs, and create instance of USB functions if it goes through
-	mount -t configfs none /sys/kernel/config
+	mount -t configfs -o nosuid,nodev,noexec configfs /sys/kernel/config
 	if [ -d /sys/kernel/config/usb_gadget ]; then
 		${LOCAL_ECHO} "Configuring the USB gadget using ConfigFS..."
 		cd /sys/kernel/config/usb_gadget
@@ -164,7 +164,7 @@ case "$1" in
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
 			mkdir functions/ffs.diag
-			mkdir functions/ffs.ffs-diag_mdm
+			mkdir functions/ffs.diag_mdm
 		fi
 
 		if [ ! -s "/etc/adb_devid" ]
@@ -206,14 +206,14 @@ case "$1" in
 		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag /dev/ffs-diag
 	fi
 
-	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.ffs-diag_mdm ]; then
+	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.diag_mdm ]; then
 		mkdir -p /dev/ffs-diag-1
 		mount -o uid=system,gid=system,no_disconnect=1,rmode=0550,fmode=0660 -t functionfs diag_mdm /dev/ffs-diag-1
 	fi
 
 	mount -o remount,gid=5,mode=620 /dev/pts
 
-	case `source /sbin/usb/target` in
+	case `. /sbin/usb/target` in
 		*9x15* )
 			# Nothing to do here for 9x15
 			;;
@@ -273,12 +273,22 @@ case "$1" in
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
-		*sm8450p* | *pineapple* | *kera* )
+		*sm8450p* | *pineapple* | *kera* | *alor* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
 				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
 				case "$default_mode" in
 				    "none")
 					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
+		        ;;
+		*vienna* )
+			if [ -f /sys/bus/platform/devices/a600000.hsusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.hsusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.hsusb/mode
 				    ;;
 				esac
 			fi
@@ -295,6 +305,19 @@ case "$1" in
 				${LOCAL_ECHO} 0 > /sys/bus/usb/devices/2-1/authorized
 				sleep 1
 				${LOCAL_ECHO} 1 > /sys/bus/usb/devices/2-1/authorized
+			fi
+			;;
+		*sun* )
+			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
+			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1 ]; then
+				${LOCAL_ECHO} 900 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
 			fi
 			;;
 	esac
@@ -533,9 +556,9 @@ case "$1" in
 	then
 		pid=`cat /etc/usb/boot_hsic_comp`
 		# make 901D as default composition
-                if [ -z "$pid" ]
+		if [ -z "$pid" ]
 		then
-                    pid="901D"
+			pid="901D"
 		fi
 
 		/sbin/usb/compositions/$pid y
@@ -543,37 +566,38 @@ case "$1" in
 		sleep 1
 	fi
 
-	# boot hsusb composition:
-	if [ -d /sys/class/android_usb/android0 ]
+	pid=`cat /etc/usb/boot_hsusb_comp`
+	# exit with success if device is in mhi mode
+	if [ "$pid" = "none" ]; then
+		exit 0
+	fi
+	# make 901D as default composition
+	if [ -z "$pid" ]
 	then
-		pid=`cat /etc/usb/boot_hsusb_comp`
-		# exit with success if device is in mhi mode
-		if [ "$pid" == "none" ]; then
-			exit 0
-		fi
-		# make 901D as default composition
-                if [ -z "$pid" ]
-		then
-                    pid="901D"
-		fi
+		pid="901D"
+	fi
 
-		# check if more than 1 argument is passed
-		if [ $# -gt 1 ]; then
-			# if second argument is n, do nothing
-			if [ $2 != 'n' ]; then
-				/sbin/usb/compositions/$pid n $adbd_params
-			fi
-		else
+	# check if more than 1 argument is passed
+	if [ $# -gt 1 ]; then
+		# if second argument is n, do nothing
+		if [ $2 != 'n' ]; then
 			/sbin/usb/compositions/$pid n $adbd_params
 		fi
+	else
+		/sbin/usb/compositions/$pid n $adbd_params
+	fi
 
-		# targets with cable detection support on Modem might need
-		# more time for UDC to come up. So schedule a bind operation
-		# accordingly
-		udcname=`ls -1 /sys/class/udc | head -n 1`
-		if [ -z $udcname ] && [ "$USB_ROLE_SWITCH" == "Y" ]; then
-			usb_bind &
-		fi
+	# targets with cable detection support on Modem might need
+	# more time for UDC to come up. So schedule a bind operation
+	# accordingly
+	udcname=`ls -1 /sys/class/udc | head -n 1`
+	if [ -z $udcname ] && [ "$USB_ROLE_SWITCH" = "Y" ]; then
+		usb_bind &
+	fi
+
+	# Enable traces if user sets enable_dwc3_ftraces
+	if [ -s /data/enable_dwc3_ftraces ]; then
+		wait_for_debugfs &
 	fi
 	;;
 

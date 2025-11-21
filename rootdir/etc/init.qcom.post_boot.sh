@@ -62,6 +62,9 @@ enable_debug_tracing_events() {
         irq \
         workqueue \
         workqueue/workqueue_execute_start \
+        watchdog/watchdog_start \
+        watchdog/watchdog_ping \
+        watchdog/watchdog_set_timeout \
         sched/sched_migrate_task \
         sched/sched_pi_setprio \
         sched/sched_switch \

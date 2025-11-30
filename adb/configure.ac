@@ -140,6 +140,9 @@ AC_ARG_WITH(bootver,
 
 AC_SUBST(BOOT_HDR_VER)
 
+AC_CHECK_FUNCS([strlcpy])
+AM_CONDITIONAL(USE_G_STRLCPY, [test  "$ac_cv_func_strlcpy" = "no"])
+
 AC_CONFIG_FILES([ \
     Makefile \
 ])

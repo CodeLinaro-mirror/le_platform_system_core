@@ -14,11 +14,11 @@ else
 fi
 
 run_configfs() {
-	echo start > /data/usb_bind_in_progress
+	echo start > /tmp/usb_bind_in_progress
 	if [ $from_adb = "n" ]
 	then
 		pkill adbd
-		/etc/launch_adbd start
+		# Give enough time to restart ADBD and open EP0 file node
 		sleep 1
 	fi
 	cd /sys/kernel/config/usb_gadget/g1
@@ -41,7 +41,7 @@ run_configfs() {
 	ln -s functions/gsi.dpl configs/c.1/f6
 	ln -s functions/ffs.adb configs/c.1/f7
 	echo 0xA0 > configs/c.1/bmAttributes
-	rm -f /data/usb_bind_in_progress
+	rm -f /tmp/usb_bind_in_progress
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC
 	cd /

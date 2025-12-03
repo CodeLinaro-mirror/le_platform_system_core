@@ -370,7 +370,7 @@ case "$soc_id" in
 			echo 2092000 > $ddrbw/max_freq
 		done
 	;;
-	"473" | "474" | "441")
+	"473" | "474" | "441" | "621" | "622")
 		# Quad-core device. disable core_ctl
 		echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
 

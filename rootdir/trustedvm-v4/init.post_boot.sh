@@ -63,7 +63,6 @@
 echo "4 4 1 4" > /proc/sys/kernel/printk
 sleep 6
 echo mem > /sys/power/autosleep
-
 if [ -f /etc/init.qti.debug.sh ]; then
     /etc/init.qti.debug.sh
 fi

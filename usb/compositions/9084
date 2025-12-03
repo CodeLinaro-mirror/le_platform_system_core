@@ -173,7 +173,9 @@ run_configfs() {
 	cd /
 }
 
-case `source /sbin/usb/target` in
+target=`. /sbin/usb/target`
+
+case $target in
 	*9x15* )
 		echo "This composition is not supported in 9x15"
 		;;
@@ -208,9 +210,8 @@ case `source /sbin/usb/target` in
 	*9650* )
 		run_9650 &
 		;;
-	*sdxpoorwills* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* | *sa510m* )
-		if [ `source /sbin/usb/target` == "sdxlemur" ]
-		then
+	*sa510m* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sdxpinn* | *sa525m* | *sdxpoorwills* )
+		if [ $target = "sa510m" ] || [ $target = "sdxlemur" ]; then
 			qdss_func="qdss.qdss_mdm"
 		else
 			qdss_func="qdss.qdss"

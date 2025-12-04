@@ -309,7 +309,11 @@ fi
 if [ $hsic = "n" ]; then
 	if [ $immediate = "y" ]; then
 		# disable qcom_gadget and run start_usb script if qcom_gadget is enabled
-		enabled=`cat /sys/bus/platform/devices/qcom_gadget/enabled`
+		if [ -f /sys/bus/platform/devices/qcom_gadget/enabled ]; then
+			enabled=`cat /sys/bus/platform/devices/qcom_gadget/enabled`
+		else
+			enabled="N"
+		fi
 		if [ "$enabled" == "Y" ]; then
 			echo 0 > /sys/bus/platform/devices/qcom_gadget/enabled
 			# pass n as second argument to avoid switching to default composition

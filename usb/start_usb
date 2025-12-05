@@ -117,8 +117,9 @@ case "$1" in
 	msm_serial_hex=`printf %08X $msm_serial`
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
+	target_tele=`. /sbin/usb/target`
 	# try to mount configfs, and create instance of USB functions if it goes through
-	mount -t configfs none /sys/kernel/config
+	mount -t configfs -o nosuid,nodev,noexec configfs /sys/kernel/config
 	if [ -d /sys/kernel/config/usb_gadget ]; then
 		${LOCAL_ECHO} "Configuring the USB gadget using ConfigFS..."
 		cd /sys/kernel/config/usb_gadget
@@ -128,43 +129,49 @@ case "$1" in
 		mkdir configs/c.1
 		mkdir configs/c.1/strings/0x409
 		mkdir functions/mass_storage.0
-		mkdir functions/mass_storage.1
 		mkdir functions/ffs.adb
-		mkdir functions/ffs.mtp
-		mkdir functions/diag.diag
-		mkdir functions/diag.diag_mdm
 		mkdir functions/cser.dun.0
 		mkdir functions/cser.nmea.1
-		mkdir functions/gser.0
-		mkdir functions/rmnet_bam.rmnet
 		mkdir functions/gsi.rmnet
 		mkdir functions/gsi.rndis
-		mkdir functions/gsi.ecm
-		mkdir functions/gsi.mbim
-		mkdir functions/gsi.rmnet.v2x
 		mkdir functions/gsi.dpl
-		mkdir functions/gsi.gps
-		mkdir functions/ncm.0
-		mkdir functions/qdss.qdss
 		mkdir functions/qdss.qdss_mdm
-		mkdir functions/qdss.qdss_sw
-		mkdir functions/uac1_legacy.uac1_legacy1
-		mkdir functions/uac1.uac1
-		mkdir functions/uac2.0
-		mkdir functions/uvc.0
-		mkdir functions/rndis.rndis
-		mkdir functions/ipc.ipc
-		mkdir functions/ecm.ecm
-		mkdir functions/ncm.0
-		mdkir functions/hid.usb0
-		mkdir functions/ccid.ccid
-		mkdir functions/rmnet_bam.rmnet_bam_dmux
-		mkdir functions/mbim.mbim
+
+		if [ $target_tele != "sa510m" ]; then
+			mkdir functions/mass_storage.1
+			mkdir functions/ffs.mtp
+			mkdir functions/diag.diag
+			mkdir functions/diag.diag_mdm
+			mkdir functions/gser.0
+			mkdir functions/rmnet_bam.rmnet
+			mkdir functions/gsi.ecm
+			mkdir functions/gsi.mbim
+			mkdir functions/gsi.rmnet.v2x
+			mkdir functions/gsi.dpl
+			mkdir functions/gsi.gps
+			mkdir functions/ncm.0
+			mkdir functions/qdss.qdss
+			mkdir functions/qdss.qdss_sw
+			mkdir functions/uac1_legacy.uac1_legacy1
+			mkdir functions/uac1.uac1
+			mkdir functions/uac2.0
+			mkdir functions/uvc.0
+			mkdir functions/rndis.rndis
+			mkdir functions/ipc.ipc
+			mkdir functions/ecm.ecm
+			mkdir functions/ncm.0
+			mkdir functions/hid.usb0
+			mkdir functions/ccid.ccid
+			mkdir functions/rmnet_bam.rmnet_bam_dmux
+			mkdir functions/mbim.mbim
+		fi
 
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
 			mkdir functions/ffs.diag
-			mkdir functions/ffs.diag_mdm
+			if [ $target_tele != "sa510m" ]; then
+				mkdir functions/ffs.diag_mdm
+			fi
 		fi
 
 		if [ ! -s "/etc/adb_devid" ]
@@ -193,9 +200,11 @@ case "$1" in
 		${LOCAL_ECHO} "$product_string" > /sys/class/android_usb/android0/iProduct
 	fi
 
-	# mount mtp functionfs
-	mkdir -p /dev/usb-ffs/mtp
-	mount -o uid=2000,gid=2000 -t functionfs mtp /dev/usb-ffs/mtp
+	if [ -e /sys/kernel/config/usb_gadget/g1/functions/ffs.mtp ]; then
+		# mount mtp functionfs
+		mkdir -p /dev/usb-ffs/mtp
+		mount -o uid=2000,gid=2000 -t functionfs mtp /dev/usb-ffs/mtp
+	fi
 
 	# mount adb functionfs
 	mkdir -p /dev/usb-ffs/adb
@@ -273,7 +282,7 @@ case "$1" in
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/nofua
 			${LOCAL_ECHO} 1 > /sys/kernel/config/usb_gadget/g1/functions/mass_storage.1/lun.0/nofua
 		        ;;
-		*sm8450p* | *pineapple* | *kera* )
+		*sm8450p* | *pineapple* | *kera* | *alor* )
 			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
 				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
 				case "$default_mode" in
@@ -308,10 +317,16 @@ case "$1" in
 			fi
 			;;
 		*sun* )
+			if [ -f /sys/bus/platform/devices/a600000.ssusb/mode ]; then
+				default_mode=`cat /sys/bus/platform/devices/a600000.ssusb/mode`
+				case "$default_mode" in
+				    "none")
+					${LOCAL_ECHO} peripheral > /sys/bus/platform/devices/a600000.ssusb/mode
+				    ;;
+				esac
+			fi
 			if [ -d /sys/kernel/config/usb_gadget/g1/configs/c.1 ]; then
-				cd /sys/kernel/config/usb_gadget/g1/configs/c.1
-				${LOCAL_ECHO} 900 > MaxPower
-				cd /
+				${LOCAL_ECHO} 900 > /sys/kernel/config/usb_gadget/g1/configs/c.1/MaxPower
 			fi
 			;;
 	esac

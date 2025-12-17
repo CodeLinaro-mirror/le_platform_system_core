@@ -63,8 +63,8 @@ case "$target" in
     # Tune pm_freeze_timeout smaller than wdt_time_out/2 to avoid wdt when
     # kernel hung in freezing userspace process.
     echo 4000 > /sys/power/pm_freeze_timeout
-    # Set total buffer size as 3600M, 20M for each CPU
-    set_total_trace_buffer_size 3600000
+    # Set total buffer size as 360M, 20M for each CPU
+    set_total_trace_buffer_size 360000
     enable_debug_tracing_events
     echo "4 4 1 7" > /proc/sys/kernel/printk
     find_build_type

@@ -3,7 +3,7 @@ BUILD_COMPONENTS :=
 # Builds for both host and device
 #BUILD_COMPONENTS += libzarchive
 
-if BUILD_DEVICE 
+if BUILD_DEVICE
 if !NO_LIBSYNC
 BUILD_COMPONENTS += libsync
 endif
@@ -13,6 +13,9 @@ BUILD_COMPONENTS += libsysutils
 BUILD_COMPONENTS += logd
 endif
 BUILD_COMPONENTS += leproperties
+if BUILD_DISKSYMLINK
+BUILD_COMPONENTS += disksymlink
+endif
 BUILD_COMPONENTS += toolbox
 BUILD_COMPONENTS += usb
 BUILD_COMPONENTS += include

@@ -55,6 +55,7 @@ extern char16_t * strdup8to16 (const char* s, size_t *out_len)
 
     // no plus-one here. UTF-16 strings are not null terminated
     ret = (char16_t *) malloc (sizeof(char16_t) * len);
+    if (ret == NULL) return NULL;
 
     return strcpy8to16 (ret, s, out_len);
 }

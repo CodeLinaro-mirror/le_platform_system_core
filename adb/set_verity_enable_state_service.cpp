@@ -45,7 +45,7 @@
 #define LVGVM_VBMETA_A_DEVICE_PATH "/dev/block/platform/vbmeta_a"
 #define LVGVM_VBMETA_B_DEVICE_PATH "/dev/block/platform/vbmeta_b"
 #define KERNEL_CMDLINE "/proc/cmdline"
-#define CMDLINE_SIZE 2048
+#define CMDLINE_SIZE 4096
 
 struct fstab *fstab;
 
@@ -243,6 +243,7 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
     char propbuf[PROPERTY_VALUE_MAX];
     bool any_changed = false;
     char *cmdline = NULL;
+    ssize_t nread = -1;
     char *slot = NULL;
     char *match = NULL;
     char *match_suffix = NULL;
@@ -259,11 +260,15 @@ void set_verity_enabled_state_service_avb20(int fd, void* cookie)
         goto errout;
     }
     memset(cmdline, '\0', CMDLINE_SIZE + 1);
-    device = adb_read(device, cmdline, CMDLINE_SIZE);
-    if (device < 0) {
+    nread = adb_read(device, cmdline, CMDLINE_SIZE);
+    if (nread < 0) {
          WriteFdFmt(fd, "Couldn't read kernel cmdline!\n");
          goto errout;
     }
+    if (nread == CMDLINE_SIZE) {
+        WriteFdFmt(fd, "Warning: kernel cmdline may be truncated\n");
+    }
+    cmdline[nread] = '\0';
 
     if (kAllowDisableVerity) {
 #ifdef ADB_VERITY
@@ -426,10 +431,10 @@ errout:
     if (device != -1) {
         fsync(device);
         adb_close(device);
-        adb_close(fd);
-        if (cmdline)
-            free(cmdline);
     }
+    adb_close(fd);
+    if (cmdline)
+        free(cmdline);
 }
 
 void set_verity_enabled_state_service(int fd, void* cookie)

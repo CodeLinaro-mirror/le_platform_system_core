@@ -43,7 +43,6 @@ enable_debug_tracing_events() {
         workqueue \
         ipi \
         sched \
-        gunyah \
         oom \
     "
 
@@ -54,7 +53,7 @@ enable_debug_tracing_events() {
      #Enable for seperate events tracing
 
     tracing_events_instance_dir="/sys/kernel/debug/tracing/instances/"
-    specific_events="safelinux rwmmio secure_buffer scmi"
+    specific_events="safelinux rwmmio secure_buffer gunyah scmi suspend_resume"
 
     for event in $specific_events; do
         instance="$tracing_events_instance_dir/$event"

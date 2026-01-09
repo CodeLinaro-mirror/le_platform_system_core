@@ -53,7 +53,7 @@ set_cpu_idle_state_disable()
 {
     for cpu in $(seq 0 17); do
         echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state0/disable
-        echo 0 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state1/disable
+        echo 1 > /sys/devices/system/cpu/cpu$cpu/cpuidle/state1/disable
     done
 }
 

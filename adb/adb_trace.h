@@ -17,10 +17,10 @@
 #ifndef __ADB_TRACE_H
 #define __ADB_TRACE_H
 
+#include <stdio.h>
+
 #if !ADB_HOST
 #include <android/log.h>
-#else
-#include <stdio.h>
 #endif
 
 /* IMPORTANT: if you change the following list, don't
@@ -63,6 +63,10 @@ void    adb_trace_init(void);
 
 #  define ADB_TRACING  ((adb_trace_mask & (1 << TRACE_TAG)) != 0)
 
+#if !ADB_HOST
+extern FILE *adbd_log_fp;
+#endif
+
 /* you must define TRACE_TAG before using this macro */
 #if ADB_HOST
 #  define  D(...)                                      \
@@ -96,19 +100,31 @@ void    adb_trace_init(void);
 #  define  D(...)                                      \
         do {                                           \
             if (ADB_TRACING) {                         \
-                __android_log_print(                   \
-                    ANDROID_LOG_INFO,                  \
-                    __FUNCTION__,                      \
-                    __VA_ARGS__ );                     \
-            }                                          \
+                int save_errno = errno;                \
+                adb_mutex_lock(&D_lock);               \
+                FILE* log_fp = adbd_log_fp ? adbd_log_fp : stderr; \
+                fprintf(log_fp, "%16s: %5d:%5lu | ",   \
+                        __FUNCTION__,                  \
+                        getpid(), adb_thread_id());    \
+                errno = save_errno;                    \
+                fprintf(log_fp, __VA_ARGS__ );         \
+                fflush(log_fp);                        \
+                adb_mutex_unlock(&D_lock);             \
+                errno = save_errno;                    \
+           }                                           \
         } while (0)
+
 #  define  DR(...)                                     \
         do {                                           \
             if (ADB_TRACING) {                         \
-                __android_log_print(                   \
-                    ANDROID_LOG_INFO,                  \
-                    __FUNCTION__,                      \
-                    __VA_ARGS__ );                     \
+                int save_errno = errno;                \
+                adb_mutex_lock(&D_lock);               \
+                FILE* log_fp = adbd_log_fp ? adbd_log_fp : stderr; \
+                errno = save_errno;                    \
+                fprintf(log_fp, __VA_ARGS__ );         \
+                fflush(log_fp);                        \
+                adb_mutex_unlock(&D_lock);             \
+                errno = save_errno;                    \
             }                                          \
         } while (0)
 #endif /* ADB_HOST */

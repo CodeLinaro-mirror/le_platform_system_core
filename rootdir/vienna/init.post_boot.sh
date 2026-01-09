@@ -111,6 +111,7 @@ fi
 
 case "$platformid" in
 	"669"|"670")
+		/bin/sh /etc/init.qti.kernel.debug-vienna.sh
 		/bin/sh /etc/init.kernel.post_boot-vienna.sh
 		;;
 	*)

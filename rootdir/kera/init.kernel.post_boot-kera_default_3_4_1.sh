@@ -129,6 +129,8 @@ if [ -d /proc/sys/walt ]; then
 	echo 1190400 80 1612800 80 2073600 80 2707200 80 2841600 80 > /sys/devices/system/cpu/cpufreq/policy3/walt/zone_max_util_pct
 	echo 1209600 80 1651200 80 2150400 80 2496000 80 2956800 80 > /sys/devices/system/cpu/cpufreq/policy7/walt/zone_max_util_pct
 
+	# rebuild perf domains
+	echo 1 > /proc/sys/kernel/sched_energy_aware
 else
 	echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
 	echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy3/scaling_governor

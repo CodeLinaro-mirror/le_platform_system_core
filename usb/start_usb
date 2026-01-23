@@ -343,13 +343,13 @@ case "$1" in
 		fi
 	fi
 
-	# 4E11 for auto target 8775, 8650, 8255, 7255, 8620, 8797, 8397:
+	# 4E11 for auto target 8775, 8650, 8255, 7255, 8620, 8797, 8397, 8787:
 	if [ -f /sys/devices/soc0/machine ]; then
 		target=`cat /sys/devices/soc0/machine`
 	else
 		target=`getprop ro.board.platform`
 	fi
-	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650\|8797\|8397")" != "" ]; then
+	if [ "$(echo $target | grep "8775\|8255\|7255\|8620\|8650\|8797\|8397\|8787")" != "" ]; then
 		usb_composition 4E11
 		echo "usb_composition 4E11 done!"
 	fi

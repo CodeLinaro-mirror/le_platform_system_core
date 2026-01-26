@@ -96,6 +96,7 @@ ADB_MUTEX_DEFINE( D_lock );
 
 #if !ADB_HOST
 const char *adb_device_banner = "device";
+FILE *adbd_log_fp = stderr;
 #endif
 
 void fatal(const char *fmt, ...)
@@ -142,6 +143,31 @@ void start_device_log(void) {
     dup2(fd, STDERR_FILENO);
     fprintf(stderr, "--- adb starting (pid %d) ---\n", getpid());
     adb_close(fd);
+}
+
+void create_log_file(void) {
+    adb_mutex_lock(&D_lock);
+    if (adbd_log_fp != NULL && adbd_log_fp != stderr) {
+        fclose(adbd_log_fp);
+    }
+    adbd_log_fp = fopen("/data/adbd.log", "a");
+    if (!adbd_log_fp) {
+        adbd_log_fp = stderr;
+        fprintf(stderr, "adbd log file create fail, use stderr instead\n");
+    }
+    adb_mutex_unlock(&D_lock);
+}
+
+void close_log_file(void) {
+    adb_mutex_lock(&D_lock);
+    if (adbd_log_fp == NULL || adbd_log_fp == stderr) {
+        adb_mutex_unlock(&D_lock);
+        return;
+    }
+    fflush(adbd_log_fp);
+    fclose(adbd_log_fp);
+    adbd_log_fp = stderr;
+    adb_mutex_unlock(&D_lock);
 }
 #endif
 
@@ -204,6 +230,10 @@ void adb_trace_init() {
     if (trace_setting.empty()) {
         return;
     }
+
+#if !ADB_HOST
+    create_log_file();
+#endif
 
     // Use a comma/colon/semi-colon/space separated list
     const char* p = trace_setting.c_str();

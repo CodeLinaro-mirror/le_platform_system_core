@@ -70,6 +70,9 @@ const bool no_sysprop_ro_debuggable = true;
 static void adb_cleanup(void)
 {
     usb_cleanup();
+#if !ADB_HOST
+    close_log_file();
+#endif
 }
 
 #if defined(_WIN32)

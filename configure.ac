@@ -130,6 +130,12 @@ AC_ARG_ENABLE(prop-trig,
 
 AM_CONDITIONAL(PROPTRIGGER, [test "x${prop_trig}" = "xyes"])
 
+AC_ARG_ENABLE([disksymlink],
+  [AS_HELP_STRING([--enable-disksymlink], [build disksymlink module])],
+  [], [enable_disksymlink=no])
+
+AM_CONDITIONAL([BUILD_DISKSYMLINK], [test "x$enable_disksymlink" = "xyes"])
+
 AC_ARG_WITH([system-size],
         [AS_HELP_STRING([--with-system-size=SYSTEM_SIZE],[Size of system partition.])],
         [SYSTEM_SIZE="$withval"],
@@ -164,4 +170,9 @@ AC_CONFIG_FILES([ \
     libbacktrace/libbacktrace.pc \
     debuggerd/Makefile
 ])
+
+AS_IF([test "x$enable_disksymlink" = "xyes"], [
+  AC_CONFIG_FILES([disksymlink/Makefile])
+])
+
 AC_OUTPUT

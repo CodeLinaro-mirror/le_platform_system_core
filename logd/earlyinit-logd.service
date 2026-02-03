@@ -45,3 +45,5 @@ ExecStartPre=+/bin/chmod 0777 /dev/socket
 ExecStart=/bin/sh -c '/sbin/logd & echo $! >/var/run/logd.pid'
 PIDFile=/var/run/logd.pid
 ExecStopPost=-/bin/rm -rf /dev/socket/logd*
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP CAP_SYSLOG CAP_AUDIT_CONTROL
+AmbientCapabilities=CAP_SETUID CAP_SETGID CAP_SETPCAP CAP_SYSLOG CAP_AUDIT_CONTROL

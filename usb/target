@@ -90,6 +90,9 @@ case $TARGET in
 	*neo-le* | *sxrneo* | *sxrneo-ar-sg1* | *ar-sg1* )
 		res="sxrneo";
 		;;
+	*seraph* )
+	        res="seraph";
+		;;
 	*sdxnightjar* )
 		res="sdxnightjar";
 		;;

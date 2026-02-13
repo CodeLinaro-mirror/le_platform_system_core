@@ -273,7 +273,18 @@ if [ $soc_hwplatform != "IDP" ]; then
     ret="$?"
     if [ "$ret" -ne 0 ]; then
         echo "mhi_pipe_16 is not available"
-        exit
+        # write boot successful message to /data/post_boot/boot_flag for upstream flashless device
+        if [ ! -d "/data/post_boot" ]; then
+            echo "Error: /data/post_boot directory does not exist" >&2
+            exit 1
+        fi
+        if echo "BOOT_SUCCESSFUL" > /data/post_boot/boot_flag 2>/dev/null; then
+            echo "init_post_boot completed"
+            exit
+        else
+            echo "Warning: Failed to create boot status file at /data/post_boot/boot_flag" >&2
+            exit 1
+        fi
     fi
 
     echo "Sending boot successful message"

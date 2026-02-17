@@ -360,6 +360,36 @@ case "$1" in
 	if [ -d /sys/kernel/config/usb_gadget/g1/functions/uvc.0 ]; then
 		cd /sys/kernel/config/usb_gadget/g1/functions/uvc.0
 
+		TARGET_STRING="qcs610"
+		OUTPUT=$(/sbin/usb/target | tr -d '\n')
+
+		if [ "$OUTPUT" = "$TARGET_STRING" ]; then
+			# Enabled control for camera terminal:
+			# UVC_CT_AE_MODE_CONTROL                       = 0x02
+			# UVC_CT_AE_PRIORITY_CONTROL                   = 0x03
+			# UVC_CT_EXPOSURE_TIME_ABSOLUTE_CONTROL        = 0x04
+			# UVC_CT_FOCUS_AUTO_CONTROL                    = 0x08
+			# UVC_CT_ZOOM_ABSOLUTE_CONTROL                 = 0x0B
+			# UVC_CT_PANTILT_ABSOLUTE_CONTROL              = 0x0D
+			${LOCAL_ECHO} -ne "14\\n10\\n2\\n" > control/terminal/camera/default/bmControls
+			CAMERA_READ="$(cat control/terminal/camera/default/bmControls 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')"
+			${LOCAL_ECHO} -ne "uvc-setup: Camera bmControls: ${CAMERA_READ}\\n" > /dev/kmsg
+
+			# Enabled control for video processing unit:
+			# UVC_PU_BACKLIGHT_COMPENSATION_CONTROL        = 0x01
+			# UVC_PU_BRIGHTNESS_CONTROL                    = 0x02
+			# UVC_PU_CONTRAST_CONTROL                      = 0x03
+			# UVC_PU_GAIN_CONTROL                          = 0x04
+			# UVC_PU_POWER_LINE_FREQUENCY_CONTROL          = 0x05
+			# UVC_PU_SATURATION_CONTROL                    = 0x07
+			# UVC_PU_SHARPNESS_CONTROL                     = 0x08
+			# UVC_PU_WHITE_BALANCE_TEMPERATURE_CONTROL     = 0x0A
+			# UVC_PU_WHITE_BALANCE_TEMPERATURE_AUTO_CONTROL= 0x0B
+			${LOCAL_ECHO} -ne "91\\n23\\n" > control/processing/default/bmControls
+			PROCESS_READ="$(cat control/processing/default/bmControls 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')"
+			${LOCAL_ECHO} -ne "uvc-setup: Video processing bmControls: ${PROCESS_READ}\\n" > /dev/kmsg
+		fi
+
 		${LOCAL_ECHO} 3072 > streaming_maxpacket
 		${LOCAL_ECHO} 10 > streaming_maxburst
 		mkdir control/header/h

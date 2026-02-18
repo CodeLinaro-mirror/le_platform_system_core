@@ -139,6 +139,7 @@ case "$1" in
 		mkdir functions/gsi.rndis
 		mkdir functions/gsi.dpl
 		mkdir functions/qdss.qdss_mdm
+		mkdir functions/gsi.ecm
 
 		if [ "$target_tele" != "sa510m" ]; then
 			mkdir functions/mass_storage.1
@@ -147,7 +148,6 @@ case "$1" in
 			mkdir functions/diag.diag_mdm
 			mkdir functions/gser.0
 			mkdir functions/rmnet_bam.rmnet
-			mkdir functions/gsi.ecm
 			mkdir functions/gsi.mbim
 			mkdir functions/gsi.rmnet.v2x
 			mkdir functions/gsi.dpl

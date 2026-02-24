@@ -56,11 +56,17 @@ enable_debug_tracing_events() {
     specific_events="safelinux rwmmio secure_buffer gunyah scmi suspend_resume"
 
     for event in $specific_events; do
+        # rwmmio will cause heavy load on CPU, disable on perf build
+        if [ "$event" = "rwmmio" ] && uname -r | grep -q "perf"; then
+            continue
+        fi
+
         instance="$tracing_events_instance_dir/$event"
         mkdir -p $instance
-        cd $instance
-        echo $event > set_event
-        echo 1 > "$instance/events/$event/enable"
+        if [ -d "$instance" ]; then
+            echo $event > "$instance/set_event"
+            echo 1 > "$instance/events/$event/enable"
+        fi
     done
 }
 

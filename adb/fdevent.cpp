@@ -453,11 +453,13 @@ static void fdevent_register(fdevent *fde)
 static void fdevent_unregister(fdevent *fde)
 {
     if((fde->fd < 0) || (fde->fd >= fd_table_max)) {
-        FATAL("fd out of range (%d)\n", fde->fd);
+        D("fd out of range (%d)\n", fde->fd);
+        return;
     }
 
     if(fd_table[fde->fd] != fde) {
-        FATAL("fd_table out of sync [%d]\n", fde->fd);
+        D("fd_table out of sync [%d]\n", fde->fd);
+        return;
     }
 
     fd_table[fde->fd] = 0;

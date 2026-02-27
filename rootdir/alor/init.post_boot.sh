@@ -196,7 +196,7 @@ case "$platformid" in
 		#Pass as an argument the max number of clusters supported on the SOC
 		/bin/sh /etc/init.kernel.post_boot-canoe.sh 2
 		;;
-	"685"|"727")
+	"685"|"727"|"764")
 		/bin/sh /etc/init.kernel.post_boot-alor.sh 2
 		;;
 	*)

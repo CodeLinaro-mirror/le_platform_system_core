@@ -124,29 +124,29 @@ static int parse_flags(char *flags, struct flag_list *fl,
         for (i = 0; fl[i].name; i++) {
             if (!strncmp(p, fl[i].name, strlen(fl[i].name))) {
                 f |= fl[i].flag;
+                char *start = strchr(p, '=');
+                if (start == NULL)
+                    break;
                 if ((fl[i].flag == MF_CRYPT) && flag_vals) {
                     /* The encryptable flag is followed by an = and the
                      * location of the keys.  Get it and return it.
                      */
-                    flag_vals->key_loc = strdup(strchr(p, '=') + 1);
+                    flag_vals->key_loc = strdup(start + 1);
                 } else if ((fl[i].flag == MF_VERIFY) && flag_vals) {
                     /* If the verify flag is followed by an = and the
                      * location for the verity state,  get it and return it.
                      */
-                    char *start = strchr(p, '=');
-                    if (start) {
-                        flag_vals->verity_loc = strdup(start + 1);
-                    }
+                    flag_vals->verity_loc = strdup(start + 1);
                 } else if ((fl[i].flag == MF_FORCECRYPT) && flag_vals) {
                     /* The forceencrypt flag is followed by an = and the
                      * location of the keys.  Get it and return it.
                      */
-                    flag_vals->key_loc = strdup(strchr(p, '=') + 1);
+                    flag_vals->key_loc = strdup(start + 1);
                 } else if ((fl[i].flag == MF_LENGTH) && flag_vals) {
                     /* The length flag is followed by an = and the
                      * size of the partition.  Get it and return it.
                      */
-                    flag_vals->part_length = strtoll(strchr(p, '=') + 1, NULL, 0);
+                    flag_vals->part_length = strtoll(start + 1, NULL, 0);
                 } else if ((fl[i].flag == MF_VOLDMANAGED) && flag_vals) {
                     /* The voldmanaged flag is followed by an = and the
                      * label, a colon and the partition number or the
@@ -163,7 +163,7 @@ static int parse_flags(char *flags, struct flag_list *fl,
                     if (label_end) {
                         flag_vals->label = strndup(label_start,
                                                    (int) (label_end - label_start));
-                        part_start = strchr(p, ':') + 1;
+                        part_start = label_end + 1;
                         if (!strcmp(part_start, "auto")) {
                             flag_vals->partnum = -1;
                         } else {
@@ -176,7 +176,7 @@ static int parse_flags(char *flags, struct flag_list *fl,
                     flag_vals->swap_prio = strtoll(strchr(p, '=') + 1, NULL, 0);
                 } else if ((fl[i].flag == MF_ZRAMSIZE) && flag_vals) {
                     int is_percent = !!strrchr(p, '%');
-                    unsigned int val = strtoll(strchr(p, '=') + 1, NULL, 0);
+                    unsigned int val = strtoll(start + 1, NULL, 0);
                     if (is_percent)
                         flag_vals->zram_size = calculate_zram_size(val);
                     else

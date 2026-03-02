@@ -274,6 +274,8 @@ static int parse_expr(cstate *cs, cnode *root)
             if(lex(cs, 0) != T_TEXT)
                 return -1;
             node = _config_create(node, cs->text);
+            if (node == NULL)
+                return -1;
             continue;
 
         case T_TEXT:

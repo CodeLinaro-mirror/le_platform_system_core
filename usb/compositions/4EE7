@@ -98,12 +98,12 @@ run_non_configfs() {
 	echo 1 > /sys/class/android_usb/android$num/enable
 	if [ $from_adb = "n" ]
 	then
-		/etc/launch_adbd start
+		/sbin/launch_adbd start
 	fi
 }
 
 run_configfs() {
-	echo start > /data/usb_bind_in_progress
+	echo start > /tmp/usb_bind_in_progress
 	if [ $from_adb = "n" ]
 	then
 		pkill adbd
@@ -118,7 +118,7 @@ run_configfs() {
 	echo 0x4EE7 > idProduct
 	echo "ADB" > configs/c.1/strings/0x409/configuration
 	ln -s functions/ffs.adb configs/c.1/f1
-	rm -f /data/usb_bind_in_progress
+	rm -f /tmp/usb_bind_in_progress
 	echo $bmAttributes > configs/c.1/bmAttributes
 	echo "binding UDC with Gadget..." $1
 	echo $1 > UDC

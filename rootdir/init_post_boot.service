@@ -34,6 +34,8 @@ After=multi-user.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=+/bin/mkdir -p /data/post_boot
+ExecStartPre=-/sbin/restorecon /data/post_boot
 ExecStart=/etc/init.post_boot.sh
 
 [Install]

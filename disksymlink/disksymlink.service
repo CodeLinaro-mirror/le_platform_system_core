@@ -5,6 +5,8 @@
 [Unit]
 Description=Disk Partition Symlink
 DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 User=root
@@ -12,6 +14,7 @@ Group=root
 SupplementaryGroups=disk
 Restart=no
 RemainAfterExit=yes
+Type=oneshot
 ExecStart=/usr/sbin/disksymlink-service
 
 [Install]

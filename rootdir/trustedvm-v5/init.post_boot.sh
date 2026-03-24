@@ -44,6 +44,29 @@ echo -n "Started post boot settings " > /dev/kmsg
 echo 0 > /proc/sys/vm/watermark_boost_factor
 echo -n "Watermark boost is disabled" > /dev/kmsg
 
+# Throttle prefetching of block devices to avoid excessive memory consumption
+function throttle_block_device {
+    echo -n "throttling /sys/block/$1" > /dev/kmsg
+    if [ -e "/sys/block/$1" ]; then
+        echo 0 > "/sys/block/$1/queue/rotational"
+        echo 128 > "/sys/block/$1/queue/read_ahead_kb"
+        if [ -e "/sys/block/$1/queue/nr_requests" ]; then
+            # dm-# blocks do not have this file
+            echo 31 > "/sys/block/$1/queue/nr_requests"
+        fi
+    else
+        echo -n "/sys/block/$1 does not exist on bootup" > /dev/kmsg
+    fi
+}
+throttle_block_device "vda"
+throttle_block_device "vdb"
+# throttle the dm-verity driver too if it exists
+system_blk="$(dmsetup info system -c --noheadings -o blkdevname)"
+if [ $? -eq 0 ]; then
+    throttle_block_device "$system_blk"
+    echo 0 > /sys/module/dm_verity/parameters/prefetch_cluster
+fi
+
 #ftrace
 tracefs=/sys/kernel/debug/tracing
 

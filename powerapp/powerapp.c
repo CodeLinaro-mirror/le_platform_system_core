@@ -54,6 +54,15 @@
 /* If the duration is less than 800 ms, it reboot else shutdown */
 #define VM_REBOOT_THRESHOLD 800000
 
+// time element is deprecated on new input_event structure in kernel's input.h
+#ifndef input_event_sec
+#define input_event_sec time.tv_sec
+#endif
+
+#ifndef input_event_usec
+#define input_event_usec time.tv_usec
+#endif
+
 /* Finds and opens an mtdchar device with the given partition name. Returns a
    valid file desciptor or -1 on failure. */
 static int mtd_open_partition_name(const char *partition_name, unsigned int *dev_id,
@@ -435,11 +444,11 @@ main(int argc, char *argv[])
 
       if (ev.type == EV_KEY && ev.code == KEY_POWER && ev.value == 1)
       {
-	 memcpy(&then, &ev.time, sizeof(struct timeval));
+	 memcpy(&then.tv_sec, &ev.input_event_sec, sizeof(ev.input_event_sec));
       }
       else if (ev.type == EV_KEY && ev.code == KEY_POWER && ev.value == 0)
       {
-	 memcpy(&now, &ev.time, sizeof(struct timeval));
+	 memcpy(&now.tv_sec, &ev.input_event_sec, sizeof(ev.input_event_sec));
 	 duration = diff_timestamps(&then, &now);
 
          /* For VM, duration is interpretted to shutdown or reboot */

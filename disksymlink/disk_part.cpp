@@ -13,40 +13,26 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <blkid/blkid.h>
 #include "disk_symlink.h"
 
 int get_dev_by_partname(char *part_name, char *disk_path, int disk_path_len)
 {
     char *devname;
-    int ret = 0;
 
-    blkid_cache cache = NULL;
-    if (blkid_get_cache(&cache, NULL) < 0) {
-        DISK_SYMLINK_LOG_ERR("blkid get cache fail,err:%s\n", strerror(errno));
-        ret = -1;
-        goto out;
-    }
-
-    devname = blkid_get_devname(cache, "PART_ENTRY_NAME", part_name);
+    devname = blkid_get_devname(g_blkid_cache, "PART_ENTRY_NAME", part_name);
     if (!devname) {
         /*with PARTLABEL try again*/
-        devname = blkid_get_devname(cache, "PARTLABEL", part_name);
+        devname = blkid_get_devname(g_blkid_cache, "PARTLABEL", part_name);
     }
 
     if (!devname) {
         DISK_SYMLINK_LOG_ERR("blkid get devname by PARTLABEL for partname %s fail,err: %s\n", part_name, strerror(errno));
-        ret = -1;
-        goto out;
+        return -1;
     }
 
     snprintf(disk_path, disk_path_len-1, "%s", devname);
     free(devname);
-
-out:
-    if (cache)
-        blkid_put_cache(cache);
-    return ret;
+    return 0;
 }
 
 int read_part_by_name(char *part_name, void *buf, size_t read_size)

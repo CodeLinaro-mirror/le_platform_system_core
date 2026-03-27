@@ -62,16 +62,17 @@ usb_bind() {
 
 case "$1" in
   init)
-	# enable concurrent SoftAP and DUN
-	if [ -f /etc/data/usb/softap_w_dun ]
-	then
-		SOFTAP_W_DUN=`cat /etc/data/usb/softap_w_dun`
-	fi
-
 	# bail out from script if qcom_gadget is enabled and
 	# SoftAP with DUN is not enabled
-	enabled=`cat /sys/bus/platform/devices/qcom_gadget/enabled`
+	if [ -f /sys/bus/platform/devices/qcom_gadget/enabled ]; then
+		enabled=`cat /sys/bus/platform/devices/qcom_gadget/enabled`
+	else
+		enabled="N"
+	fi
 	if [ "$enabled" = "Y" ]; then
+		if [ -f /etc/data/usb/softap_w_dun ]; then
+			SOFTAP_W_DUN=`cat /etc/data/usb/softap_w_dun`
+		fi
 		if [ "$SOFTAP_W_DUN" = "N" ]; then
 			exit 0
 		else
@@ -117,7 +118,9 @@ case "$1" in
 	msm_serial_hex=`printf %08X $msm_serial`
 	product_string="$socplatform-$soc_hwplatform _SN:$msm_serial_hex"
 
+	# Get target platform once and reuse it throughout the script
 	target_tele=`. /sbin/usb/target`
+
 	# try to mount configfs, and create instance of USB functions if it goes through
 	mount -t configfs -o nosuid,nodev,noexec configfs /sys/kernel/config
 	if [ -d /sys/kernel/config/usb_gadget ]; then
@@ -136,15 +139,15 @@ case "$1" in
 		mkdir functions/gsi.rndis
 		mkdir functions/gsi.dpl
 		mkdir functions/qdss.qdss_mdm
+		mkdir functions/gsi.ecm
 
-		if [ $target_tele != "sa510m" ]; then
+		if [ "$target_tele" != "sa510m" ]; then
 			mkdir functions/mass_storage.1
 			mkdir functions/ffs.mtp
 			mkdir functions/diag.diag
 			mkdir functions/diag.diag_mdm
 			mkdir functions/gser.0
 			mkdir functions/rmnet_bam.rmnet
-			mkdir functions/gsi.ecm
 			mkdir functions/gsi.mbim
 			mkdir functions/gsi.rmnet.v2x
 			mkdir functions/gsi.dpl
@@ -159,7 +162,6 @@ case "$1" in
 			mkdir functions/rndis.rndis
 			mkdir functions/ipc.ipc
 			mkdir functions/ecm.ecm
-			mkdir functions/ncm.0
 			mkdir functions/hid.usb0
 			mkdir functions/ccid.ccid
 			mkdir functions/rmnet_bam.rmnet_bam_dmux
@@ -169,7 +171,7 @@ case "$1" in
 		kernel_version=${KERNEL%%.*}
 		if [ "$kernel_version" -ge "5" ]; then
 			mkdir functions/ffs.diag
-			if [ $target_tele != "sa510m" ]; then
+			if [ "$target_tele" != "sa510m" ]; then
 				mkdir functions/ffs.diag_mdm
 			fi
 		fi
@@ -222,7 +224,7 @@ case "$1" in
 
 	mount -o remount,gid=5,mode=620 /dev/pts
 
-	case `. /sbin/usb/target` in
+	case "$target_tele" in
 		*9x15* )
 			# Nothing to do here for 9x15
 			;;
@@ -258,7 +260,28 @@ case "$1" in
 		*sxr2130* )
 			${LOCAL_ECHO} 9060 > /etc/usb/boot_hsusb_comp
 			;;
-		*sdxpoorwills* | *sdxprairie* )
+		*sdxpoorwills* )
+			# Check if device is standalone ADP
+			if [ "$soc_hwplatform" = "ADP" ] && [ "$soc_subtypeid" = "0" ]; then
+				echo 90DB > /etc/usb/boot_hsusb_comp
+			# Check if device is ADP with PCIe fusion
+			elif [ "$soc_hwplatform" = "ADP" ] && [ "$soc_subtypeid" = "1" ]; then
+				echo 9104 > /etc/usb/boot_hsusb_comp
+			# Check if device is ADP with USB fusion
+			elif [ "$soc_hwplatform" = "ADP" ] && [ "$soc_subtypeid" = "2" ]; then
+				case `cat /etc/usb/boot_hsusb_comp` in
+					*9102* )
+						# Dual RmNet selected by user, no change required
+					;;
+					* )
+						echo 9106 > /etc/usb/boot_hsusb_comp
+					;;
+				esac
+			elif [ -e /dev/mhi_ctrl ]; then
+				echo 901F > /etc/usb/boot_hsusb_comp
+			fi
+			;;
+		*sdxprairie* )
 			if [ -e /dev/mhi_ctrl ]; then
 				${LOCAL_ECHO} 901F > /etc/usb/boot_hsusb_comp
 			fi

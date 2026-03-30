@@ -44,6 +44,7 @@ enable_debug_tracing_events() {
         ipi \
         sched \
         oom \
+        watchdog \
     "
 
     for event in $events; do

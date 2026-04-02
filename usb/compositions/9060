@@ -137,8 +137,8 @@ case $target in
 		run_9x35 &
 		;;
 	*sa510m* | *sdxprairie* | *sdxlemur* | *sdxnightjar* | *sa410m* | *sxr2130* \
-		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* | *sa525m*  | *scuba* | *sdxpoorwills* | *qcs610* | *vienna* )
-		if [ $target = "sa510m" ] || [ $target = "sxrneo" ] || \
+		| *sxrneo* | *cinder* | *sm8450p* | *kalama* | *sdxpinn* | *sa525m*  | *scuba* | *sdxpoorwills* | *qcs610* | *vienna* | *seraph* )
+		if [ $target = "sa510m" ] || [ $target = "sxrneo" ] || [ $target = "seraph" ] || \
 		   [ $target = "cinder" ] || [ $target = "sm8450p" ] || [ $target = "sdxpinn" ] || [ $target = "scuba" ] || [ $target = "sdxlemur" ]; then
 			qdss_func="qdss.qdss_mdm"
 		elif [ $target = "kalama" ] || [ $target = "qcs610" ] || [ $target = "vienna" ]; then

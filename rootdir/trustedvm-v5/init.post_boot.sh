@@ -43,6 +43,7 @@ echo -n "Started post boot settings " > /dev/kmsg
 #disable watermark boost
 echo 0 > /proc/sys/vm/watermark_boost_factor
 echo -n "Watermark boost is disabled" > /dev/kmsg
+echo 128 > /proc/sys/vm/min_free_kbytes
 
 # Throttle prefetching of block devices to avoid excessive memory consumption
 function throttle_block_device {

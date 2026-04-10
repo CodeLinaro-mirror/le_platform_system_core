@@ -95,6 +95,9 @@ function configure_memory_parameters() {
         # huge pages is not as necessary.
         echo 0 > /proc/sys/vm/compaction_proactiveness
 
+	# This reduces the threshold for free pages required before kswapd starts reclaiming memory.
+	echo 50 > /proc/sys/vm/watermark_scale_factor
+
         #Set per-app max kgsl reclaim limit and per shrinker call limit
         if [ -f /sys/class/kgsl/kgsl/page_reclaim_per_call ]; then
                 echo 38400 > /sys/class/kgsl/kgsl/page_reclaim_per_call

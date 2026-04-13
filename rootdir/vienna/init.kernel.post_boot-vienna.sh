@@ -64,7 +64,7 @@ if [ -d /proc/sys/walt ]; then
         echo 30 > /sys/devices/system/cpu/cpu4/core_ctl/busy_down_thres
         echo 100 > /sys/devices/system/cpu/cpu4/core_ctl/offline_delay_ms
         echo 1 > /sys/devices/system/cpu/cpu4/core_ctl/task_thres
-        echo 0 > /sys/devices/system/cpu/cpu4/core_ctl/not_preferred
+        echo 1 > /sys/devices/system/cpu/cpu4/core_ctl/not_preferred
 
         echo 1 > /sys/devices/system/cpu/cpu0/core_ctl/enable
         echo 1 > /sys/devices/system/cpu/cpu4/core_ctl/enable
@@ -131,8 +131,11 @@ if [ -d /proc/sys/walt ]; then
         echo 0 > /sys/devices/system/cpu/cpufreq/policy4/walt/down_rate_limit_us
         echo 0 > /sys/devices/system/cpu/cpufreq/policy4/walt/up_rate_limit_us
 
-        echo 0 > /sys/devices/system/cpu/cpufreq/policy0/walt/pl
-        echo 0 > /sys/devices/system/cpu/cpufreq/policy4/walt/pl
+        echo 1 > /sys/devices/system/cpu/cpufreq/policy0/walt/pl
+        echo 1 > /sys/devices/system/cpu/cpufreq/policy4/walt/pl
+
+        echo 1478400 90 1958400 80 > /sys/devices/system/cpu/cpufreq/policy0/walt/zone_max_util_pct
+        echo 1612800 90 2112000 80 > /sys/devices/system/cpu/cpufreq/policy4/walt/zone_max_util_pct
 
         if [ $rev == "1.0" ] || [ $rev == "1.1" ]; then
                 echo 249600 > /sys/devices/system/cpu/cpufreq/policy0/walt/rtg_boost_freq
@@ -176,16 +179,15 @@ for ddrbw in $bus_dcvs/DDR/*bwmon-ddr
 do
         echo "762 1721 2087 5163 5932 6518 7983 10437 12158 14062 16133" > $ddrbw/mbps_zones
         echo 4 > $ddrbw/sample_ms
-        echo 120 > $ddrbw/io_percent
+        echo 68 > $ddrbw/io_percent
         echo 20 > $ddrbw/hist_memory
-        echo 5 > $ddrbw/hyst_length
-        echo 1 > $ddrbw/idle_length
+        echo 0 > $ddrbw/hyst_length
+        echo 0 > $ddrbw/idle_length
         echo 30 > $ddrbw/down_thres
         echo 0 > $ddrbw/guard_band_mbps
         echo 250 > $ddrbw/up_scale
         echo 1600 > $ddrbw/idle_mbps
         echo 4224000 > $ddrbw/max_freq
-        echo 70 > $ddrbw/ab_scale
         echo 40 > $ddrbw/window_ms
 done
 

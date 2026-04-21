@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <linux/fs.h>
 #include <stdlib.h>
+#include <blkid/blkid.h>
 
 #define MAX_PART_NAME_LEN          (64)
 #define MAX_PATH_NAME_LEN          (256)
@@ -49,6 +50,7 @@ typedef struct bootloader_message {
   char reserved[1184];
 } misc_partition_t;
 
+extern blkid_cache g_blkid_cache;
 int get_dev_by_partname(char *part_name, char *disk_path, int disk_path_len);
 int read_part_by_name(char *part_name, void *buf, size_t read_size);
 #endif

@@ -114,8 +114,8 @@ fi
 
 case "$platformid" in
 	"669"|"670")
-		/bin/sh /etc/init.qti.kernel.debug-vienna.sh
-		/bin/sh /etc/init.kernel.post_boot-vienna.sh
+		/bin/sh /usr/sbin/init.qti.kernel.debug-vienna.sh
+		/bin/sh /usr/sbin/init.kernel.post_boot-vienna.sh
 		;;
 	*)
 		echo "***WARNING***: Invalid SoC ID\n\t No postboot settings applied!!\n"
